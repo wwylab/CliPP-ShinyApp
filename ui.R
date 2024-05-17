@@ -37,13 +37,14 @@ ui <- fluidPage(
     p("Aaron Wu - ", a(href = "aw80@rice.edu", "aw80@rice.edu")),
     br(),
     p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
-  Please check the three links below to download the example files:"),
+       Please check the three links below to download the example files:"),
     p(a("SNV file", href="sample.snv.txt", download="sample.snv.txt"), 
       "TSV file with columns: chromosome_index, position, ref_count, alt_count", br(),
       a("CNA file", href="sample.cna.txt", download="sample.cna.txt"), 
       "TSV file with columns: chromosome_index, start_position, end_position, major_cn, minor_cn, and total_cn", br(),
       a("Purity file", href="sample.purity.txt", download="sample.purity.txt"), 
-      "File storing a scalar purity value between 0 and 1")
+      "File storing a scalar purity value between 0 and 1"),
+    p("When uploading files, please ensure the file names contain the appropriate suffixes (e.g., snv.txt, cna.txt, purity.txt) to help the application correctly identify and process them.")
   ),
   sidebarLayout(
     sidebarPanel(
