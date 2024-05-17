@@ -4,6 +4,7 @@ library(dplyr)
 library(purrr)
 library(plotly)
 library(readr)
+library(shinyjs)
 
 # Note: must install pandas in order to run this code
 
@@ -43,6 +44,9 @@ server <- function(input, output, session) {
         )
       })
     })
+    shinyjs::show("uploadSamples")
+    shinyjs::hide("setSamples")
+    shinyjs::disable("numSamples")
   })
   
   # Helper function to store uploaded files
@@ -87,9 +91,10 @@ server <- function(input, output, session) {
     samplesUploaded(TRUE)
     updateSelectInput(session, "selectedSample", choices = names(samples))
     showNotification("Samples uploaded successfully.", type = "message")
-    shinyjs::disable("uploadSamples")
-    shinyjs::disable("numSamples")
-    shinyjs::disable("setSamples")
+    shinyjs::hide("uploadSamples")
+    shinyjs::show("selectedSample")
+    shinyjs::show("submit")
+    shinyjs::show("colorBy")
   })
   
   # This event allows for the plots and output to only be displayed after 
