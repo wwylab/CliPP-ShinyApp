@@ -87,6 +87,9 @@ server <- function(input, output, session) {
     samplesUploaded(TRUE)
     updateSelectInput(session, "selectedSample", choices = names(samples))
     showNotification("Samples uploaded successfully.", type = "message")
+    shinyjs::disable("uploadSamples")
+    shinyjs::disable("numSamples")
+    shinyjs::disable("setSamples")
   })
   
   # This event allows for the plots and output to only be displayed after 
@@ -167,11 +170,14 @@ server <- function(input, output, session) {
     }
   })
   
+  output$samplesUploaded <- reactive({ samplesUploaded() })
+  outputOptions(output, "samplesUploaded", suspendWhenHidden = FALSE)
+  
   # Observe plot readiness and render plots
   observe({
     req(plotsReady())
+    
     output$plot1 <- renderPlotly({
-      
       if (input$submit == 0 || !plotsReady()) return()  # Ensure files are uploaded
       
       selectedSample <- input$selectedSample
@@ -225,7 +231,8 @@ server <- function(input, output, session) {
         smoothing_factor1 <- input$smoothingFactor1
         
         merged_df <- merged_df %>%
-          mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"))
+          mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+                 ReadDepth = sum_counts)
         
         print(head(merged_df))
         
@@ -236,20 +243,23 @@ server <- function(input, output, session) {
         subclonality_counts <- subclonality_counts %>%
           rename(n = n)
         
+        # Determine the color aesthetic based on the user input
+        color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
+        
         # Create plot
         gg1 <- ggplot(merged_df, aes(x = AF)) + 
           geom_density(fill="gray",alpha=.6,adjust=smoothing_factor1) +
           geom_point(
             ## draw horizontal lines instead of points
             shape = 142, 
-            size = 5,#size will need to be adjusted depending on how large the figure is 
-            alpha = .3, aes(y=-.750,color=Subclonality,
-                            text=paste("Chromosome:", chromosome_index, "<br>Position:", position))
-          )+xlim(0,1)+
+            size = 5, #size will need to be adjusted depending on how large the figure is 
+            alpha = .3, aes(y=-.750, color = !!sym(color_aesthetic),
+                            text = paste("Chromosome:", chromosome_index, "<br>Position:", position))
+          ) + xlim(0,1) +
           ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
-          geom_text(data=data.frame(),aes(label=paste0("n clonal = ",subclonality_counts%>%filter(Subclonality=="Clonal")%>%select(n)),x=.85,y=-1.65))+
-          geom_text(data=data.frame(),aes(label=paste0("n subclonal = ",subclonality_counts%>%filter(Subclonality=="Subclonal")%>%select(n)),x=.85,y=-2.65))+
-          ggpubr::theme_pubr()+xlab("VAF")+ylab("Density")+theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
+          geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = .85, y = -1.65)) +
+          geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = .85, y = -2.65)) +
+          ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
         
         ggplotly(gg1)
       }
@@ -258,7 +268,7 @@ server <- function(input, output, session) {
     # here is where the captions for graph 1 are stored
     output$caption1 <- renderUI({
       if (plotsReady()) {
-        HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele. A VAF close to 0 indicates no variant alleles, while 1 indicates only variant alleles.<br>
+        HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
          - <b>Purity</b> reflects the proportion of tumor cells in the sample. For instance, a purity of 0.9 means 90% of the cells are cancerous.<br>
          - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
          - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE). <br>
@@ -320,7 +330,8 @@ server <- function(input, output, session) {
         smoothing_factor2 <- input$smoothingFactor2
         
         merged_df <- merged_df %>%
-          mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"))
+          mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+                 ReadDepth = sum_counts)
         
         print(head(merged_df))
         
@@ -331,22 +342,25 @@ server <- function(input, output, session) {
         subclonality_counts <- subclonality_counts %>%
           rename(n = n)
         
+        # Determine the color aesthetic based on the user input
+        color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
+        
         # Create plot
         gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) + 
           geom_density(fill="seagreen",alpha=.6,adjust=smoothing_factor2) +
           geom_point(
             ## draw horizontal lines instead of points
             shape = 142, 
-            size = 5,#size will need to be adjusted depending on how large the figure is
-            alpha = .3, aes(y=-.750,color=Subclonality,
-                            text=paste("Chromosome:", chromosome_index, "<br>Position:", position))
-          )+xlim(0,1.5)+
+            size = 5, #size will need to be adjusted depending on how large the figure is
+            alpha = .3, aes(y=-.750, color = !!sym(color_aesthetic),
+                            text = paste("Chromosome:", chromosome_index, "<br>Position:", position))
+          ) + xlim(0,1.5) +
           ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
-          geom_text(data=data.frame(),aes(label=paste0("n clonal = ",subclonality_counts%>%filter(Subclonality=="Clonal")%>%select(n)),x=1.3,y=-1.65))+
-          geom_text(data=data.frame(),aes(label=paste0("n subclonal = ",subclonality_counts%>%filter(Subclonality=="Subclonal")%>%select(n)),x=1.3,y=-2.65))+
+          geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
+          geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = 1.3, y = -2.65)) +
           ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") + 
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
-          geom_segment(data=df_subc,aes(x = cellular_prevalence, xend=cellular_prevalence, y=0, yend=5.7), lty="dashed") 
+          geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed") 
         
         ggplotly(gg2)
       }
@@ -355,7 +369,7 @@ server <- function(input, output, session) {
     # here is where the captions for graph 2 are stored
     output$caption2 <- renderUI({
       if (plotsReady()) {
-        HTML("<p> - <b>Cellular Prevalence estimated at each SNV without penalization (Estimated mutation-specific CP) </b> estimates gene copies in the tumor adjusted for purity without penalization, reflecting the observed vs. expected gene copy numbers.<br>
+        HTML("<p> - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
          - Annotations on the x-axis indicate whether mutations are <b>clonal</b> (present in all tumor cells) or <b>subclonal</b> (found in a subset).<br>
          - Counts of clonal and subclonal mutations are indicated as <b>n clonal</b> and <b>n subclonal</b> respectively.<br>
     </p>")
