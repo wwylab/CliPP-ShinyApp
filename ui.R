@@ -66,9 +66,9 @@ ui <- fluidPage(
       br(),
       conditionalPanel(
         condition = "output.samplesUploaded == true",
-        selectInput("selectedSample", "Select a sample to analyze:", choices = NULL)
+        selectInput("selectedSample", "Select a sample to analyze:", choices = NULL),
+        actionButton("submit", "Submit", class = "btn-primary"),
       ),
-      actionButton("submit", "Submit", class = "btn-primary"),
       
       # Adds the dropdown for coloring options
       selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality"),
