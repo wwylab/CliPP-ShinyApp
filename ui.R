@@ -1,8 +1,10 @@
 library(plotly)
 library(shinyjs)
+
 ui <- fluidPage(
   shinyjs::useShinyjs(), 
   titlePanel("CliPP-on-Web: Clonal structure identification through penalizing pairwise differences"),
+  
   # Introduction
   tags$div(
     p("Subpopulations of tumor cells characterized by mutation profiles may confer differential fitness 
@@ -46,6 +48,7 @@ ui <- fluidPage(
       "File storing a scalar purity value between 0 and 1"),
     p("When uploading files, please ensure the file names contain the appropriate suffixes (e.g., snv.txt, cna.txt, purity.txt) to help the application correctly identify and process them.")
   ),
+  
   sidebarLayout(
     sidebarPanel(
       # Two inputs that alternate upload mode
@@ -61,8 +64,15 @@ ui <- fluidPage(
       uiOutput("dynamicFileInputs"),
       actionButton("uploadSamples", "Upload Samples", class = "btn-primary"),
       br(),
-      selectInput("selectedSample", "Select a sample to analyze:", choices = NULL),
+      conditionalPanel(
+        condition = "output.samplesUploaded == true",
+        selectInput("selectedSample", "Select a sample to analyze:", choices = NULL)
+      ),
       actionButton("submit", "Submit", class = "btn-primary"),
+      
+      # Adds the dropdown for coloring options
+      selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality"),
+      
       # Adds the smoothing slider
       conditionalPanel(
         condition = "output.plotReadyText == 'true'", 
@@ -72,6 +82,7 @@ ui <- fluidPage(
                     min = 0.2, max = 0.7, value = 0.5, step = 0.1)
       )
     ),
+    
     # Produces the main plots
     mainPanel(
       plotlyOutput("plot1"),
@@ -79,7 +90,7 @@ ui <- fluidPage(
       plotlyOutput("plot2"),
       uiOutput("caption2"),
       uiOutput("plotOutputArea"),
-      hidden(div(id = "plotReadyText")), 
+      hidden(div(id = "plotReadyText"))
     )
   )
 )
