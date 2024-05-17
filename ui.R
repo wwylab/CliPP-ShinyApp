@@ -27,16 +27,16 @@ ui <- fluidPage(
     p("Copyright ", HTML("&copy;"), " 2024 Wang Lab at MD Anderson. All rights reserved."),
     br(),
     h5("Manuscript under preparation:"),
-    p("Yujie Jiang, Matthew D Montierth, Kaixian Yu, Shuangxi Ji, Shuai Guo, Quang Tran, Seung Jun Shin, Shaolong Cao, 
+    p("Aaron Wu, Matthew D Montierth, Yujie Jiang, Kaixian Yu, Shuangxi Ji, Shuai Guo, Quang Tran, Seung Jun Shin, Shaolong Cao, 
       Ruonan Li, Yuxin Tang, Tom Lesluyes, Scott Kopetz, Jaffer Ajani, Pavlos Msaouel, Sumit K Subudhi, Ana Aparicio, 
       Padmanee Sharma, John Paul Shen, Anil K. Sood, Maxime Tarabichi, Jennifer R. Wang, Marek Kimmel, Peter Van Loo, 
-      Hongtu Zhu, Wenyi Wang, Aaron Wu. Pan-cancer subclonal mutation analysis of 7,827 tumors predicts clinical outcome."),
+      Hongtu Zhu, Wenyi Wang. Pan-cancer subclonal mutation analysis of 7,827 tumors predicts clinical outcome."),
     br(),
     p("For issues with the app, please contact:"),
-    p("Wenyi Wang - ", a(href = "wwang7@mdanderson.org", "wwang7@mdanderson.org")),
-    p("Quang Tran - ", a(href = "qmtran@mdanderson.org", "qmtran@mdanderson.org")),
-    p("Matthew Montierth - ", a(href = "montiert@bcm.edu", "montiert@bcm.edu")),
     p("Aaron Wu - ", a(href = "aw80@rice.edu", "aw80@rice.edu")),
+    p("Matthew Montierth - ", a(href = "montiert@bcm.edu", "montiert@bcm.edu")),
+    p("Quang Tran - ", a(href = "qmtran@mdanderson.org", "qmtran@mdanderson.org")),
+    p("Wenyi Wang - ", a(href = "wwang7@mdanderson.org", "wwang7@mdanderson.org")),
     br(),
     p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
        Please check the three links below to download the example files:"),
@@ -51,29 +51,21 @@ ui <- fluidPage(
   
   sidebarLayout(
     sidebarPanel(
-      # Two inputs that alternate upload mode
       radioButtons("uploadMode", "Choose your upload method:",
                    choices = list("Upload all files at once" = "all_at_once",
                                   "Upload files individually" = "individually"),
                    selected = "all_at_once"),
       
-      # Number input to give amount of samples
       numericInput("numSamples", "Number of samples:", min = 1, max = 10, value = 1),
       actionButton("setSamples", "Set Samples", class = "btn-primary"),
       br(),
       uiOutput("dynamicFileInputs"),
-      actionButton("uploadSamples", "Upload Samples", class = "btn-primary"),
+      hidden(actionButton("uploadSamples", "Upload Samples", class = "btn-primary")),
       br(),
-      conditionalPanel(
-        condition = "output.samplesUploaded == true",
-        selectInput("selectedSample", "Select a sample to analyze:", choices = NULL),
-        actionButton("submit", "Submit", class = "btn-primary"),
-      ),
+      hidden(selectInput("selectedSample", "Select a sample to analyze:", choices = NULL)),
+      hidden(actionButton("submit", "Submit", class = "btn-primary")),
+      hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
       
-      # Adds the dropdown for coloring options
-      selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality"),
-      
-      # Adds the smoothing slider
       conditionalPanel(
         condition = "output.plotReadyText == 'true'", 
         sliderInput("smoothingFactor1", "Smoothing Factor for Plot 1:",
@@ -83,7 +75,6 @@ ui <- fluidPage(
       )
     ),
     
-    # Produces the main plots
     mainPanel(
       plotlyOutput("plot1"),
       uiOutput("caption1"),
