@@ -67,6 +67,8 @@ ui <- fluidPage(
       hidden(actionButton("submit", "Submit", class = "btn-primary")),
       hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
       
+      hidden(actionButton("clear", "Clear", class = "btn-danger")), # Clear button
+      
       # This controls the buttons prompted by conditions (smoothing, button appearance timings)
       conditionalPanel(
         condition = "output.plotReadyText == 'true'", 
