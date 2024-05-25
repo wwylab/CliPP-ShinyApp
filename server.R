@@ -98,6 +98,29 @@ server <- function(input, output, session) {
     shinyjs::show("selectedSample")
     shinyjs::show("submit")
     shinyjs::show("colorBy")
+    shinyjs::show("clear") 
+  })
+  
+  # Event to clear the current batch and restart the upload process
+  observeEvent(input$clear, {
+    uploadedSamples$samples <- list()
+    samplesUploaded(FALSE)
+    updateNumericInput(session, "numSamples", value = 1)
+    shinyjs::reset("dynamicFileInputs")
+    shinyjs::hide("selectedSample")
+    shinyjs::hide("submit")
+    shinyjs::hide("colorBy")
+    shinyjs::hide("clear")
+    shinyjs::hide("plot1")
+    shinyjs::hide("plot2")
+    shinyjs::hide("caption1")
+    shinyjs::hide("caption2")
+    shinyjs::hide("plotOutputArea")
+    shinyjs::show("setSamples")
+    shinyjs::enable("numSamples")
+    plotsReady(FALSE)
+    shinyjs::hide("uploadSamples")
+    shinyjs::reset("numSamples")
   })
   
   # This event allows for the plots and output to only be displayed after 
@@ -258,10 +281,10 @@ server <- function(input, output, session) {
         # Create plot
         gg1 <- ggplot(merged_df, aes(x = AF)) + 
           geom_density(fill="gray",alpha=.6,adjust=smoothing_factor1) +
-          geom_point(
+          geom_point(## draw horizontal lines instead of points
             aes(y=-.750, color = !!sym(color_aesthetic)), 
             shape = 142, 
-            size = 5, 
+            size = 5, #size will need to be adjusted depending on how large the figure is 
             alpha = .3
           ) + xlim(0,1) +
           ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
@@ -357,10 +380,10 @@ server <- function(input, output, session) {
         # Create plot
         gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) + 
           geom_density(fill="seagreen",alpha=.6,adjust=smoothing_factor2) +
-          geom_point(
+          geom_point(## draw horizontal lines instead of points
             aes(y=-.750, color = !!sym(color_aesthetic)), 
             shape = 142, 
-            size = 5, 
+            size = 5, #size will need to be adjusted depending on how large the figure is 
             alpha = .3
           ) + xlim(0,1.5) +
           ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
