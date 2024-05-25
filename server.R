@@ -30,9 +30,11 @@ server <- function(input, output, session) {
         tagList(
           h4(paste("Sample", i)),
           textInput(paste0("sampleName", i), "Sample Name:", value = paste0("Sample", i)),
+          # All_at_once path
           if (input$uploadMode == "all_at_once") {
             fileInput(paste0("fileInput", i), "Upload all three required files (snv.txt, cna.txt, purity.txt):",
                       multiple = TRUE, accept = c(".txt"))
+            # Single upload (gives users less experienced with technology to upload)
           } else {
             tagList(
               fileInput(paste0("snvFile", i), "SNV file:", multiple = FALSE, accept = c(".txt")),
@@ -71,6 +73,7 @@ server <- function(input, output, session) {
         cnaFile <- input[[paste0("cnaFile", i)]]
         purityFile <- input[[paste0("purityFile", i)]]
         
+        # Stores the samples so that they can be uploaded at a later time
         if (!is.null(snvFile) && !is.null(cnaFile) && !is.null(purityFile)) {
           samples[[sampleName]] <- list(
             snvFile = snvFile$datapath,
@@ -182,6 +185,7 @@ server <- function(input, output, session) {
   observe({
     req(plotsReady())
     
+    # Plot 1
     output$plot1 <- renderPlotly({
       if (input$submit == 0 || !plotsReady()) return()  # Ensure files are uploaded
       
@@ -255,18 +259,17 @@ server <- function(input, output, session) {
         gg1 <- ggplot(merged_df, aes(x = AF)) + 
           geom_density(fill="gray",alpha=.6,adjust=smoothing_factor1) +
           geom_point(
-            ## draw horizontal lines instead of points
+            aes(y=-.750, color = !!sym(color_aesthetic)), 
             shape = 142, 
-            size = 5, #size will need to be adjusted depending on how large the figure is 
-            alpha = .3, aes(y=-.750, color = !!sym(color_aesthetic),
-                            text = paste("Chromosome:", chromosome_index, "<br>Position:", position))
+            size = 5, 
+            alpha = .3
           ) + xlim(0,1) +
           ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
           geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = .85, y = -1.65)) +
           geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = .85, y = -2.65)) +
           ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
         
-        ggplotly(gg1)
+        ggplotly(gg1, tooltip = c("x", "color"))
       }
     })
     
@@ -281,6 +284,7 @@ server <- function(input, output, session) {
       }
     })
     
+    # Plot 2
     output$plot2 <- renderPlotly({
       if (input$submit == 0 || !plotsReady()) return()  
       
@@ -354,11 +358,10 @@ server <- function(input, output, session) {
         gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) + 
           geom_density(fill="seagreen",alpha=.6,adjust=smoothing_factor2) +
           geom_point(
-            ## draw horizontal lines instead of points
+            aes(y=-.750, color = !!sym(color_aesthetic)), 
             shape = 142, 
-            size = 5, #size will need to be adjusted depending on how large the figure is
-            alpha = .3, aes(y=-.750, color = !!sym(color_aesthetic),
-                            text = paste("Chromosome:", chromosome_index, "<br>Position:", position))
+            size = 5, 
+            alpha = .3
           ) + xlim(0,1.5) +
           ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
           geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
@@ -367,7 +370,7 @@ server <- function(input, output, session) {
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
           geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed") 
         
-        ggplotly(gg2)
+        ggplotly(gg2, tooltip = c("x", "color"))
       }
     })
     
