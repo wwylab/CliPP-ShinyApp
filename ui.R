@@ -27,16 +27,16 @@ ui <- fluidPage(
     p("Copyright ", HTML("&copy;"), " 2024 Wang Lab at MD Anderson. All rights reserved."),
     br(),
     h5("Manuscript under preparation:"),
-    p("Yujie Jiang, Matthew D Montierth, Kaixian Yu, Shuangxi Ji, Shuai Guo, Quang Tran, Seung Jun Shin, Shaolong Cao, 
+    p("Aaron Wu, Matthew D Montierth, Yujie Jiang, Kaixian Yu, Shuangxi Ji, Shuai Guo, Quang Tran, Seung Jun Shin, Shaolong Cao, 
       Ruonan Li, Yuxin Tang, Tom Lesluyes, Scott Kopetz, Jaffer Ajani, Pavlos Msaouel, Sumit K Subudhi, Ana Aparicio, 
       Padmanee Sharma, John Paul Shen, Anil K. Sood, Maxime Tarabichi, Jennifer R. Wang, Marek Kimmel, Peter Van Loo, 
       Hongtu Zhu, Wenyi Wang. Pan-cancer subclonal mutation analysis of 7,827 tumors predicts clinical outcome."),
     br(),
     p("For issues with the app, please contact:"),
-    p("Aaron Wu - ", a(href = "aw80@rice.edu", "aw80@rice.edu")),
-    p("Matthew Montierth - ", a(href = "montiert@bcm.edu", "montiert@bcm.edu")),
-    p("Quang Tran - ", a(href = "qmtran@mdanderson.org", "qmtran@mdanderson.org")),
-    p("Wenyi Wang - ", a(href = "wwang7@mdanderson.org", "wwang7@mdanderson.org")),
+    p("Aaron Wu - ", a(href = "mailto:aw80@rice.edu", "aw80@rice.edu")),
+    p("Matthew Montierth - ", a(href = "mailto:montiert@bcm.edu", "montiert@bcm.edu")),
+    p("Quang Tran - ", a(href = "mailto:qmtran@mdanderson.org", "qmtran@mdanderson.org")),
+    p("Wenyi Wang - ", a(href = "mailto:wwang7@mdanderson.org", "wwang7@mdanderson.org")),
     br(),
     p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
        Please check the three links below to download the example files:"),
@@ -49,6 +49,7 @@ ui <- fluidPage(
     p("When uploading files, please ensure the file names contain the appropriate suffixes (e.g., snv.txt, cna.txt, purity.txt) to help the application correctly identify and process them.")
   ),
   
+  # This controls the top bar that displays the small side buttons (upload mode, submit, etc)
   sidebarLayout(
     sidebarPanel(
       radioButtons("uploadMode", "Choose your upload method:",
@@ -66,6 +67,7 @@ ui <- fluidPage(
       hidden(actionButton("submit", "Submit", class = "btn-primary")),
       hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
       
+      # This controls the buttons prompted by conditions (smoothing, button appearance timings)
       conditionalPanel(
         condition = "output.plotReadyText == 'true'", 
         sliderInput("smoothingFactor1", "Smoothing Factor for Plot 1:",
@@ -75,6 +77,7 @@ ui <- fluidPage(
       )
     ),
     
+    # This controls the production of plots and captions
     mainPanel(
       plotlyOutput("plot1"),
       uiOutput("caption1"),
