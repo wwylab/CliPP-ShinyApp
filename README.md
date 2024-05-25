@@ -53,10 +53,10 @@ CliPP: <a href="https://github.com/wwylab/CliPP">https://github.com/wwylab/CliPP
 Manuscript under preparation
 
 ## Contact
-* aw80[AT]rice.edu
-* montiert[AT]bcm.edu
-* qmtran[AT]mdanderson.org
-* wwang7[AT]mdanderson.org
+* aw80@rice.edu
+* montiert@bcm.edu
+* qmtran@mdanderson.org
+* wwang7@mdanderson.org
 
 ---
 ## COPYRIGHT 
