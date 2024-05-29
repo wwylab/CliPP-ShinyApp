@@ -266,7 +266,7 @@ server <- function(input, output, session) {
           mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                  ReadDepth = sum_counts)
         
-        print(head(merged_df))
+        #print(head(merged_df))
         
         subclonality_counts <- merged_df %>%
           count(Subclonality)
@@ -281,18 +281,22 @@ server <- function(input, output, session) {
         # Create plot
         gg1 <- ggplot(merged_df, aes(x = AF)) + 
           geom_density(fill="gray",alpha=.6,adjust=smoothing_factor1) +
-          geom_point(## draw horizontal lines instead of points
-            aes(y=-.750, color = !!sym(color_aesthetic)), 
-            shape = 142, 
-            size = 5, #size will need to be adjusted depending on how large the figure is 
-            alpha = .3
-          ) + xlim(0,1) +
+          suppressWarnings(geom_point(
+            shape = 142,  # Draw horizontal lines instead of points
+            size = 5,     # Adjust size based on the figure's dimensions
+            alpha = 0.3,  # Transparency
+            aes(
+              y = -0.75,  # Fixed y-position
+              color = !!sym(color_aesthetic),  # Dynamic color
+              text = paste("Chromosome:", chromosome_index, "<br>Position:", position)  # Hover text
+            )
+          )) + xlim(0,1) +
           ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
           geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = .85, y = -1.65)) +
           geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = .85, y = -2.65)) +
           ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
         
-        ggplotly(gg1, tooltip = c("x", "color"))
+        ggplotly(gg1)#, tooltip = c("x", "color", "text"))
       }
     })
     
@@ -365,7 +369,7 @@ server <- function(input, output, session) {
           mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                  ReadDepth = sum_counts)
         
-        print(head(merged_df))
+        #print(head(merged_df))
         
         subclonality_counts <- merged_df %>%
           count(Subclonality)
@@ -380,12 +384,16 @@ server <- function(input, output, session) {
         # Create plot
         gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) + 
           geom_density(fill="seagreen",alpha=.6,adjust=smoothing_factor2) +
-          geom_point(## draw horizontal lines instead of points
-            aes(y=-.750, color = !!sym(color_aesthetic)), 
-            shape = 142, 
-            size = 5, #size will need to be adjusted depending on how large the figure is 
-            alpha = .3
-          ) + xlim(0,1.5) +
+          suppressWarnings(geom_point(
+            shape = 142,  # Draw horizontal lines instead of points
+            size = 5,     # Adjust size based on the figure's dimensions
+            alpha = 0.3,  # Transparency
+            aes(
+              y = -0.75,  # Fixed y-position
+              color = !!sym(color_aesthetic),  # Dynamic color
+              text = paste("Chromosome:", chromosome_index, "<br>Position:", position)  # Hover text
+            )
+          )) + xlim(0,1.5) +
           ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
           geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
           geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = 1.3, y = -2.65)) +
@@ -393,7 +401,7 @@ server <- function(input, output, session) {
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
           geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed") 
         
-        ggplotly(gg2, tooltip = c("x", "color"))
+        ggplotly(gg2)#, tooltip = c("x", "color", "text"))
       }
     })
     
