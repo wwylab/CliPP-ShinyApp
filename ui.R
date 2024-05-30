@@ -30,7 +30,7 @@ ui <- fluidPage(
     p("Yujie Jiang, Matthew D Montierth, Kaixian Yu, Shuangxi Ji, Shuai Guo, Quang Tran, Seung Jun Shin, Shaolong Cao, 
       Ruonan Li, Yuxin Tang, Tom Lesluyes, Scott Kopetz, Jaffer Ajani, Pavlos Msaouel, Sumit K Subudhi, Ana Aparicio, 
       Padmanee Sharma, John Paul Shen, Anil K. Sood, Maxime Tarabichi, Jennifer R. Wang, Marek Kimmel, Peter Van Loo, 
-      Hongtu Zhu, Wenyi Wang. Pan-cancer subclonal mutation analysis of 7,827 tumors predicts clinical outcome."),
+      Hongtu Zhu, Wenyi Wang, Jeffrey Pennington, Aaron Wu. Pan-cancer subclonal mutation analysis of 7,827 tumors predicts clinical outcome."),
     br(),
     p("For issues with the app, please contact:"),
     p("Aaron Wu - ", a(href = "mailto:aw80@rice.edu", "aw80@rice.edu")),
@@ -67,6 +67,7 @@ ui <- fluidPage(
       hidden(actionButton("submit", "Submit", class = "btn-primary")),
       hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
       
+      # Move the clear button to appear only after submission
       hidden(actionButton("clear", "Clear", class = "btn-danger")), # Clear button
       
       # This controls the buttons prompted by conditions (smoothing, button appearance timings)
