@@ -98,7 +98,6 @@ server <- function(input, output, session) {
     shinyjs::show("selectedSample")
     shinyjs::show("submit")
     shinyjs::show("colorBy")
-    shinyjs::show("clear") 
   })
   
   # Event to clear the current batch and restart the upload process
@@ -171,6 +170,7 @@ server <- function(input, output, session) {
       "Processing complete. Select a file to download."
     })
     plotsReady(TRUE)
+    shinyjs::show("clear")  # Show the clear button only after submission
   })
   
   # Download handler
