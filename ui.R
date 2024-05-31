@@ -34,9 +34,7 @@ ui <- fluidPage(
     br(),
     p("For issues with the app, please contact:"),
     p("Aaron Wu - ", a(href = "mailto:aw80@rice.edu", "aw80@rice.edu")),
-    p("Matthew Montierth - ", a(href = "mailto:montiert@bcm.edu", "montiert@bcm.edu")),
     p("Quang Tran - ", a(href = "mailto:qmtran@mdanderson.org", "qmtran@mdanderson.org")),
-    p("Wenyi Wang - ", a(href = "mailto:wwang7@mdanderson.org", "wwang7@mdanderson.org")),
     br(),
     p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
        Please check the three links below to download the example files:"),
