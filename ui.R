@@ -47,45 +47,65 @@ ui <- fluidPage(
     p("When uploading files, please ensure the file names contain the appropriate suffixes (e.g., snv.txt, cna.txt, purity.txt) to help the application correctly identify and process them.")
   ),
   
-  # This controls the top bar that displays the small side buttons (upload mode, submit, etc)
-  sidebarLayout(
-    sidebarPanel(
-      radioButtons("uploadMode", "Choose your upload method:",
-                   choices = list("Upload all files at once" = "all_at_once",
-                                  "Upload files individually" = "individually"),
-                   selected = "all_at_once"),
-      
-      numericInput("numSamples", "Number of samples:", min = 1, max = 10, value = 1),
-      actionButton("setSamples", "Set Samples", class = "btn-primary"),
-      br(),
-      uiOutput("dynamicFileInputs"),
-      hidden(actionButton("uploadSamples", "Upload Samples", class = "btn-primary")),
-      br(),
-      hidden(selectInput("selectedSample", "Select a sample to analyze:", choices = NULL)),
-      hidden(actionButton("submit", "Submit", class = "btn-primary")),
-      hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
-      
-      # Move the clear button to appear only after submission
-      hidden(actionButton("clear", "Clear", class = "btn-danger")), # Clear button
-      
-      # This controls the buttons prompted by conditions (smoothing, button appearance timings)
-      conditionalPanel(
-        condition = "output.plotReadyText == 'true'", 
-        sliderInput("smoothingFactor1", "Smoothing Factor for Plot 1:",
-                    min = 0.2, max = 0.7, value = 0.5, step = 0.1),
-        sliderInput("smoothingFactor2", "Smoothing Factor for Plot 2:",
-                    min = 0.2, max = 0.7, value = 0.5, step = 0.1)
-      )
-    ),
-    
-    # This controls the production of plots and captions
-    mainPanel(
-      plotlyOutput("plot1"),
-      uiOutput("caption1"),
-      plotlyOutput("plot2"),
-      uiOutput("caption2"),
-      uiOutput("plotOutputArea"),
-      hidden(div(id = "plotReadyText"))
-    )
+  navbarPage("",
+             tabPanel("Upload your own samples",
+                      # This controls the top bar that displays the small side buttons (upload mode, submit, etc)
+                      sidebarLayout(
+                        sidebarPanel(
+                          radioButtons("uploadMode", "Choose your upload method:",
+                                       choices = list("Upload all files at once" = "all_at_once",
+                                                      "Upload files individually" = "individually"),
+                                       selected = "all_at_once"),
+                          
+                          numericInput("numSamples", "Number of samples:", min = 1, max = 10, value = 1),
+                          actionButton("setSamples", "Set Samples", class = "btn-primary"),
+                          br(),
+                          uiOutput("dynamicFileInputs"),
+                          hidden(actionButton("uploadSamples", "Upload Samples", class = "btn-primary")),
+                          br(),
+                          hidden(selectInput("selectedSample", "Select a sample to analyze:", choices = NULL)),
+                          hidden(actionButton("submit", "Submit", class = "btn-primary")),
+                          hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                          
+                          hidden(actionButton("clear", "Clear", class = "btn-danger")), # Clear button
+                          
+                          # This controls the buttons prompted by conditions (smoothing, button appearance timings)
+                          conditionalPanel(
+                            condition = "output.plotReadyText == 'true'", 
+                            sliderInput("smoothingFactor1", "Smoothing Factor for Plot 1:",
+                                        min = 0.2, max = 0.7, value = 0.5, step = 0.1),
+                            sliderInput("smoothingFactor2", "Smoothing Factor for Plot 2:",
+                                        min = 0.2, max = 0.7, value = 0.5, step = 0.1)
+                          )
+                        ),
+                        
+                        # This controls the production of plots and captions
+                        mainPanel(
+                          plotlyOutput("plot1"),
+                          uiOutput("caption1"),
+                          plotlyOutput("plot2"),
+                          uiOutput("caption2"),
+                          uiOutput("plotOutputArea"),
+                          hidden(div(id = "plotReadyText"))
+                        )
+                      )),
+             tabPanel("TCGA",
+                      sidebarLayout(
+                        sidebarPanel(
+                          # Input: Specify input parameters here
+                        ),
+                        mainPanel(
+                          # TODO:
+                        )
+                      )),
+             tabPanel("PCAWG",
+                      sidebarLayout(
+                        sidebarPanel(
+                          # Input: Specify input parameters here
+                        ),
+                        mainPanel(
+                          # TODO:
+                        )
+                      ))
   )
 )
