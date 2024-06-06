@@ -60,4 +60,4 @@ Manuscript under preparation
 
 ---
 ## COPYRIGHT 
-Copyright 2024 Wang Lab at MD Anderson. All rights reserved.
+@2024 The University of Texas MD Anderson Cancer Center
