@@ -6,8 +6,6 @@ library(plotly)
 library(readr)
 library(shinyjs)
 
-# Note: must install pandas in order to run this code
-
 server <- function(input, output, session) {
   plotsReady <- reactiveVal(FALSE)
   samplesUploaded <- reactiveVal(FALSE)
@@ -287,8 +285,7 @@ server <- function(input, output, session) {
             alpha = 0.3,  # Transparency
             aes(
               y = -0.75,  # Fixed y-position
-              color = !!sym(color_aesthetic),  # Dynamic color
-              text = paste("Chromosome:", chromosome_index, "<br>Position:", position)  # Hover text
+              color = !!sym(color_aesthetic)  # Dynamic color
             )
           )) + xlim(0,1) +
           ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
@@ -390,8 +387,7 @@ server <- function(input, output, session) {
             alpha = 0.3,  # Transparency
             aes(
               y = -0.75,  # Fixed y-position
-              color = !!sym(color_aesthetic),  # Dynamic color
-              text = paste("Chromosome:", chromosome_index, "<br>Position:", position)  # Hover text
+              color = !!sym(color_aesthetic)  # Dynamic color
             )
           )) + xlim(0,1.5) +
           ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
@@ -428,4 +424,340 @@ server <- function(input, output, session) {
       }
     })
   })
+  
+  # Handlers for TCGA and PCAWG sections
+  createSectionHandlers <- function(prefix) {
+    observeEvent(input[[paste0("selectedSample", prefix)]], {
+      samples <- list.files(path = "/path/to/server/directory", pattern = "*", full.names = TRUE)  # Update the path to the server directory
+      updateSelectInput(session, paste0("selectedSample", prefix), choices = samples)
+    })
+    
+    observeEvent(input[[paste0("setSamples", prefix)]], {
+      numSamples <- input[[paste0("numSamples", prefix)]]
+      output[[paste0("dynamicFileInputs", prefix)]] <- renderUI({
+        lapply(1:numSamples, function(i) {
+          tagList(
+            h4(paste("Sample", i)),
+            textInput(paste0("sampleName", i, prefix), "Sample Name:", value = paste0("Sample", i)),
+            # All_at_once path
+            if (input[[paste0("uploadMode", prefix)]] == "all_at_once") {
+              fileInput(paste0("fileInput", i, prefix), "Upload all three required files (snv.txt, cna.txt, purity.txt):",
+                        multiple = TRUE, accept = c(".txt"))
+              # Single upload (gives users less experienced with technology to upload)
+            } else {
+              tagList(
+                fileInput(paste0("snvFile", i, prefix), "SNV file:", multiple = FALSE, accept = c(".txt")),
+                fileInput(paste0("cnaFile", i, prefix), "CNA file:", multiple = FALSE, accept = c(".txt")),
+                fileInput(paste0("purityFile", i, prefix), "Purity file:", multiple = FALSE, accept = c(".txt")),
+                br()
+              )
+            }
+          )
+        })
+      })
+      shinyjs::show(paste0("uploadSamples", prefix))
+      shinyjs::hide(paste0("setSamples", prefix))
+      shinyjs::disable(paste0("numSamples", prefix))
+    })
+    
+    observeEvent(input[[paste0("uploadSamples", prefix)]], {
+      numSamples <- input[[paste0("numSamples", prefix)]]
+      samples <- storeUploadedFiles(input, numSamples, prefix)
+      uploadedSamples$samples <- samples
+      samplesUploaded(TRUE)
+      updateSelectInput(session, paste0("selectedSample", prefix), choices = names(samples))
+      showNotification("Samples uploaded successfully.", type = "message")
+      shinyjs::hide(paste0("uploadSamples", prefix))
+      shinyjs::show(paste0("selectedSample", prefix))
+      shinyjs::show(paste0("submit", prefix))
+      shinyjs::show(paste0("colorBy", prefix))
+    })
+    
+    observeEvent(input[[paste0("clear", prefix)]], {
+      uploadedSamples$samples <- list()
+      samplesUploaded(FALSE)
+      updateNumericInput(session, paste0("numSamples", prefix), value = 1)
+      shinyjs::reset(paste0("dynamicFileInputs", prefix))
+      shinyjs::hide(paste0("selectedSample", prefix))
+      shinyjs::hide(paste0("submit", prefix))
+      shinyjs::hide(paste0("colorBy", prefix))
+      shinyjs::hide(paste0("clear", prefix))
+      shinyjs::hide(paste0("plot1", prefix))
+      shinyjs::hide(paste0("plot2", prefix))
+      shinyjs::hide(paste0("caption1", prefix))
+      shinyjs::hide(paste0("caption2", prefix))
+      shinyjs::hide(paste0("plotOutputArea", prefix))
+      shinyjs::show(paste0("setSamples", prefix))
+      shinyjs::enable(paste0("numSamples", prefix))
+      plotsReady(FALSE)
+      shinyjs::hide(paste0("uploadSamples", prefix))
+      shinyjs::reset(paste0("numSamples", prefix))
+    })
+    
+    observeEvent(input[[paste0("submit", prefix)]], {
+      plotsReady(FALSE)
+      
+      selectedSample <- input[[paste0("selectedSample", prefix)]]
+      sampleFiles <- uploadedSamples$samples[[selectedSample]]
+      
+      if (is.null(sampleFiles)) {
+        showNotification("Please select a sample to analyze.", type = "error")
+        return()
+      }
+      
+      snvFile <- sampleFiles$snvFile
+      cnaFile <- sampleFiles$cnaFile
+      purityFile <- sampleFiles$purityFile
+      
+      if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) {
+        showNotification("One or more required files are missing.", type = "error")
+        return()
+      }
+      
+      # Define the directory path
+      directoryPath <- "forCliPP/CliPP/sample_id/"
+      
+      # Check if the directory exists, if not, create it
+      if (!dir.exists(directoryPath)) {
+        dir.create(directoryPath, recursive = TRUE, showWarnings = TRUE)
+      } else {
+        # Clear previous files in the directory
+        system(paste("rm -rf", shQuote(directoryPath)), intern = TRUE)
+      }
+      
+      # Construct the command
+      command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
+                         shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile))
+      
+      # Execute the command
+      system(command, intern = TRUE)
+      
+      # Update the file selection dropdown
+      updateSelectInput(session, paste0("selectedFile", prefix), choices = list.files(resultPath, pattern = "\\.txt$"))
+      
+      # Output message
+      output[[paste0("result", prefix)]] <- renderText({
+        "Processing complete. Select a file to download."
+      })
+      plotsReady(TRUE)
+      shinyjs::show(paste0("clear", prefix))  # Show the clear button only after submission
+    })
+    
+    observe({
+      req(plotsReady())
+      
+      # Plot 1
+      output[[paste0("plot1", prefix)]] <- renderPlotly({
+        if (input[[paste0("submit", prefix)]] == 0 || !plotsReady()) return()  # Ensure files are uploaded
+        
+        selectedSample <- input[[paste0("selectedSample", prefix)]]
+        sampleFiles <- uploadedSamples$samples[[selectedSample]]
+        
+        if (is.null(sampleFiles)) return()
+        
+        snvFile <- sampleFiles$snvFile
+        cnaFile <- sampleFiles$cnaFile
+        purityFile <- sampleFiles$purityFile
+        
+        if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) return()
+        
+        # Reading data
+        df_snv <- read.table(snvFile, header = TRUE, sep = "\t")
+        df_cna <- read.table(cnaFile, header = TRUE, sep = "\t")
+        purity <- as.numeric(readLines(purityFile))
+        
+        # Read mutation and subclonal structure assignments
+        matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+        matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+        
+        if (length(matching_file1) > 0 && length(matching_file2) > 0) {
+          df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
+          df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
+          
+          df_snvcna <- df_snv %>%
+            mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
+              inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+              if (any(inds)) df_cna$total_cn[which.max(inds)] else NA
+            }))
+          
+          # Calculate the sum of ref_count and alt_count
+          df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
+          
+          # Compute the mean of the sum_counts column
+          mean_rd <- mean(df_snvcna$sum_counts)
+          min_rd <- min(df_snvcna$sum_counts)
+          max_rd <- max(df_snvcna$sum_counts)
+          
+          merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+          merged_df['AF'] = merged_df['alt_count']/(merged_df['sum_counts'])
+          
+          merged_df$total_cn <- as.numeric(merged_df$total_cn)
+          merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
+          merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
+          merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
+          
+          total_SNVs <- sum(df_subc$num_SNV)
+          # smoothing is adjustable with slider
+          smoothing_factor1 <- input[[paste0("smoothingFactor1", prefix)]]
+          
+          merged_df <- merged_df %>%
+            mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+                   ReadDepth = sum_counts)
+          
+          subclonality_counts <- merged_df %>%
+            count(Subclonality)
+          
+          # Rename the count column to 'n' as specified in your desired data frame
+          subclonality_counts <- subclonality_counts %>%
+            rename(n = n)
+          
+          # Determine the color aesthetic based on the user input
+          color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
+          
+          # Create plot
+          gg1 <- ggplot(merged_df, aes(x = AF)) + 
+            geom_density(fill="gray",alpha=.6,adjust=smoothing_factor1) +
+            suppressWarnings(geom_point(
+              shape = 142,  # Draw horizontal lines instead of points
+              size = 5,     # Adjust size based on the figure's dimensions
+              alpha = 0.3,  # Transparency
+              aes(
+                y = -0.75,  # Fixed y-position
+                color = !!sym(color_aesthetic)  # Dynamic color
+              )
+            )) + xlim(0,1) +
+            ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
+            geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = .85, y = -1.65)) +
+            geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = .85, y = -2.65)) +
+            ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
+          
+          ggplotly(gg1)
+        }
+      })
+      
+      output[[paste0("caption1", prefix)]] <- renderUI({
+        if (plotsReady()) {
+          HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
+           - <b>Purity</b> reflects the proportion of tumor cells in the sample. For instance, a purity of 0.9 means 90% of the cells are cancerous.<br>
+           - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
+           - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE). <br>
+      </p>")
+        }
+      })
+      
+      # Plot 2
+      output[[paste0("plot2", prefix)]] <- renderPlotly({
+        if (input[[paste0("submit", prefix)]] == 0 || !plotsReady()) return()  
+        
+        selectedSample <- input[[paste0("selectedSample", prefix)]]
+        sampleFiles <- uploadedSamples$samples[[selectedSample]]
+        
+        if (is.null(sampleFiles)) return()
+        
+        snvFile <- sampleFiles$snvFile
+        cnaFile <- sampleFiles$cnaFile
+        purityFile <- sampleFiles$purityFile
+        
+        if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) return()
+        
+        # Reading data
+        df_snv <- read.table(snvFile, header = TRUE, sep = "\t")
+        df_cna <- read.table(cnaFile, header = TRUE, sep = "\t")
+        purity <- as.numeric(readLines(purityFile))
+        
+        # Read mutation and subclonal structure assignments
+        matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+        matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+        
+        if (length(matching_file1) > 0 && length(matching_file2) > 0) {
+          df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
+          df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
+          
+          df_snvcna <- df_snv %>%
+            mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
+              inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+              if (any(inds)) df_cna$total_cn[which.max(inds)] else NA
+            }))
+          
+          # Calculate the sum of ref_count and alt_count
+          df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
+          
+          # Compute the mean of the sum_counts column
+          mean_rd <- mean(df_snvcna$sum_counts)
+          min_rd <- min(df_snvcna$sum_counts)
+          max_rd <- max(df_snvcna$sum_counts)
+          
+          merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+          merged_df['AF'] = merged_df['alt_count']/(merged_df['sum_counts'])
+          
+          merged_df$total_cn <- as.numeric(merged_df$total_cn)
+          merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
+          merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
+          merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
+          
+          total_SNVs <- sum(df_subc$num_SNV)
+          # smoothing is adjustable with slider
+          smoothing_factor2 <- input[[paste0("smoothingFactor2", prefix)]]
+          
+          merged_df <- merged_df %>%
+            mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+                   ReadDepth = sum_counts)
+          
+          subclonality_counts <- merged_df %>%
+            count(Subclonality)
+          
+          # Rename the count column to 'n' as specified in your desired data frame
+          subclonality_counts <- subclonality_counts %>%
+            rename(n = n)
+          
+          # Determine the color aesthetic based on the user input
+          color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
+          
+          # Create plot
+          gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) + 
+            geom_density(fill="seagreen",alpha=.6,adjust=smoothing_factor2) +
+            suppressWarnings(geom_point(
+              shape = 142,  # Draw horizontal lines instead of points
+              size = 5,     # Adjust size based on the figure's dimensions
+              alpha = 0.3,  # Transparency
+              aes(
+                y = -0.75,  # Fixed y-position
+                color = !!sym(color_aesthetic)  # Dynamic color
+              )
+            )) + xlim(0,1.5) +
+            ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
+            geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
+            geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = 1.3, y = -2.65)) +
+            ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") + 
+            theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+            geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed") 
+          
+          ggplotly(gg2)
+        }
+      })
+      
+      output[[paste0("caption2", prefix)]] <- renderUI({
+        if (plotsReady()) {
+          HTML("<p> - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
+           - Annotations on the x-axis indicate whether mutations are <b>clonal</b> (present in all tumor cells) or <b>subclonal</b> (found in a subset).<br>
+           - Counts of clonal and subclonal mutations are indicated as <b>n clonal</b> and <b>n subclonal</b> respectively.<br>
+      </p>")
+        }
+      })
+      
+      output[[paste0("plotOutputArea", prefix)]] <- renderUI({
+        if (plotsReady()) {
+          fluidPage(
+            h4("Output:"),
+            textOutput(paste0("result", prefix)),
+            selectInput(paste0("selectedFile", prefix), "Choose a file to download:", choices = c()),
+            downloadButton(paste0("downloadResult", prefix), "Download Result")
+          )
+        }
+      })
+    })
+  }
+  
+  createSectionHandlers("TCGA")
+  createSectionHandlers("PCAWG")
 }
