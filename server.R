@@ -18,7 +18,7 @@ server <- function(input, output, session) {
   }
   
   # Define the output directory globally
-  outputDir <- getwd() 
+  outputDir <- getwd()
   resultPath <- file.path(outputDir, "forCliPP/CliPP/sample_id/final_result/Best_lambda")
   
   # Centralized function to read and validate files
@@ -43,7 +43,7 @@ server <- function(input, output, session) {
   observeEvent(input$setSamples, {
     numSamples <- input$numSamples
     output$dynamicFileInputs <- renderUI({
-      lapply(1$numSamples, function(i) {
+      lapply(1:numSamples, function(i) {
         tagList(
           h4(paste("Sample", i)),
           textInput(paste0("sampleName", i), "Sample Name:", value = paste0("Sample", i)),
@@ -194,7 +194,7 @@ server <- function(input, output, session) {
     })
     plotsReady(TRUE)
     # Show the clear button only after submission
-    shinyjs::show("clear")  
+    shinyjs::show("clear")
   })
   
   # Download handler
@@ -235,7 +235,7 @@ server <- function(input, output, session) {
     # Plot 1
     output$plot1 <- renderPlotly({
       # Ensure files are uploaded
-      if (input$submit == 0 || !plotsReady()) return()  
+      if (input$submit == 0 || !plotsReady()) return()
       
       selectedSample <- input$selectedSample
       sampleFiles <- uploadedSamples$samples[[selectedSample]]
@@ -266,7 +266,7 @@ server <- function(input, output, session) {
         df_snvcna <- df_snv %>%
           mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
             inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-            if (any(inds)) df_cna$total_cn[which.max(inds)] else NA
+            if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
           }))
         
         # Calculate the sum of ref_count and alt_count
@@ -278,7 +278,7 @@ server <- function(input, output, session) {
         max_rd <- max(df_snvcna$sum_counts)
         
         merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-        merged_df['AF'] = merged_df['alt_count']/(merged_df['sum_counts'])
+        merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
         
         merged_df$total_cn <- as.numeric(merged_df$total_cn)
         merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
@@ -306,26 +306,26 @@ server <- function(input, output, session) {
         color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
         
         # Create plot
-        gg1 <- ggplot(merged_df, aes(x = AF)) + 
-          geom_density(fill="gray",alpha=.6,adjust=smoothing_factor1) +
+        gg1 <- ggplot(merged_df, aes(x = AF)) +
+          geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
           suppressWarnings(geom_point(
             # Draw horizontal lines instead of points
-            shape = 142,  
+            shape = 142,
             # Adjust size based on the figure's dimensions
-            size = 5,   
+            size = 5,
             # Transparency
-            alpha = 0.3,  
+            alpha = 0.3,
             aes(
               # Fixed y-position
-              y = -0.75,  
+              y = -0.75,
               # Dynamic color
-              color = !!sym(color_aesthetic)  
+              color = !!sym(color_aesthetic)
             )
-          )) + xlim(0,1) +
+          )) + xlim(0, 1) +
           ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
           geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = .85, y = -1.65)) +
           geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = .85, y = -2.65)) +
-          ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
+          ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
         
         # , tooltip = c("x", "color", "text"))
         ggplotly(gg1)
@@ -345,7 +345,7 @@ server <- function(input, output, session) {
     
     # Plot 2
     output$plot2 <- renderPlotly({
-      if (input$submit == 0 || !plotsReady()) return()  
+      if (input$submit == 0 || !plotsReady()) return()
       
       selectedSample <- input$selectedSample
       sampleFiles <- uploadedSamples$samples[[selectedSample]]
@@ -376,7 +376,7 @@ server <- function(input, output, session) {
         df_snvcna <- df_snv %>%
           mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
             inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-            if (any(inds)) df_cna$total_cn[which.max(inds)] else NA
+            if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
           }))
         
         # Calculate the sum of ref_count and alt_count
@@ -388,7 +388,7 @@ server <- function(input, output, session) {
         max_rd <- max(df_snvcna$sum_counts)
         
         merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-        merged_df['AF'] = merged_df['alt_count']/(merged_df['sum_counts'])
+        merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
         
         merged_df$total_cn <- as.numeric(merged_df$total_cn)
         merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
@@ -408,7 +408,7 @@ server <- function(input, output, session) {
         subclonality_counts <- merged_df %>%
           count(Subclonality)
         
-        # Rename the count column to 'n' 
+        # Rename the count column to 'n'
         subclonality_counts <- subclonality_counts %>%
           rename(n = n)
         
@@ -416,28 +416,28 @@ server <- function(input, output, session) {
         color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
         
         # Create plot
-        gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) + 
-          geom_density(fill="seagreen",alpha=.6,adjust=smoothing_factor2) +
+        gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
+          geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
           suppressWarnings(geom_point(
             # Draw horizontal lines instead of points
-            shape = 142,  
+            shape = 142,
             # Adjust size based on the figure's dimensions
-            size = 5,    
+            size = 5,
             # Transparency
-            alpha = 0.3,  
+            alpha = 0.3,
             aes(
               # Fixed y-position
-              y = -0.75,  
+              y = -0.75,
               # Dynamic color
-              color = !!sym(color_aesthetic)  
+              color = !!sym(color_aesthetic)
             )
-          )) + xlim(0,1.5) +
+          )) + xlim(0, 1.5) +
           ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
           geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
           geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = 1.3, y = -2.65)) +
-          ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") + 
+          ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
-          geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed") 
+          geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
         
         # , tooltip = c("x", "color", "text"))
         ggplotly(gg2)
@@ -523,7 +523,7 @@ server <- function(input, output, session) {
       })
       plotsReady(TRUE)
       # Show the clear button only after submission
-      shinyjs::show(paste0("clear", prefix))  
+      shinyjs::show(paste0("clear", prefix))
     })
     
     observe({
@@ -532,7 +532,7 @@ server <- function(input, output, session) {
       # Plot 1
       output[[paste0("plot1", prefix)]] <- renderPlotly({
         # Ensure files are uploaded
-        if (input[[paste0("submit", prefix)]] == 0 || !plotsReady()) return()  
+        if (input[[paste0("submit", prefix)]] == 0 || !plotsReady()) return()
         
         selectedSample <- input[[paste0("selectedSample", prefix)]]
         sampleDir <- selectedSample
@@ -563,7 +563,7 @@ server <- function(input, output, session) {
           df_snvcna <- df_snv %>%
             mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
               inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-              if (any(inds)) df_cna$total_cn[which.max(inds)] else NA
+              if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
             }))
           
           # Calculate the sum of ref_count and alt_count
@@ -575,7 +575,7 @@ server <- function(input, output, session) {
           max_rd <- max(df_snvcna$sum_counts)
           
           merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-          merged_df['AF'] = merged_df['alt_count']/(merged_df['sum_counts'])
+          merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
           
           merged_df$total_cn <- as.numeric(merged_df$total_cn)
           merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
@@ -590,12 +590,12 @@ server <- function(input, output, session) {
             mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                    ReadDepth = sum_counts)
           
-          #print(head(merged_df))
+          # print(head(merged_df))
           
           subclonality_counts <- merged_df %>%
             count(Subclonality)
           
-          # Rename the count column to 'n' 
+          # Rename the count column to 'n'
           subclonality_counts <- subclonality_counts %>%
             rename(n = n)
           
@@ -603,26 +603,26 @@ server <- function(input, output, session) {
           color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
           
           # Create plot
-          gg1 <- ggplot(merged_df, aes(x = AF)) + 
-            geom_density(fill="gray",alpha=.6,adjust=smoothing_factor1) +
+          gg1 <- ggplot(merged_df, aes(x = AF)) +
+            geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
             suppressWarnings(geom_point(
               # Draw horizontal lines instead of points
-              shape = 142,  
+              shape = 142,
               # Adjust size based on the figure's dimensions
-              size = 5,    
+              size = 5,
               # Transparency
-              alpha = 0.3,  
+              alpha = 0.3,
               aes(
                 # Fixed y-position
-                y = -0.75,  
+                y = -0.75,
                 # Dynamic color
-                color = !!sym(color_aesthetic)  
+                color = !!sym(color_aesthetic)
               )
-            )) + xlim(0,1) +
+            )) + xlim(0, 1) +
             ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
             geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = .85, y = -1.65)) +
             geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = .85, y = -2.65)) +
-            ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
+            ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
           
           # , tooltip = c("x", "color", "text"))
           ggplotly(gg1)
@@ -642,7 +642,7 @@ server <- function(input, output, session) {
       
       # Plot 2
       output[[paste0("plot2", prefix)]] <- renderPlotly({
-        if (input[[paste0("submit", prefix)]] == 0 || !plotsReady()) return()  
+        if (input[[paste0("submit", prefix)]] == 0 || !plotsReady()) return()
         
         selectedSample <- input[[paste0("selectedSample", prefix)]]
         sampleDir <- selectedSample
@@ -673,7 +673,7 @@ server <- function(input, output, session) {
           df_snvcna <- df_snv %>%
             mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
               inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-              if (any(inds)) df_cna$total_cn[which.max(inds)] else NA
+              if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
             }))
           
           # Calculate the sum of ref_count and alt_count
@@ -685,7 +685,7 @@ server <- function(input, output, session) {
           max_rd <- max(df_snvcna$sum_counts)
           
           merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-          merged_df['AF'] = merged_df['alt_count']/(merged_df['sum_counts'])
+          merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
           
           merged_df$total_cn <- as.numeric(merged_df$total_cn)
           merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
@@ -700,12 +700,12 @@ server <- function(input, output, session) {
             mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                    ReadDepth = sum_counts)
           
-          #print(head(merged_df))
+          # print(head(merged_df))
           
           subclonality_counts <- merged_df %>%
             count(Subclonality)
           
-          # Rename the count column to 'n' 
+          # Rename the count column to 'n'
           subclonality_counts <- subclonality_counts %>%
             rename(n = n)
           
@@ -713,28 +713,28 @@ server <- function(input, output, session) {
           color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
           
           # Create plot
-          gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) + 
-            geom_density(fill="seagreen",alpha=.6,adjust=smoothing_factor2) +
+          gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
+            geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
             suppressWarnings(geom_point(
               # Draw horizontal lines instead of points
               shape = 142,
               # Adjust size based on the figure's dimensions
-              size = 5,    
+              size = 5,
               # Transparency
-              alpha = 0.3,  
+              alpha = 0.3,
               aes(
                 # Fixed y-position
-                y = -0.75,  
+                y = -0.75,
                 # Dynamic color
-                color = !!sym(color_aesthetic)  
+                color = !!sym(color_aesthetic)
               )
-            )) + xlim(0,1.5) +
+            )) + xlim(0, 1.5) +
             ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
             geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
             geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = 1.3, y = -2.65)) +
-            ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") + 
+            ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
             theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
-            geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed") 
+            geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
           
           # , tooltip = c("x", "color", "text"))
           ggplotly(gg2)
