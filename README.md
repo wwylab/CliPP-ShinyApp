@@ -11,7 +11,7 @@
    </a>
    <a href="https://github.com/wwylab/CliPP-ShinyApp/issues" target="_blank">
      <img alt="Github Issues"
-          src="https://img.shields.io/github/issues/stjude/RNAIndel" />
+          src="https://img.shields.io/github/issues/wwylab/CliPP-ShinyApp" />
    </a>
    <a href="https://github.com/wwylab/CliPP-ShinyApp/pulls" target="_blank">
      <img alt="Pull Requests"
