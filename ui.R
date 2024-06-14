@@ -3,10 +3,15 @@ library(shinyjs)
 
 ui <- fluidPage(
   shinyjs::useShinyjs(), 
-  titlePanel("CliPP-on-Web: Clonal structure identification through penalizing pairwise differences"),
   
+  # Title and copyright page important to display for research purposes
+  titlePanel("CliPP-on-Web: Clonal structure identification through penalizing pairwise differences"),
   div(p("Copyright ", HTML("&copy;"), " 2024 Wang Lab at MD Anderson. All rights reserved.")),
   
+  # New formatting splits into 4 pages: about section which has all of the descriptions of the process Wenyi pioneered, CliPP-on-Web used for clinicians to determine subclonal information
+  # CliPP Data Resources that loads PCAWG and TCGA directly from a folder for automatic information, and a citations for all of the users on the web
+  
+  # Page 1: About
   navbarPage("",
              tabPanel("About",
                       tags$div(
@@ -34,6 +39,8 @@ ui <- fluidPage(
                         p("Quang Tran - ", a(href = "mailto:qmtran@mdanderson.org", "qmtran@mdanderson.org"))
                       )
              ),
+             
+             # Page 2: CliPP-on-Web
              tabPanel("CliPP-on-Web",
                       tags$div(
                         tags$h4(tags$b("Upload Files")),
@@ -89,54 +96,22 @@ ui <- fluidPage(
                         )
                       )
              ),
+             
+             # Page 3: CliPP Data Resources
+             # Automatically runs the analysis on the files in the folder and produces the plots
              tabPanel("CliPP Data Resources",
                       tags$div(
                         tabsetPanel(
+                          # Type 1: TCGA
                           tabPanel("TCGA",
                                    tags$div(
                                      tags$h4(tags$b("TCGA Select")),
                                      sidebarLayout(
                                        sidebarPanel(
-                                         selectInput("selectedSampleTCGA", "Select a sample from the server:", choices = c()), # Dropdown to select samples from the server
-                                         hidden(tags$div(
-                                           p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
-                                             Please check the three links below to download the example files:"),
-                                           p(a("SNV file", href="sample.snv.txt", download="sample.snv.txt"), 
-                                             "TSV file with columns: ref_count, alt_count", br(),
-                                             a("CNA file", href="sample.cna.txt", download="sample.cna.txt"), 
-                                             "TSV file with columns: start_position, end_position, major_cn, minor_cn, and total_cn", br(),
-                                             a("Purity file", href="sample.purity.txt", download="sample.purity.txt"), 
-                                             "File storing a scalar purity value between 0 and 1"),
-                                           p("When uploading files, please ensure the file names contain the appropriate suffixes (e.g., snv.txt, cna.txt, purity.txt) to help the application correctly identify and process them.")
-                                         )),
-                                         hidden(radioButtons("uploadModeTCGA", "Choose your upload method:",
-                                                             choices = list("Upload all files at once" = "all_at_once",
-                                                                            "Upload files individually" = "individually"),
-                                                             selected = "all_at_once")),
-                                         
-                                         hidden(numericInput("numSamplesTCGA", "Number of samples:", min = 1, max = 10, value = 1)),
-                                         hidden(actionButton("setSamplesTCGA", "Set Samples", class = "btn-primary")),
-                                         br(),
-                                         uiOutput("dynamicFileInputsTCGA"),
-                                         hidden(actionButton("uploadSamplesTCGA", "Upload Samples", class = "btn-primary")),
-                                         br(),
-                                         hidden(selectInput("selectedSampleTCGA", "Select a sample to analyze:", choices = NULL)),
-                                         hidden(actionButton("submitTCGA", "Submit", class = "btn-primary")),
-                                         hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
-                                         
-                                         hidden(actionButton("clearTCGA", "Clear", class = "btn-danger")), # Clear button
-                                         
-                                         # This controls the buttons prompted by conditions (smoothing, button appearance timings)
-                                         conditionalPanel(
-                                           condition = "output.plotReadyTextTCGA == 'true'", 
-                                           sliderInput("smoothingFactor1TCGA", "Smoothing Factor for Plot 1:",
-                                                       min = 0.2, max = 0.7, value = 0.5, step = 0.1),
-                                           sliderInput("smoothingFactor2TCGA", "Smoothing Factor for Plot 2:",
-                                                       min = 0.2, max = 0.7, value = 0.5, step = 0.1)
-                                         )
+                                         # Dropdown to select samples from the server
+                                         selectInput("selectedSampleTCGA", "Select a sample from the server:", choices = c()),
+                                         actionButton("submitTCGA", "Submit", class = "btn-primary")
                                        ),
-                                       
-                                       # This controls the production of plots and captions
                                        mainPanel(
                                          plotlyOutput("plot1TCGA"),
                                          uiOutput("caption1TCGA"),
@@ -148,51 +123,16 @@ ui <- fluidPage(
                                      )
                                    )
                           ),
+                          #Type 2: PCAWG
                           tabPanel("PCAWG",
                                    tags$div(
                                      tags$h4(tags$b("PCAWG Select")),
                                      sidebarLayout(
                                        sidebarPanel(
-                                         selectInput("selectedSamplePCAWG", "Select a sample from the server:", choices = c()), # Dropdown to select samples from the server
-                                         hidden(tags$div(
-                                           p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
-                                             Please check the three links below to download the example files:"),
-                                           p(a("SNV file", href="sample.snv.txt", download="sample.snv.txt"), 
-                                             "TSV file with columns: ref_count, alt_count", br(),
-                                             a("CNA file", href="sample.cna.txt", download="sample.cna.txt"), 
-                                             "TSV file with columns: start_position, end_position, major_cn, minor_cn, and total_cn", br(),
-                                             a("Purity file", href="sample.purity.txt", download="sample.purity.txt"), 
-                                             "File storing a scalar purity value between 0 and 1"),
-                                           p("When uploading files, please ensure the file names contain the appropriate suffixes (e.g., snv.txt, cna.txt, purity.txt) to help the application correctly identify and process them.")
-                                         )),
-                                         hidden(radioButtons("uploadModePCAWG", "Choose your upload method:",
-                                                             choices = list("Upload all files at once" = "all_at_once",
-                                                                            "Upload files individually" = "individually"),
-                                                             selected = "all_at_once")),
-                                         
-                                         hidden(numericInput("numSamplesPCAWG", "Number of samples:", min = 1, max = 10, value = 1)),
-                                         hidden(actionButton("setSamplesPCAWG", "Set Samples", class = "btn-primary")),
-                                         br(),
-                                         uiOutput("dynamicFileInputsPCAWG"),
-                                         hidden(actionButton("uploadSamplesPCAWG", "Upload Samples", class = "btn-primary")),
-                                         br(),
-                                         hidden(selectInput("selectedSamplePCAWG", "Select a sample to analyze:", choices = NULL)),
-                                         hidden(actionButton("submitPCAWG", "Submit", class = "btn-primary")),
-                                         hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
-                                         
-                                         hidden(actionButton("clearPCAWG", "Clear", class = "btn-danger")), # Clear button
-                                         
-                                         # This controls the buttons prompted by conditions (smoothing, button appearance timings)
-                                         conditionalPanel(
-                                           condition = "output.plotReadyTextPCAWG == 'true'", 
-                                           sliderInput("smoothingFactor1PCAWG", "Smoothing Factor for Plot 1:",
-                                                       min = 0.2, max = 0.7, value = 0.5, step = 0.1),
-                                           sliderInput("smoothingFactor2PCAWG", "Smoothing Factor for Plot 2:",
-                                                       min = 0.2, max = 0.7, value = 0.5, step = 0.1)
-                                         )
+                                         # Dropdown to select samples from the server
+                                         selectInput("selectedSamplePCAWG", "Select a sample from the server:", choices = c()),
+                                         actionButton("submitPCAWG", "Submit", class = "btn-primary")
                                        ),
-                                       
-                                       # This controls the production of plots and captions
                                        mainPanel(
                                          plotlyOutput("plot1PCAWG"),
                                          uiOutput("caption1PCAWG"),
@@ -207,6 +147,8 @@ ui <- fluidPage(
                         )
                       )
              ),
+             
+             # Page 4: Citations
              tabPanel("Citations",
                       tags$div(
                         tags$h4(tags$b(tags$span("Manuscript under preparation:"))),
