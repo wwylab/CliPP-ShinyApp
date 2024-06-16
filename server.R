@@ -473,9 +473,9 @@ server <- function(input, output, session) {
       plotsReady(FALSE)
       
       selectedSample <- input[[paste0("selectedSample", prefix)]]
-      sampleDir <- selectedSample
+      sampleDir <- file.path("./dataSource", prefix, selectedSample)
       
-      if (is.null(sampleDir) || sampleDir == "") {
+      if (is.null(selectedSample) || selectedSample == "") {
         showNotification("Please select a sample to analyze.", type = "error")
         return()
       }
@@ -529,15 +529,15 @@ server <- function(input, output, session) {
     observe({
       req(plotsReady())
       
-      # Plot 1
+      # Plot 3 (TCGA)
       output[[paste0("plot1", prefix)]] <- renderPlotly({
         # Ensure files are uploaded
         if (input[[paste0("submit", prefix)]] == 0 || !plotsReady()) return()
         
         selectedSample <- input[[paste0("selectedSample", prefix)]]
-        sampleDir <- selectedSample
+        sampleDir <- file.path("./dataSource", prefix, selectedSample)
         
-        if (is.null(sampleDir) || sampleDir == "") return()
+        if (is.null(selectedSample) || selectedSample == "") return()
         
         snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
         cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
@@ -603,7 +603,7 @@ server <- function(input, output, session) {
           color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
           
           # Create plot
-          gg1 <- ggplot(merged_df, aes(x = AF)) +
+          gg3 <- ggplot(merged_df, aes(x = AF)) +
             geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
             suppressWarnings(geom_point(
               # Draw horizontal lines instead of points
@@ -625,7 +625,7 @@ server <- function(input, output, session) {
             ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
           
           # , tooltip = c("x", "color", "text"))
-          ggplotly(gg1)
+          ggplotly(gg3)
         }
       })
       
@@ -640,14 +640,14 @@ server <- function(input, output, session) {
         }
       })
       
-      # Plot 2
+      # Plot 4 (PCAWG)
       output[[paste0("plot2", prefix)]] <- renderPlotly({
         if (input[[paste0("submit", prefix)]] == 0 || !plotsReady()) return()
         
         selectedSample <- input[[paste0("selectedSample", prefix)]]
-        sampleDir <- selectedSample
+        sampleDir <- file.path("./dataSource", prefix, selectedSample)
         
-        if (is.null(sampleDir) || sampleDir == "") return()
+        if (is.null(selectedSample) || selectedSample == "") return()
         
         snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
         cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
@@ -713,7 +713,7 @@ server <- function(input, output, session) {
           color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
           
           # Create plot
-          gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
+          gg4 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
             geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
             suppressWarnings(geom_point(
               # Draw horizontal lines instead of points
@@ -737,7 +737,7 @@ server <- function(input, output, session) {
             geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
           
           # , tooltip = c("x", "color", "text"))
-          ggplotly(gg2)
+          ggplotly(gg4)
         }
       })
       
