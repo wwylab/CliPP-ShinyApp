@@ -110,7 +110,8 @@ ui <- fluidPage(
                                        sidebarPanel(
                                          # Dropdown to select samples from the server
                                          selectInput("selectedSampleTCGA", "Select a sample from the server:", choices = c()),
-                                         actionButton("submitTCGA", "Submit", class = "btn-primary")
+                                         actionButton("submitTCGA", "Submit", class = "btn-primary"),
+                                         hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
                                        ),
                                        mainPanel(
                                          plotlyOutput("plot1TCGA"),
@@ -131,7 +132,8 @@ ui <- fluidPage(
                                        sidebarPanel(
                                          # Dropdown to select samples from the server
                                          selectInput("selectedSamplePCAWG", "Select a sample from the server:", choices = c()),
-                                         actionButton("submitPCAWG", "Submit", class = "btn-primary")
+                                         actionButton("submitPCAWG", "Submit", class = "btn-primary"),
+                                         hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
                                        ),
                                        mainPanel(
                                          plotlyOutput("plot1PCAWG"),
