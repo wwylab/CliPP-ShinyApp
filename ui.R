@@ -76,7 +76,7 @@ ui <- fluidPage(
                             
                             # This controls the buttons prompted by conditions (smoothing, button appearance timings)
                             conditionalPanel(
-                              condition = "output.plotReadyText == 'true'", 
+                              condition = "output.plotReadyTextCliPP == 'true'", 
                               sliderInput("smoothingFactor1", "Smoothing Factor for Plot 1:",
                                           min = 0.2, max = 0.7, value = 0.5, step = 0.1),
                               sliderInput("smoothingFactor2", "Smoothing Factor for Plot 2:",
@@ -91,7 +91,7 @@ ui <- fluidPage(
                             plotlyOutput("plot2"),
                             uiOutput("caption2"),
                             uiOutput("plotOutputArea"),
-                            hidden(div(id = "plotReadyText"))
+                            hidden(div(id = "plotReadyTextCliPP"))
                           )
                         )
                       )
@@ -111,7 +111,7 @@ ui <- fluidPage(
                                          # Dropdown to select samples from the server
                                          selectInput("selectedSampleTCGA", "Select a sample from the server:", choices = c()),
                                          actionButton("submitTCGA", "Submit", class = "btn-primary"),
-                                         hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                                         hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality"))
                                        ),
                                        mainPanel(
                                          plotlyOutput("plot1TCGA"),
@@ -133,7 +133,7 @@ ui <- fluidPage(
                                          # Dropdown to select samples from the server
                                          selectInput("selectedSamplePCAWG", "Select a sample from the server:", choices = c()),
                                          actionButton("submitPCAWG", "Submit", class = "btn-primary"),
-                                         hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                                         hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality"))
                                        ),
                                        mainPanel(
                                          plotlyOutput("plot1PCAWG"),
