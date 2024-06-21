@@ -9,7 +9,10 @@ library(shinyjs)
 global_TCGA_PCAWG = "./dataSource"
 
 server <- function(input, output, session) {
-  plotsReady <- reactiveVal(FALSE)
+  plotsReadyCliPP <- reactiveVal(FALSE)
+  plotsReadyTCGA <- reactiveVal(FALSE)
+  plotsReadyPCAWG <- reactiveVal(FALSE)
+  
   samplesUploaded <- reactiveVal(FALSE)
   # Define reactive values for the uploaded sample files
   uploadedSamples <- reactiveValues(samples = list())
@@ -136,14 +139,14 @@ server <- function(input, output, session) {
     shinyjs::hide("plotOutputArea")
     shinyjs::show("setSamples")
     shinyjs::enable("numSamples")
-    plotsReady(FALSE)
+    plotsReadyCliPP(FALSE)
     shinyjs::hide("uploadSamples")
     shinyjs::reset("numSamples")
   })
   
   # This event allows for the plots and output to only be displayed after the entire code has been run
   observeEvent(input$submit, {
-    plotsReady(FALSE)
+    plotsReadyCliPP(FALSE)
     
     selectedSample <- input$selectedSample
     sampleFiles <- uploadedSamples$samples[[selectedSample]]
@@ -194,7 +197,7 @@ server <- function(input, output, session) {
     output$result <- renderText({
       "Processing complete. Select a file to download."
     })
-    plotsReady(TRUE)
+    plotsReadyCliPP(TRUE)
     # Show the clear button only after submission
     shinyjs::show("clear")
   })
@@ -215,15 +218,15 @@ server <- function(input, output, session) {
     if (is.null(input$submit)) return()
   })
   
-  output$plotReady <- reactive({ plotsReady() })
-  outputOptions(output, "plotReady", suspendWhenHidden = FALSE)
+  output$plotReadyCliPP <- reactive({ plotsReadyCliPP() })
+  outputOptions(output, "plotReadyCliPP", suspendWhenHidden = FALSE)
   
   # Dummy text output to trigger the conditional panel
-  output$plotReadyText <- renderUI({
-    if (plotsReady()) {
-      div(id = "plotReadyText", "true")
+  output$plotReadyTextCliPP <- renderUI({
+    if (plotsReadyCliPP()) {
+      div(id = "plotReadyTextCliPP", "true")
     } else {
-      div(id = "plotReadyText", "false")
+      div(id = "plotReadyTextCliPP", "false")
     }
   })
   
@@ -232,12 +235,12 @@ server <- function(input, output, session) {
   
   # Observe plot readiness and render plots
   observe({
-    req(plotsReady())
+    req(plotsReadyCliPP())
     
     # Plot 1
     output$plot1 <- renderPlotly({
       # Ensure files are uploaded
-      if (input$submit == 0 || !plotsReady()) return()
+      if (input$submit == 0 || !plotsReadyCliPP()) return()
       
       selectedSample <- input$selectedSample
       sampleFiles <- uploadedSamples$samples[[selectedSample]]
@@ -289,7 +292,7 @@ server <- function(input, output, session) {
         
         total_SNVs <- sum(df_subc$num_SNV)
         # Smoothing is adjustable with slider
-        #smoothing_factor1 <- input$smoothingFactor1
+        # smoothing_factor1 <- input$smoothingFactor1
         smoothing_factor1 <- case_when(
           total_SNVs <= 100 ~ 0.2,
           total_SNVs <= 200 & total_SNVs > 100 ~ 0.3,
@@ -343,7 +346,7 @@ server <- function(input, output, session) {
     
     # Here is where the captions for graph 1 are stored
     output$caption1 <- renderUI({
-      if (plotsReady()) {
+      if (plotsReadyCliPP()) {
         HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
          - <b>Purity</b> reflects the proportion of tumor cells in the sample. For instance, a purity of 0.9 means 90% of the cells are cancerous.<br>
          - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
@@ -354,7 +357,7 @@ server <- function(input, output, session) {
     
     # Plot 2
     output$plot2 <- renderPlotly({
-      if (input$submit == 0 || !plotsReady()) return()
+      if (input$submit == 0 || !plotsReadyCliPP()) return()
       
       selectedSample <- input$selectedSample
       sampleFiles <- uploadedSamples$samples[[selectedSample]]
@@ -406,9 +409,9 @@ server <- function(input, output, session) {
         
         total_SNVs <- sum(df_subc$num_SNV)
         # Smoothing is adjustable with slider
-        #smoothing_factor2 <- input$smoothingFactor2
+        # smoothing_factor2 <- input$smoothingFactor2
         
-        #print(total_SNVs)
+        # print(total_SNVs)
         smoothing_factor2 <- case_when(
           total_SNVs <= 100 ~ 0.2,
           total_SNVs <= 200 & total_SNVs > 100 ~ 0.3,
@@ -464,7 +467,7 @@ server <- function(input, output, session) {
     
     # Here is where the captions for graph 2 are stored
     output$caption2 <- renderUI({
-      if (plotsReady()) {
+      if (plotsReadyCliPP()) {
         HTML("<p> - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
          - Annotations on the x-axis indicate whether mutations are <b>clonal</b> (present in all tumor cells) or <b>subclonal</b> (found in a subset).<br>
          - Counts of clonal and subclonal mutations are indicated as <b>n clonal</b> and <b>n subclonal</b> respectively.<br>
@@ -474,7 +477,7 @@ server <- function(input, output, session) {
     
     # Makes it so that the output file does not appear until after the graphs are generated
     output$plotOutputArea <- renderUI({
-      if (plotsReady()) {
+      if (plotsReadyCliPP()) {
         fluidPage(
           h4("Output:"),
           textOutput("result"),
@@ -487,14 +490,17 @@ server <- function(input, output, session) {
   
   # Handlers for TCGA and PCAWG sections
   createSectionHandlers <- function(prefix) {
+    # Define a separate reactive value for each prefix
+    plotsReadyPrefix <- switch(prefix,
+                               "TCGA" = plotsReadyTCGA,
+                               "PCAWG" = plotsReadyPCAWG
+    )
+    
     observeEvent(input[[paste0("submit", prefix)]], {
-      plotsReady(FALSE)
+      plotsReadyPrefix(FALSE)
       
       selectedSample <- input[[paste0("selectedSample", prefix)]]
-      sampleDir <- selectedSample
       sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
-      print(sampleDir)
-      print(prefix)
       
       if (is.null(sampleDir) || sampleDir == "") {
         showNotification("Please select a sample to analyze.", type = "error")
@@ -511,7 +517,7 @@ server <- function(input, output, session) {
       }
       
       file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
-
+      
       if (is.null(file_data)) return()
       
       df_snv <- file_data$df_snv
@@ -525,21 +531,20 @@ server <- function(input, output, session) {
       output[[paste0("result", prefix)]] <- renderText({
         "Processing complete. Select a file to download."
       })
-      plotsReady(TRUE)
+      plotsReadyPrefix(TRUE)
       # Show the clear button only after submission
       shinyjs::show(paste0("clear", prefix))
     })
     
     observe({
-      req(plotsReady())
+      req(plotsReadyPrefix())
       
       # Plot 1
       output[[paste0("plot1", prefix)]] <- renderPlotly({
         # Ensure files are uploaded
-        if (input[[paste0("submit", prefix)]] == 0 || !plotsReady()) return()
+        if (input[[paste0("submit", prefix)]] == 0 || !plotsReadyPrefix()) return()
         
         selectedSample <- input[[paste0("selectedSample", prefix)]]
-        sampleDir <- selectedSample
         sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
         
         if (is.null(sampleDir) || sampleDir == "") return()
@@ -558,7 +563,6 @@ server <- function(input, output, session) {
         purity <- file_data$purity
         
         resultPath <- sampleDir
-        print(resultPath)
         
         # Read mutation and subclonal structure assignments
         matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
@@ -592,7 +596,7 @@ server <- function(input, output, session) {
           
           total_SNVs <- sum(df_subc$num_SNV)
           # Smoothing is adjustable with slider
-          #smoothing_factor1 <- input[[paste0("smoothingFactor1", prefix)]]
+          # smoothing_factor1 <- input[[paste0("smoothingFactor1", prefix)]]
           smoothing_factor1 <- case_when(
             total_SNVs <= 100 ~ 0.2,
             total_SNVs <= 200 & total_SNVs > 100 ~ 0.3,
@@ -607,11 +611,9 @@ server <- function(input, output, session) {
           
           #print(head(merged_df))
           
-          subclonality_counts <- merged_df %>%
-            count(Subclonality)
-          
           # Rename the count column to 'n'
-          subclonality_counts <- subclonality_counts %>%
+          subclonality_counts <- merged_df %>%
+            count(Subclonality) %>%
             rename(n = n)
           
           # Determine the color aesthetic based on the user input
@@ -627,12 +629,8 @@ server <- function(input, output, session) {
               size = 5,
               # Transparency
               alpha = 0.3,
-              aes(
-                # Fixed y-position
-                y = -0.75,
-                # Dynamic color
-                color = !!sym(color_aesthetic)
-              )
+              # Fixed y-position and dynamic color
+              aes(y = -0.75, color = !!sym(color_aesthetic))
             )) + xlim(0, 1) +
             #ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
             ggtitle(paste("Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
@@ -647,7 +645,7 @@ server <- function(input, output, session) {
       
       # Here is where the captions for graph 1 are stored
       output[[paste0("caption1", prefix)]] <- renderUI({
-        if (plotsReady()) {
+        if (plotsReadyPrefix()) {
           HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
            - <b>Purity</b> reflects the proportion of tumor cells in the sample. For instance, a purity of 0.9 means 90% of the cells are cancerous.<br>
            - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
@@ -658,7 +656,7 @@ server <- function(input, output, session) {
       
       # Plot 2
       output[[paste0("plot2", prefix)]] <- renderPlotly({
-        if (input[[paste0("submit", prefix)]] == 0 || !plotsReady()) return()
+        if (input[[paste0("submit", prefix)]] == 0 || !plotsReadyPrefix()) return()
         
         selectedSample <- input[[paste0("selectedSample", prefix)]]
         #sampleDir <- selectedSample
@@ -680,7 +678,6 @@ server <- function(input, output, session) {
         purity <- file_data$purity
         
         resultPath <- sampleDir
-        print(resultPath)
         
         # Read mutation and subclonal structure assignments
         matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
@@ -714,7 +711,7 @@ server <- function(input, output, session) {
           
           total_SNVs <- sum(df_subc$num_SNV)
           # Smoothing is adjustable with slider
-          #smoothing_factor2 <- input[[paste0("smoothingFactor2", prefix)]]
+          # smoothing_factor2 <- input[[paste0("smoothingFactor2", prefix)]]
           smoothing_factor2 <- case_when(
             total_SNVs <= 100 ~ 0.2,
             total_SNVs <= 200 & total_SNVs > 100 ~ 0.3,
@@ -727,11 +724,9 @@ server <- function(input, output, session) {
             mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                    ReadDepth = sum_counts)
           
-          subclonality_counts <- merged_df %>%
-            count(Subclonality)
-          
           # Rename the count column to 'n'
-          subclonality_counts <- subclonality_counts %>%
+          subclonality_counts <- merged_df %>%
+            count(Subclonality) %>%
             rename(n = n)
           
           # Determine the color aesthetic based on the user input
@@ -750,15 +745,11 @@ server <- function(input, output, session) {
               size = 5,
               # Transparency
               alpha = 0.3,
-              aes(
-                # Fixed y-position
-                y = -0.75,
-                # Dynamic color
-                color = !!sym(color_aesthetic)
-              )
+              # Fixed y-position and dynamic color
+              aes(y = -0.75, color = !!sym(color_aesthetic))
             )) + xlim(0, 1.5) +
             #ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
-            ggtitle(paste("Estimated mutation-specific CP")) +
+            ggtitle("Estimated mutation-specific CP") +
             geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
             geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = 1.3, y = -2.65)) +
             ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
@@ -772,7 +763,7 @@ server <- function(input, output, session) {
       
       # Here is where the captions for graph 2 are stored
       output[[paste0("caption2", prefix)]] <- renderUI({
-        if (plotsReady()) {
+        if (plotsReadyPrefix()) {
           HTML("<p> - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
            - Annotations on the x-axis indicate whether mutations are <b>clonal</b> (present in all tumor cells) or <b>subclonal</b> (found in a subset).<br>
            - Counts of clonal and subclonal mutations are indicated as <b>n clonal</b> and <b>n subclonal</b> respectively.<br>
@@ -782,7 +773,7 @@ server <- function(input, output, session) {
       
       # Makes it so that the output file does not appear until after the graphs are generated
       output[[paste0("plotOutputArea", prefix)]] <- renderUI({
-        if (plotsReady()) {
+        if (plotsReadyPrefix()) {
           fluidPage(
             h4("Output:"),
             textOutput(paste0("result", prefix)),
@@ -791,6 +782,17 @@ server <- function(input, output, session) {
           )
         }
       })
+    })
+    
+    output[[paste0("plotReady", prefix)]] <- reactive({ plotsReadyPrefix() })
+    outputOptions(output, paste0("plotReady", prefix), suspendWhenHidden = FALSE)
+    
+    output[[paste0("plotReadyText", prefix)]] <- renderUI({
+      if (plotsReadyPrefix()) {
+        div(id = paste0("plotReadyText", prefix), "true")
+      } else {
+        div(id = paste0("plotReadyText", prefix), "false")
+      }
     })
   }
   
