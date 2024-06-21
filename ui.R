@@ -1,3 +1,4 @@
+library(shiny)
 library(plotly)
 library(shinyjs)
 
@@ -118,13 +119,13 @@ ui <- fluidPage(
                                          uiOutput("caption1TCGA"),
                                          plotlyOutput("plot2TCGA"),
                                          uiOutput("caption2TCGA"),
-                                         uiOutput("plotOutputAreaTCGA"),
+                                         hidden(uiOutput("plotOutputAreaTCGA")),
                                          hidden(div(id = "plotReadyTextTCGA"))
                                        )
                                      )
                                    )
                           ),
-                          #Type 2: PCAWG
+                          # Type 2: PCAWG
                           tabPanel("PCAWG",
                                    tags$div(
                                      tags$h4(tags$b("PCAWG Select")),
@@ -140,7 +141,7 @@ ui <- fluidPage(
                                          uiOutput("caption1PCAWG"),
                                          plotlyOutput("plot2PCAWG"),
                                          uiOutput("caption2PCAWG"),
-                                         uiOutput("plotOutputAreaPCAWG"),
+                                         hidden(uiOutput("plotOutputAreaPCAWG")),
                                          hidden(div(id = "plotReadyTextPCAWG"))
                                        )
                                      )
