@@ -210,6 +210,7 @@ server <- function(input, output, session) {
       basename(file_path)
     },
     content = function(file) {
+      req(input$tabs == "CliPP-on-Web") ##### ADDED
       file.copy(from = file.path(resultPath, input$selectedFile), to = file)
     }
   )
