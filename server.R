@@ -781,6 +781,8 @@ server <- function(input, output, session) {
             selectInput(paste0("selectedFile", prefix), "Choose a file to download:", choices = c()),
             downloadButton(paste0("downloadResult", prefix), "Download Result")
           )
+        } else {
+          shinyjs::hide(paste0("plotOutputArea", prefix))
         }
       })
     })
