@@ -109,7 +109,7 @@ ui <- fluidPage(
                                      tags$h4(tags$b("TCGA Select")),
                                      sidebarLayout(
                                        sidebarPanel(
-                                         selectInput("datasetTCGA", "Select Dataset:", choices = c("TCGA")),
+                                         #selectInput("datasetTCGA", "Select Dataset:", choices = c("TCGA")),
                                          uiOutput("cancer_type_ui_TCGA"),
                                          uiOutput("sample_name_ui_TCGA"),
                                          actionButton("submitTCGA", "Submit", class = "btn-primary"),
@@ -132,7 +132,7 @@ ui <- fluidPage(
                                      tags$h4(tags$b("PCAWG Select")),
                                      sidebarLayout(
                                        sidebarPanel(
-                                         selectInput("datasetPCAWG", "Select Dataset:", choices = c("PCAWG")),
+                                         #selectInput("datasetPCAWG", "Select Dataset:", choices = c("PCAWG")),
                                          uiOutput("cancer_type_ui_PCAWG"),
                                          uiOutput("sample_name_ui_PCAWG"),
                                          actionButton("submitPCAWG", "Submit", class = "btn-primary"),
