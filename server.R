@@ -6,7 +6,7 @@ library(plotly)
 library(readr)
 library(shinyjs)
 
-global_TCGA_PCAWG <- "/Users/aaronwu/CliPP-ShinyApp/dataSource"
+global_TCGA_PCAWG <- "./dataSource"
 
 # Load the sample data
 sample_PCAWG <- read.csv(file.path(global_TCGA_PCAWG, "CliPP_PCAWG.tsv"), sep='\t')
@@ -513,7 +513,8 @@ server <- function(input, output, session) {
     observeEvent(input[[paste0("submit", prefix)]], {
       plotsReadyPrefix(FALSE)
       
-      selectedSample <- input[[paste0("selectedSample", prefix)]]
+      #selectedSample <- input[[paste0("selectedSample", prefix)]]
+      selectedSample <- input[[paste0("sample_name_", prefix)]]
       sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
       
       if (is.null(selectedSample) || selectedSample == "") {
@@ -524,6 +525,7 @@ server <- function(input, output, session) {
       snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
       cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
       purityFile <- list.files(sampleDir, pattern = "*.purity.txt", full.names = TRUE)
+      
       
       if (length(snvFile) == 0 || length(cnaFile) == 0 || length(purityFile) == 0) {
         showNotification("One or more required files are missing.", type = "error")
@@ -558,7 +560,8 @@ server <- function(input, output, session) {
         # Ensure files are uploaded
         if (input[[paste0("submit", prefix)]] == 0 || !plotsReadyPrefix()) return()
         
-        selectedSample <- input[[paste0("selectedSample", prefix)]]
+        #selectedSample <- input[[paste0("selectedSample", prefix)]]
+        selectedSample <- input[[paste0("sample_name_", prefix)]]
         sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
         
         if (is.null(selectedSample) || selectedSample == "") return()
@@ -672,7 +675,8 @@ server <- function(input, output, session) {
       output[[paste0("plot2", prefix)]] <- renderPlotly({
         if (input[[paste0("submit", prefix)]] == 0 || !plotsReadyPrefix()) return()
         
-        selectedSample <- input[[paste0("selectedSample", prefix)]]
+        #selectedSample <- input[[paste0("selectedSample", prefix)]]
+        selectedSample <- input[[paste0("sample_name_", prefix)]]
         sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
         
         if (is.null(selectedSample) || selectedSample == "") return()
