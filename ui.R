@@ -109,8 +109,9 @@ ui <- fluidPage(
                                      tags$h4(tags$b("TCGA Select")),
                                      sidebarLayout(
                                        sidebarPanel(
-                                         # Dropdown to select samples from the server
-                                         selectInput("selectedSampleTCGA", "Select a sample from the server:", choices = c()),
+                                         selectInput("datasetTCGA", "Select Dataset:", choices = c("TCGA")),
+                                         uiOutput("cancer_type_ui_TCGA"),
+                                         uiOutput("sample_name_ui_TCGA"),
                                          actionButton("submitTCGA", "Submit", class = "btn-primary"),
                                          hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality"))
                                        ),
@@ -131,8 +132,9 @@ ui <- fluidPage(
                                      tags$h4(tags$b("PCAWG Select")),
                                      sidebarLayout(
                                        sidebarPanel(
-                                         # Dropdown to select samples from the server
-                                         selectInput("selectedSamplePCAWG", "Select a sample from the server:", choices = c()),
+                                         selectInput("datasetPCAWG", "Select Dataset:", choices = c("PCAWG")),
+                                         uiOutput("cancer_type_ui_PCAWG"),
+                                         uiOutput("sample_name_ui_PCAWG"),
                                          actionButton("submitPCAWG", "Submit", class = "btn-primary"),
                                          hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality"))
                                        ),
