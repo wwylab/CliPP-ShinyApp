@@ -6,7 +6,17 @@ library(plotly)
 library(readr)
 library(shinyjs)
 
-global_TCGA_PCAWG = "./dataSource"
+global_TCGA_PCAWG <- "/Users/aaronwu/CliPP-ShinyApp/dataSource"
+
+# Load the sample data
+sample_PCAWG <- read.csv(file.path(global_TCGA_PCAWG, "CliPP_PCAWG.tsv"), sep='\t')
+sample_TCGA <- read.csv(file.path(global_TCGA_PCAWG, "CliPP_TCGA.tsv"), sep='\t')
+
+# Add dataset column to distinguish between PCAWG and TCGA
+sample_PCAWG$dataset <- "PCAWG"
+sample_TCGA$dataset <- "TCGA"
+
+sample_data <- rbind(sample_PCAWG, sample_TCGA)
 
 server <- function(input, output, session) {
   plotsReadyCliPP <- reactiveVal(FALSE)
@@ -28,6 +38,11 @@ server <- function(input, output, session) {
   
   # Centralized function to read and validate files
   read_and_validate_files <- function(snvFile, cnaFile, purityFile) {
+    if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) {
+      showNotification("One or more required files are missing.", type = "error")
+      return(NULL)
+    }
+    
     # Reading data
     df_snv <- read.table(snvFile, header = TRUE)
     df_cna <- read.table(cnaFile, header = TRUE)
@@ -210,7 +225,7 @@ server <- function(input, output, session) {
       basename(file_path)
     },
     content = function(file) {
-      req(input$tabs == "CliPP-on-Web") ##### ADDED
+      req(input$tabs == "CliPP-on-Web")
       file.copy(from = file.path(resultPath, input$selectedFile), to = file)
     }
   )
@@ -411,8 +426,6 @@ server <- function(input, output, session) {
         total_SNVs <- sum(df_subc$num_SNV)
         # Smoothing is adjustable with slider
         # smoothing_factor2 <- input$smoothingFactor2
-        
-        # print(total_SNVs)
         smoothing_factor2 <- case_when(
           total_SNVs <= 100 ~ 0.2,
           total_SNVs <= 200 & total_SNVs > 100 ~ 0.3,
@@ -503,7 +516,7 @@ server <- function(input, output, session) {
       selectedSample <- input[[paste0("selectedSample", prefix)]]
       sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
       
-      if (is.null(sampleDir) || sampleDir == "") {
+      if (is.null(selectedSample) || selectedSample == "") {
         showNotification("Please select a sample to analyze.", type = "error")
         return()
       }
@@ -517,7 +530,7 @@ server <- function(input, output, session) {
         return()
       }
       
-      file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
+      file_data <- read_and_validate_files(snvFile[1], cnaFile[1], purityFile[1])
       
       if (is.null(file_data)) return()
       
@@ -548,7 +561,7 @@ server <- function(input, output, session) {
         selectedSample <- input[[paste0("selectedSample", prefix)]]
         sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
         
-        if (is.null(sampleDir) || sampleDir == "") return()
+        if (is.null(selectedSample) || selectedSample == "") return()
         
         snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
         cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
@@ -556,7 +569,7 @@ server <- function(input, output, session) {
         
         if (length(snvFile) == 0 || length(cnaFile) == 0 || length(purityFile) == 0) return()
         
-        file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
+        file_data <- read_and_validate_files(snvFile[1], cnaFile[1], purityFile[1])
         if (is.null(file_data)) return()
         
         df_snv <- file_data$df_snv
@@ -660,10 +673,9 @@ server <- function(input, output, session) {
         if (input[[paste0("submit", prefix)]] == 0 || !plotsReadyPrefix()) return()
         
         selectedSample <- input[[paste0("selectedSample", prefix)]]
-        #sampleDir <- selectedSample
         sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
         
-        if (is.null(sampleDir) || sampleDir == "") return()
+        if (is.null(selectedSample) || selectedSample == "") return()
         
         snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
         cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
@@ -671,7 +683,7 @@ server <- function(input, output, session) {
         
         if (length(snvFile) == 0 || length(cnaFile) == 0 || length(purityFile) == 0) return()
         
-        file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
+        file_data <- read_and_validate_files(snvFile[1], cnaFile[1], purityFile[1])
         if (is.null(file_data)) return()
         
         df_snv <- file_data$df_snv
@@ -696,8 +708,6 @@ server <- function(input, output, session) {
           
           # Calculate the sum of ref_count and alt_count
           df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
-          
-          # Compute the mean of the sum_counts column
           mean_rd <- mean(df_snvcna$sum_counts)
           min_rd <- min(df_snvcna$sum_counts)
           max_rd <- max(df_snvcna$sum_counts)
@@ -808,12 +818,46 @@ server <- function(input, output, session) {
   }
   
   observe({
-    files <- list.files(file.path(global_TCGA_PCAWG, "/TCGA/"), full.names = FALSE, recursive = FALSE)
+    files <- list.files(file.path(global_TCGA_PCAWG, "TCGA"), full.names = FALSE, recursive = FALSE)
     updateSelectizeInput(session, "selectedSampleTCGA", choices = files, server = TRUE)
   })
   
   observe({
-    files <- list.files(file.path(global_TCGA_PCAWG, "/PCAWG/"), full.names = FALSE, recursive = FALSE)
+    files <- list.files(file.path(global_TCGA_PCAWG, "PCAWG"), full.names = FALSE, recursive = FALSE)
     updateSelectizeInput(session, "selectedSamplePCAWG", choices = files, server = TRUE)
+  })
+  
+  # Generate the cancer type UI dynamically based on the selected dataset
+  output$cancer_type_ui_TCGA <- renderUI({
+    selectInput("cancer_type_TCGA", "Select Cancer Type:", choices = unique(sample_TCGA$cancer_type))
+  })
+  
+  # Generate the sample name UI dynamically based on the selected cancer type
+  output$sample_name_ui_TCGA <- renderUI({
+    selectInput("sample_name_TCGA", "Select Sample Name:", choices = NULL)
+  })
+  
+  # Update sample name choices based on the selected cancer type
+  observeEvent(input$cancer_type_TCGA, {
+    selected_cancer_type <- input$cancer_type_TCGA
+    sample_names <- sample_TCGA$samplename[sample_TCGA$cancer_type == selected_cancer_type]
+    updateSelectInput(session, "sample_name_TCGA", choices = sample_names)
+  })
+  
+  # Generate the cancer type UI dynamically based on the selected dataset
+  output$cancer_type_ui_PCAWG <- renderUI({
+    selectInput("cancer_type_PCAWG", "Select Cancer Type:", choices = unique(sample_PCAWG$cancer_type))
+  })
+  
+  # Generate the sample name UI dynamically based on the selected cancer type
+  output$sample_name_ui_PCAWG <- renderUI({
+    selectInput("sample_name_PCAWG", "Select Sample Name:", choices = NULL)
+  })
+  
+  # Update sample name choices based on the selected cancer type
+  observeEvent(input$cancer_type_PCAWG, {
+    selected_cancer_type <- input$cancer_type_PCAWG
+    sample_names <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == selected_cancer_type]
+    updateSelectInput(session, "sample_name_PCAWG", choices = sample_names)
   })
 }
