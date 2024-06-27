@@ -88,6 +88,27 @@ server <- function(input, output, session) {
     shinyjs::disable("numSamples")
   })
   
+  # Hide plots when selection process is changed
+  observeEvent(input$selectedSample, {
+    shinyjs::hide("plot1")
+    shinyjs::hide("plot2")
+    shinyjs::hide("caption1")
+    shinyjs::hide("caption2")
+    shinyjs::hide("plotOutputArea")
+    #print("Sample selection change")
+  })
+  
+  # Hide submit buttons after they are clicked
+  observeEvent(input$submitTCGA, {
+    shinyjs::hide("submitTCGA")
+    #print("Hide TCGA")
+  })
+  
+  observeEvent(input$submitPCAWG, {
+    shinyjs::hide("submitPCAWG")
+    #print("Hide PCAWG")
+  })
+  
   # Helper function to store uploaded files
   storeUploadedFiles <- function(input, numSamples) {
     samples <- list()
@@ -135,6 +156,8 @@ server <- function(input, output, session) {
     shinyjs::show("selectedSample")
     shinyjs::show("submit")
     shinyjs::show("colorBy")
+    
+    #print("Uploaded samples")
   })
   
   # Event to clear the current batch and restart the upload process
@@ -155,8 +178,18 @@ server <- function(input, output, session) {
     shinyjs::show("setSamples")
     shinyjs::enable("numSamples")
     plotsReadyCliPP(FALSE)
-    shinyjs::hide("uploadSamples")
+    shinyjs::show("uploadSamples")
     shinyjs::reset("numSamples")
+    
+    # Ensure all plot related reactive values are reset
+    output$plot1 <- renderPlotly({ NULL })
+    output$plot2 <- renderPlotly({ NULL })
+    output$caption1 <- renderUI({ NULL })
+    output$caption2 <- renderUI({ NULL })
+    output$plotOutputArea <- renderUI({ NULL })
+    plotsReadyCliPP(FALSE)
+    
+    #print("Cleared all values")
   })
   
   # This event allows for the plots and output to only be displayed after the entire code has been run
@@ -215,6 +248,15 @@ server <- function(input, output, session) {
     plotsReadyCliPP(TRUE)
     # Show the clear button only after submission
     shinyjs::show("clear")
+    
+    # Ensure that plot and output UI elements are shown
+    shinyjs::show("plot1")
+    shinyjs::show("plot2")
+    shinyjs::show("caption1")
+    shinyjs::show("caption2")
+    shinyjs::show("plotOutputArea")
+    
+    #print("Processed data")
   })
   
   # Download handler
@@ -252,6 +294,8 @@ server <- function(input, output, session) {
   # Observe plot readiness and render plots
   observe({
     req(plotsReadyCliPP())
+    
+    #print("Plot 1 rendered")
     
     # Plot 1
     output$plot1 <- renderPlotly({
@@ -370,6 +414,8 @@ server <- function(input, output, session) {
     </p>")
       }
     })
+    
+    #print("Plot 2 rendered")
     
     # Plot 2
     output$plot2 <- renderPlotly({
