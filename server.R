@@ -101,11 +101,17 @@ server <- function(input, output, session) {
   # Hide submit buttons after they are clicked
   observeEvent(input$submitTCGA, {
     shinyjs::hide("submitTCGA")
+    shinyjs::show("colorByTCGA")
+    shinyjs::show("smoothingFactor1_TCGA")
+    shinyjs::show("smoothingFactor2_TCGA")
     #print("Hide TCGA")
   })
   
   observeEvent(input$submitPCAWG, {
     shinyjs::hide("submitPCAWG")
+    shinyjs::show("colorByPCAWG")
+    shinyjs::show("smoothingFactor1_PCAWG")
+    shinyjs::show("smoothingFactor2_PCAWG")
     #print("Hide PCAWG")
   })
   
@@ -156,6 +162,8 @@ server <- function(input, output, session) {
     shinyjs::show("selectedSample")
     shinyjs::show("submit")
     shinyjs::show("colorBy")
+    shinyjs::show("smoothingFactor1")
+    shinyjs::show("smoothingFactor2")
     
     #print("Uploaded samples")
   })
@@ -175,6 +183,8 @@ server <- function(input, output, session) {
     shinyjs::hide("caption1")
     shinyjs::hide("caption2")
     shinyjs::hide("plotOutputArea")
+    shinyjs::hide("smoothingFactor1")
+    shinyjs::hide("smoothingFactor2")
     shinyjs::show("setSamples")
     shinyjs::enable("numSamples")
     plotsReadyCliPP(FALSE)
@@ -352,14 +362,7 @@ server <- function(input, output, session) {
         
         total_SNVs <- sum(df_subc$num_SNV)
         # Smoothing is adjustable with slider
-        # smoothing_factor1 <- input$smoothingFactor1
-        smoothing_factor1 <- case_when(
-          total_SNVs <= 100 ~ 0.2,
-          total_SNVs <= 200 & total_SNVs > 100 ~ 0.3,
-          total_SNVs <= 300 & total_SNVs > 100 ~ 0.4,
-          total_SNVs <= 500 & total_SNVs > 300 ~ 0.5,
-          TRUE ~ 0.6  
-        )
+        smoothing_factor1 <- input$smoothingFactor1
         
         merged_df <- merged_df %>%
           mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
@@ -471,14 +474,7 @@ server <- function(input, output, session) {
         
         total_SNVs <- sum(df_subc$num_SNV)
         # Smoothing is adjustable with slider
-        # smoothing_factor2 <- input$smoothingFactor2
-        smoothing_factor2 <- case_when(
-          total_SNVs <= 100 ~ 0.2,
-          total_SNVs <= 200 & total_SNVs > 100 ~ 0.3,
-          total_SNVs <= 300 & total_SNVs > 100 ~ 0.4,
-          total_SNVs <= 500 & total_SNVs > 300 ~ 0.5,
-          TRUE ~ 0.6  
-        )
+        smoothing_factor2 <- input$smoothingFactor2
         
         merged_df <- merged_df %>%
           mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
@@ -659,14 +655,7 @@ server <- function(input, output, session) {
           
           total_SNVs <- sum(df_subc$num_SNV)
           # Smoothing is adjustable with slider
-          # smoothing_factor1 <- input[[paste0("smoothingFactor1", prefix)]]
-          smoothing_factor1 <- case_when(
-            total_SNVs <= 100 ~ 0.2,
-            total_SNVs <= 200 & total_SNVs > 100 ~ 0.3,
-            total_SNVs <= 300 & total_SNVs > 100 ~ 0.4,
-            total_SNVs <= 500 & total_SNVs > 300 ~ 0.5,
-            TRUE ~ 0.6  
-          )
+          smoothing_factor1 <- input[[paste0("smoothingFactor1_", prefix)]]
           
           merged_df <- merged_df %>%
             mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
@@ -772,25 +761,16 @@ server <- function(input, output, session) {
           
           total_SNVs <- sum(df_subc$num_SNV)
           # Smoothing is adjustable with slider
-          # smoothing_factor2 <- input[[paste0("smoothingFactor2", prefix)]]
-          smoothing_factor2 <- case_when(
-            total_SNVs <= 100 ~ 0.2,
-            total_SNVs <= 200 & total_SNVs > 100 ~ 0.3,
-            total_SNVs <= 300 & total_SNVs > 100 ~ 0.4,
-            total_SNVs <= 500 & total_SNVs > 300 ~ 0.5,
-            TRUE ~ 0.6  
-          )
+          smoothing_factor2 <- input[[paste0("smoothingFactor2_", prefix)]]
           
           merged_df <- merged_df %>%
             mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                    ReadDepth = sum_counts)
           
-          # Rename the count column to 'n'
           subclonality_counts <- merged_df %>%
             count(Subclonality) %>%
             rename(n = n)
           
-          # Determine the color aesthetic based on the user input
           color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
           
           #print(input[[paste0("colorBy", prefix)]])
@@ -800,13 +780,9 @@ server <- function(input, output, session) {
           gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
             geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
             suppressWarnings(geom_point(
-              # Draw horizontal lines instead of points
               shape = 142,
-              # Adjust size based on the figure's dimensions
               size = 5,
-              # Transparency
               alpha = 0.3,
-              # Fixed y-position and dynamic color
               aes(y = -0.75, color = !!sym(color_aesthetic))
             )) + xlim(0, 1.5) +
             #ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
