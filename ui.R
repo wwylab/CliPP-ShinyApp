@@ -72,17 +72,11 @@ ui <- fluidPage(
                             hidden(selectInput("selectedSample", "Select a sample to analyze:", choices = NULL)),
                             hidden(actionButton("submit", "Submit", class = "btn-primary")),
                             hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
-                            
-                            hidden(actionButton("clear", "Clear", class = "btn-danger")), # Clear button
-                            
-                            # This controls the buttons prompted by conditions (smoothing, button appearance timings)
-                            conditionalPanel(
-                              condition = "output.plotReadyTextCliPP == 'true'", 
-                              sliderInput("smoothingFactor1", "Smoothing Factor for Plot 1:",
-                                          min = 0.2, max = 0.7, value = 0.5, step = 0.1),
-                              sliderInput("smoothingFactor2", "Smoothing Factor for Plot 2:",
-                                          min = 0.2, max = 0.7, value = 0.5, step = 0.1)
-                            )
+                            hidden(sliderInput("smoothingFactor1", "Smoothing Factor for VAF Plot:",
+                                               min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                            hidden(sliderInput("smoothingFactor2", "Smoothing Factor for CP Plot:",
+                                               min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                            hidden(actionButton("clear", "Clear", class = "btn-danger"))
                           ),
                           
                           # This controls the production of plots and captions
@@ -109,11 +103,14 @@ ui <- fluidPage(
                                      tags$h4(tags$b("TCGA Select")),
                                      sidebarLayout(
                                        sidebarPanel(
-                                         #selectInput("datasetTCGA", "Select Dataset:", choices = c("TCGA")),
                                          uiOutput("cancer_type_ui_TCGA"),
                                          uiOutput("sample_name_ui_TCGA"),
                                          actionButton("submitTCGA", "Submit", class = "btn-primary"),
-                                         hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality"))
+                                         hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                                         hidden(sliderInput("smoothingFactor1_TCGA", "Smoothing Factor for VAF Plot:",
+                                                            min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                                         hidden(sliderInput("smoothingFactor2_TCGA", "Smoothing Factor for CP Plot:",
+                                                            min = 0.2, max = 0.7, value = 0.5, step = 0.1))
                                        ),
                                        mainPanel(
                                          plotlyOutput("plot1TCGA"),
@@ -132,11 +129,14 @@ ui <- fluidPage(
                                      tags$h4(tags$b("PCAWG Select")),
                                      sidebarLayout(
                                        sidebarPanel(
-                                         #selectInput("datasetPCAWG", "Select Dataset:", choices = c("PCAWG")),
                                          uiOutput("cancer_type_ui_PCAWG"),
                                          uiOutput("sample_name_ui_PCAWG"),
                                          actionButton("submitPCAWG", "Submit", class = "btn-primary"),
-                                         hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality"))
+                                         hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                                         hidden(sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor for VAF Plot:",
+                                                            min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                                         hidden(sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor for CP Plot:",
+                                                            min = 0.2, max = 0.7, value = 0.5, step = 0.1))
                                        ),
                                        mainPanel(
                                          plotlyOutput("plot1PCAWG"),
