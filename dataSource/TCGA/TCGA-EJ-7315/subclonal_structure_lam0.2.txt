@@ -1,0 +1,6 @@
+cluster_index	num_SNV	cellular_prevalence
+0	7	0.640571428571429
+1	6	0.481
+2	4	0.37
+3	10	0.1718
+4	2	0.069
