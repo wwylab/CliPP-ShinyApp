@@ -18,6 +18,9 @@ sample_TCGA$dataset <- "TCGA"
 
 sample_data <- rbind(sample_PCAWG, sample_TCGA)
 
+# Load the driver mutation data
+driver_mutation_data <- read.delim("/Users/aaronwu/CliPP-ShinyApp/driver_mut_data.tsv")
+
 server <- function(input, output, session) {
   plotsReadyCliPP <- reactiveVal(FALSE)
   plotsReadyTCGA <- reactiveVal(FALSE)
@@ -394,9 +397,10 @@ server <- function(input, output, session) {
               # Fixed y-position
               y = -0.75,
               # Dynamic color
-              color = !!sym(color_aesthetic)
+              color = factor(Subclonality, levels = c("Clonal", "Subclonal"))
             )
-          )) + xlim(0, 1) +
+          )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
+          xlim(0, 1) +
           ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
           geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = .85, y = -1.65)) +
           geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = .85, y = -2.65)) +
@@ -506,9 +510,10 @@ server <- function(input, output, session) {
               # Fixed y-position
               y = -0.75,
               # Dynamic color
-              color = !!sym(color_aesthetic)
+              color = factor(Subclonality, levels = c("Clonal", "Subclonal"))
             )
-          )) + xlim(0, 1.5) +
+          )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
+          xlim(0, 1.5) +
           ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
           geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
           geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = 1.3, y = -2.65)) +
@@ -682,8 +687,9 @@ server <- function(input, output, session) {
               # Transparency
               alpha = 0.3,
               # Fixed y-position and dynamic color
-              aes(y = -0.75, color = !!sym(color_aesthetic))
-            )) + xlim(0, 1) +
+              aes(y = -0.75, color = factor(Subclonality, levels = c("Clonal", "Subclonal")))
+            )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
+            xlim(0, 1) +
             #ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
             ggtitle(paste("Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
             geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = .85, y = -1.65)) +
@@ -783,8 +789,9 @@ server <- function(input, output, session) {
               shape = 142,
               size = 5,
               alpha = 0.3,
-              aes(y = -0.75, color = !!sym(color_aesthetic))
-            )) + xlim(0, 1.5) +
+              aes(y = -0.75, color = factor(Subclonality, levels = c("Clonal", "Subclonal")))
+            )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
+            xlim(0, 1.5) +
             #ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
             ggtitle("Estimated mutation-specific CP") +
             geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
@@ -885,5 +892,31 @@ server <- function(input, output, session) {
     selected_cancer_type <- input$cancer_type_PCAWG
     sample_names <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == selected_cancer_type]
     updateSelectInput(session, "sample_name_PCAWG", choices = sample_names)
+  })
+  
+  # Generate the cancer type UI dynamically based on the driver mutation data
+  output$cancer_type_ui_driver <- renderUI({
+    selectInput("cancer_type_driver", "Select Cancer Type:", choices = unique(driver_mutation_data$gene))
+  })
+  
+  # Generate the sample name UI dynamically based on the selected cancer type for driver mutations
+  output$sample_name_ui_driver <- renderUI({
+    selectInput("sample_name_driver", "Select Sample Name:", choices = NULL)
+  })
+  
+  # Update sample name choices based on the selected cancer type for driver mutations
+  observeEvent(input$cancer_type_driver, {
+    selected_cancer_type <- input$cancer_type_driver
+    sample_names <- driver_mutation_data$sample[driver_mutation_data$gene == selected_cancer_type]
+    updateSelectInput(session, "sample_name_driver", choices = sample_names)
+  })
+  
+  # Display the driver mutation table based on the selected sample name
+  observeEvent(input$submitDriver, {
+    selected_sample <- input$sample_name_driver
+    selected_data <- driver_mutation_data %>% filter(sample == selected_sample)
+    output$driverMutationTable <- renderTable({
+      selected_data %>% select(gene, protein, consequence, cancer, Subclonality)
+    })
   })
 }
