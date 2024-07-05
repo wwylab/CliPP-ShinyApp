@@ -153,7 +153,23 @@ ui <- fluidPage(
                       )
              ),
              
-             # Page 4: Citations
+             # Page 4: Driver Mutation
+             tabPanel("Driver Mutation",
+                      tags$div(
+                        sidebarLayout(
+                          sidebarPanel(
+                            uiOutput("cancer_type_ui_driver"),
+                            uiOutput("sample_name_ui_driver"),
+                            actionButton("submitDriver", "Submit", class = "btn-primary")
+                          ),
+                          mainPanel(
+                            tableOutput("driverMutationTable")
+                          )
+                        )
+                      )
+             ),
+             
+             # Page 5: Citations
              tabPanel("Citations",
                       tags$div(
                         tags$h4(tags$b(tags$span("Manuscript under preparation:"))),
