@@ -19,7 +19,7 @@ sample_TCGA$dataset <- "TCGA"
 sample_data <- rbind(sample_PCAWG, sample_TCGA)
 
 # Load the driver mutation data
-driver_mutation_data <- read.delim("/Users/aaronwu/CliPP-ShinyApp/driver_mut_data.tsv")
+driver_mutation_data <- read.delim("./driver_mut_data.tsv")
 
 server <- function(input, output, session) {
   plotsReadyCliPP <- reactiveVal(FALSE)
@@ -896,7 +896,7 @@ server <- function(input, output, session) {
   
   # Generate the cancer type UI dynamically based on the driver mutation data
   output$cancer_type_ui_driver <- renderUI({
-    selectInput("cancer_type_driver", "Select Cancer Type:", choices = unique(driver_mutation_data$gene))
+    selectInput("cancer_type_driver", "Select Cancer Type:", choices = unique(driver_mutation_data$cancer))
   })
   
   # Generate the sample name UI dynamically based on the selected cancer type for driver mutations
@@ -907,7 +907,7 @@ server <- function(input, output, session) {
   # Update sample name choices based on the selected cancer type for driver mutations
   observeEvent(input$cancer_type_driver, {
     selected_cancer_type <- input$cancer_type_driver
-    sample_names <- driver_mutation_data$sample[driver_mutation_data$gene == selected_cancer_type]
+    sample_names <- driver_mutation_data$sample[driver_mutation_data$cancer == selected_cancer_type]
     updateSelectInput(session, "sample_name_driver", choices = sample_names)
   })
   
