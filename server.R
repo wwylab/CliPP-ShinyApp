@@ -121,7 +121,7 @@ server <- function(input, output, session) {
   # Helper function to store uploaded files
   storeUploadedFiles <- function(input, numSamples) {
     samples <- list()
-    for (i in 1:numSamples) {
+    for (i in 1<numSamples) {
       sampleName <- input[[paste0("sampleName", i)]]
       if (input$uploadMode == "all_at_once") {
         files <- input[[paste0("fileInput", i)]]
@@ -397,7 +397,7 @@ server <- function(input, output, session) {
               # Fixed y-position
               y = -0.75,
               # Dynamic color
-              color = factor(Subclonality, levels = c("Clonal", "Subclonal"))
+              color = Subclonality
             )
           )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
           xlim(0, 1) +
@@ -510,7 +510,7 @@ server <- function(input, output, session) {
               # Fixed y-position
               y = -0.75,
               # Dynamic color
-              color = factor(Subclonality, levels = c("Clonal", "Subclonal"))
+              color = Subclonality
             )
           )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
           xlim(0, 1.5) +
@@ -687,7 +687,7 @@ server <- function(input, output, session) {
               # Transparency
               alpha = 0.3,
               # Fixed y-position and dynamic color
-              aes(y = -0.75, color = factor(Subclonality, levels = c("Clonal", "Subclonal")))
+              aes(y = -0.75, color = Subclonality)
             )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
             xlim(0, 1) +
             #ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
@@ -789,7 +789,7 @@ server <- function(input, output, session) {
               shape = 142,
               size = 5,
               alpha = 0.3,
-              aes(y = -0.75, color = factor(Subclonality, levels = c("Clonal", "Subclonal")))
+              aes(y = -0.75, color = Subclonality)
             )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
             xlim(0, 1.5) +
             #ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
@@ -845,7 +845,7 @@ server <- function(input, output, session) {
   createSectionHandlers("TCGA")
   createSectionHandlers("PCAWG")
   
-  # List files in the specified folder and updating the dropdown
+  # List files in their respective folders and subsequently update the dropdown
   list_files <- function(path) {
     list.files(path = path, full.names = TRUE)
   }
@@ -860,63 +860,73 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, "selectedSamplePCAWG", choices = files, server = TRUE)
   })
   
-  # Generate the cancer type UI dynamically based on the selected dataset
+  # Generate cancer type based on selected cancer type (for TCGA portion)
   output$cancer_type_ui_TCGA <- renderUI({
     selectInput("cancer_type_TCGA", "Select Cancer Type:", choices = unique(sample_TCGA$cancer_type))
   })
   
-  # Generate the sample name UI dynamically based on the selected cancer type
+  # Generate sample name based on selected cancer type (for TCGA portion)
   output$sample_name_ui_TCGA <- renderUI({
     selectInput("sample_name_TCGA", "Select Sample Name:", choices = NULL)
   })
   
-  # Update sample name choices based on the selected cancer type
+  # Update sample name based on selected cancer type (for TCGA portion)
   observeEvent(input$cancer_type_TCGA, {
     selected_cancer_type <- input$cancer_type_TCGA
     sample_names <- sample_TCGA$samplename[sample_TCGA$cancer_type == selected_cancer_type]
     updateSelectInput(session, "sample_name_TCGA", choices = sample_names)
   })
   
-  # Generate the cancer type UI dynamically based on the selected dataset
+  # Generate cancer type based on selected dataset (for PCAWG portion)
   output$cancer_type_ui_PCAWG <- renderUI({
     selectInput("cancer_type_PCAWG", "Select Cancer Type:", choices = unique(sample_PCAWG$cancer_type))
   })
   
-  # Generate the sample name UI dynamically based on the selected cancer type
+  # Generate sample name based on selected dataset (for PCAWG portion)
   output$sample_name_ui_PCAWG <- renderUI({
     selectInput("sample_name_PCAWG", "Select Sample Name:", choices = NULL)
   })
   
-  # Update sample name choices based on the selected cancer type
+  # Update sample name based on selected cancer type (for PCAWG portion)
   observeEvent(input$cancer_type_PCAWG, {
     selected_cancer_type <- input$cancer_type_PCAWG
     sample_names <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == selected_cancer_type]
     updateSelectInput(session, "sample_name_PCAWG", choices = sample_names)
   })
   
-  # Generate the cancer type UI dynamically based on the driver mutation data
+  # Generate cancer type based on selected dataset (for driver mutation portion)
   output$cancer_type_ui_driver <- renderUI({
     selectInput("cancer_type_driver", "Select Cancer Type:", choices = unique(driver_mutation_data$cancer))
   })
   
-  # Generate the sample name UI dynamically based on the selected cancer type for driver mutations
+  # Generate sample name based on selected dataset (for driver mutation portion)
   output$sample_name_ui_driver <- renderUI({
     selectInput("sample_name_driver", "Select Sample Name:", choices = NULL)
   })
   
-  # Update sample name choices based on the selected cancer type for driver mutations
+  # Update sample name based on selected cancer type (for driver mutation portion)
   observeEvent(input$cancer_type_driver, {
     selected_cancer_type <- input$cancer_type_driver
     sample_names <- driver_mutation_data$sample[driver_mutation_data$cancer == selected_cancer_type]
     updateSelectInput(session, "sample_name_driver", choices = sample_names)
   })
   
-  # Display the driver mutation table based on the selected sample name
+  # Make clonal red and subclonal blue
   observeEvent(input$submitDriver, {
     selected_sample <- input$sample_name_driver
     selected_data <- driver_mutation_data %>% filter(sample == selected_sample)
     output$driverMutationTable <- renderTable({
       selected_data %>% select(gene, protein, consequence, cancer, Subclonality)
-    })
+    }, rownames = TRUE, options = list(
+      rowCallback = JS(
+        "function(row, data, index) {",
+        "  if (data[4] === 'Clonal') {",
+        "    $('td', row).css('background-color', '#FFCCCB');",
+        "  } else if (data[4] === 'Subclonal') {",
+        "    $('td', row).css('background-color', '#ADD8E6');",
+        "  }",
+        "}"
+      )
+    ))
   })
 }
