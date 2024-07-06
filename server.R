@@ -19,7 +19,7 @@ sample_TCGA$dataset <- "TCGA"
 sample_data <- rbind(sample_PCAWG, sample_TCGA)
 
 # Load the driver mutation data
-driver_mutation_data <- read.delim("/Users/aaronwu/CliPP-ShinyApp/driver_mut_data.tsv")
+driver_mutation_data <- read.delim("./driver_mut_data.tsv")
 
 server <- function(input, output, session) {
   plotsReadyCliPP <- reactiveVal(FALSE)
@@ -121,7 +121,7 @@ server <- function(input, output, session) {
   # Helper function to store uploaded files
   storeUploadedFiles <- function(input, numSamples) {
     samples <- list()
-    for (i in 1:numSamples) {
+    for (i in 1<numSamples) {
       sampleName <- input[[paste0("sampleName", i)]]
       if (input$uploadMode == "all_at_once") {
         files <- input[[paste0("fileInput", i)]]
@@ -397,7 +397,7 @@ server <- function(input, output, session) {
               # Fixed y-position
               y = -0.75,
               # Dynamic color
-              color = factor(Subclonality, levels = c("Clonal", "Subclonal"))
+              color = Subclonality
             )
           )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
           xlim(0, 1) +
@@ -510,7 +510,7 @@ server <- function(input, output, session) {
               # Fixed y-position
               y = -0.75,
               # Dynamic color
-              color = factor(Subclonality, levels = c("Clonal", "Subclonal"))
+              color = Subclonality
             )
           )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
           xlim(0, 1.5) +
@@ -687,7 +687,7 @@ server <- function(input, output, session) {
               # Transparency
               alpha = 0.3,
               # Fixed y-position and dynamic color
-              aes(y = -0.75, color = factor(Subclonality, levels = c("Clonal", "Subclonal")))
+              aes(y = -0.75, color = Subclonality)
             )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
             xlim(0, 1) +
             #ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
@@ -789,7 +789,7 @@ server <- function(input, output, session) {
               shape = 142,
               size = 5,
               alpha = 0.3,
-              aes(y = -0.75, color = factor(Subclonality, levels = c("Clonal", "Subclonal")))
+              aes(y = -0.75, color = Subclonality)
             )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
             xlim(0, 1.5) +
             #ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
@@ -896,7 +896,7 @@ server <- function(input, output, session) {
   
   # Generate the cancer type UI dynamically based on the driver mutation data
   output$cancer_type_ui_driver <- renderUI({
-    selectInput("cancer_type_driver", "Select Cancer Type:", choices = unique(driver_mutation_data$gene))
+    selectInput("cancer_type_driver", "Select Cancer Type:", choices = unique(driver_mutation_data$cancer))
   })
   
   # Generate the sample name UI dynamically based on the selected cancer type for driver mutations
@@ -907,7 +907,7 @@ server <- function(input, output, session) {
   # Update sample name choices based on the selected cancer type for driver mutations
   observeEvent(input$cancer_type_driver, {
     selected_cancer_type <- input$cancer_type_driver
-    sample_names <- driver_mutation_data$sample[driver_mutation_data$gene == selected_cancer_type]
+    sample_names <- driver_mutation_data$sample[driver_mutation_data$cancer == selected_cancer_type]
     updateSelectInput(session, "sample_name_driver", choices = sample_names)
   })
   
@@ -917,6 +917,16 @@ server <- function(input, output, session) {
     selected_data <- driver_mutation_data %>% filter(sample == selected_sample)
     output$driverMutationTable <- renderTable({
       selected_data %>% select(gene, protein, consequence, cancer, Subclonality)
-    })
+    }, rownames = TRUE, options = list(
+      rowCallback = JS(
+        "function(row, data, index) {",
+        "  if (data[4] === 'Clonal') {",
+        "    $('td', row).css('background-color', '#FFCCCB');",
+        "  } else if (data[4] === 'Subclonal') {",
+        "    $('td', row).css('background-color', '#ADD8E6');",
+        "  }",
+        "}"
+      )
+    ))
   })
 }
