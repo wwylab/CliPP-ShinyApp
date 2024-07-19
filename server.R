@@ -5,6 +5,7 @@ library(purrr)
 library(plotly)
 library(readr)
 library(shinyjs)
+library(DT)
 
 global_TCGA_PCAWG <- "./dataSource"
 
@@ -121,7 +122,7 @@ server <- function(input, output, session) {
   # Helper function to store uploaded files
   storeUploadedFiles <- function(input, numSamples) {
     samples <- list()
-    for (i in 1<numSamples) {
+    for (i in 1:numSamples) {
       sampleName <- input[[paste0("sampleName", i)]]
       if (input$uploadMode == "all_at_once") {
         files <- input[[paste0("fileInput", i)]]
@@ -397,9 +398,9 @@ server <- function(input, output, session) {
               # Fixed y-position
               y = -0.75,
               # Dynamic color
-              color = Subclonality
+              color = color_aesthetic
             )
-          )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
+          )) +
           xlim(0, 1) +
           ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
           geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = .85, y = -1.65)) +
@@ -510,9 +511,9 @@ server <- function(input, output, session) {
               # Fixed y-position
               y = -0.75,
               # Dynamic color
-              color = Subclonality
+              color = color_aesthetic
             )
-          )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
+          )) +
           xlim(0, 1.5) +
           ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
           geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
@@ -687,8 +688,8 @@ server <- function(input, output, session) {
               # Transparency
               alpha = 0.3,
               # Fixed y-position and dynamic color
-              aes(y = -0.75, color = Subclonality)
-            )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
+              aes(y = -0.75, color = color_aesthetic)
+            )) +
             xlim(0, 1) +
             #ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
             ggtitle(paste("Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
@@ -789,8 +790,8 @@ server <- function(input, output, session) {
               shape = 142,
               size = 5,
               alpha = 0.3,
-              aes(y = -0.75, color = Subclonality)
-            )) + scale_color_manual(values = c("Clonal" = "red", "Subclonal" = "blue")) +
+              aes(y = -0.75, color = color_aesthetic)
+            )) +
             xlim(0, 1.5) +
             #ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
             ggtitle("Estimated mutation-specific CP") +
@@ -916,7 +917,7 @@ server <- function(input, output, session) {
     selected_sample <- input$sample_name_driver
     selected_data <- driver_mutation_data %>% filter(sample == selected_sample)
     output$driverMutationTable <- renderTable({
-      selected_data %>% select(gene, protein, consequence, cancer, Subclonality)
+      selected_data %>% select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized)
     }, rownames = TRUE, options = list(
       rowCallback = JS(
         "function(row, data, index) {",
