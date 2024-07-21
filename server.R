@@ -6,6 +6,7 @@ library(plotly)
 library(readr)
 library(shinyjs)
 library(DT)
+library(circlize)
 
 global_TCGA_PCAWG <- "./dataSource"
 
@@ -122,7 +123,7 @@ server <- function(input, output, session) {
   # Helper function to store uploaded files
   storeUploadedFiles <- function(input, numSamples) {
     samples <- list()
-    for (i in 1:numSamples) {
+    for (i in 1$numSamples) {
       sampleName <- input[[paste0("sampleName", i)]]
       if (input$uploadMode == "all_at_once") {
         files <- input[[paste0("fileInput", i)]]
@@ -161,6 +162,7 @@ server <- function(input, output, session) {
     uploadedSamples$samples <- samples
     samplesUploaded(TRUE)
     updateSelectInput(session, "selectedSample", choices = names(samples))
+    updateSelectInput(session, "circosSample", choices = names(samples)) # Update choices for circos plot
     showNotification("Samples uploaded successfully.", type = "message")
     shinyjs::hide("uploadSamples")
     shinyjs::show("selectedSample")
@@ -929,5 +931,40 @@ server <- function(input, output, session) {
         "}"
       )
     ))
+  })
+  
+  # Generate circos plot for CliPP-on-Web
+  observeEvent(input$submitCircos, {
+    selectedSample <- input$circosSample
+    sampleFiles <- uploadedSamples$samples[[selectedSample]]
+    
+    if (is.null(sampleFiles)) return()
+    
+    snvFile <- sampleFiles$snvFile
+    cnaFile <- sampleFiles$cnaFile
+    purityFile <- sampleFiles$purityFile
+    
+    if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) return()
+    
+    file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
+    if (is.null(file_data)) return()
+    
+    df_snv <- file_data$df_snv
+    df_cna <- file_data$df_cna
+    purity <- file_data$purity
+    
+    circos.clear()
+    
+    circos.initializeWithIdeogram(plotType = c("axis", "labels"))
+    
+    circos.genomicTrack(df_snv, panel.fun = function(region, value, ...) {
+      circos.genomicPoints(region, value, col = "blue", cex = 0.5, pch = 16, ...)
+    })
+    
+    circos.genomicTrack(df_cna, panel.fun = function(region, value, ...) {
+      circos.genomicRect(region, value, col = "red", ...)
+    })
+    
+    circos.clear()
   })
 }
