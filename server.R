@@ -948,9 +948,9 @@ server <- function(input, output, session) {
       rowCallback = JS(
         "function(row, data, index) {",
         "  if (data[4] === 'Clonal') {",
-        "    $('td', row).css('background-color', '#FFCCCB');",
+        "    $('td:eq(4)', row).html('<span style=\"color: blue;\">' + data[4] + '</span>');",
         "  } else if (data[4] === 'Subclonal') {",
-        "    $('td', row).css('background-color', '#ADD8E6');",
+        "    $('td:eq(4)', row).html('<span style=\"color: red;\">' + data[4] + '</span>');",
         "  }",
         "}"
       )
