@@ -159,7 +159,7 @@ ui <- fluidPage(
                         sidebarLayout(
                           sidebarPanel(
                             uiOutput("cancer_type_ui_driver"),
-                            uiOutput("sample_name_ui_driver"),
+                            uiOutput("gene_name_ui_driver"),
                             actionButton("submitDriver", "Submit", class = "btn-primary")
                           ),
                           mainPanel(
