@@ -123,7 +123,7 @@ server <- function(input, output, session) {
   # Helper function to store uploaded files
   storeUploadedFiles <- function(input, numSamples) {
     samples <- list()
-    for (i in 1$numSamples) {
+    for (i in 1:numSamples) {
       sampleName <- input[[paste0("sampleName", i)]]
       if (input$uploadMode == "all_at_once") {
         files <- input[[paste0("fileInput", i)]]
@@ -524,6 +524,18 @@ server <- function(input, output, session) {
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
           geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
         
+        # Add driver mutations as extra vertical lines
+        if (!is.null(input$cancer_type_driver) && !is.null(input$gene_name_driver)) {
+          driver_mutations <- driver_mutation_data %>%
+            filter(cancer == input$cancer_type_driver, gene == input$gene_name_driver)
+          
+          if (nrow(driver_mutations) > 0) {
+            gg2 <- gg2 +
+              geom_vline(data = driver_mutations, aes(xintercept = CP_unpenalized), color = "red", linetype = "dotted") +
+              geom_text(data = driver_mutations, aes(x = CP_unpenalized, y = 5.7, label = paste(gene, collapse = ", ")), color = "red", angle = 90, vjust = -0.5, hjust = 0)
+          }
+        }
+        
         # , tooltip = c("x", "color", "text"))
         ggplotly(gg2)
       }
@@ -803,6 +815,18 @@ server <- function(input, output, session) {
             theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
             geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
           
+          # Add driver mutations as extra vertical lines
+          if (!is.null(input$cancer_type_driver) && !is.null(input$gene_name_driver)) {
+            driver_mutations <- driver_mutation_data %>%
+              filter(cancer == input$cancer_type_driver, gene == input$gene_name_driver)
+            
+            if (nrow(driver_mutations) > 0) {
+              gg2 <- gg2 +
+                geom_vline(data = driver_mutations, aes(xintercept = CP_unpenalized), color = "red", linetype = "dotted") +
+                geom_text(data = driver_mutations, aes(x = CP_unpenalized, y = 5.7, label = paste(gene, collapse = ", ")), color = "red", angle = 90, vjust = -0.5, hjust = 0)
+            }
+          }
+          
           # , tooltip = c("x", "color", "text"))
           ggplotly(gg2)
         }
@@ -902,16 +926,16 @@ server <- function(input, output, session) {
     selectInput("cancer_type_driver", "Select Cancer Type:", choices = unique(driver_mutation_data$cancer))
   })
   
-  # Generate sample name based on selected dataset (for driver mutation portion)
-  output$sample_name_ui_driver <- renderUI({
-    selectInput("sample_name_driver", "Select Sample Name:", choices = NULL)
+  # Generate gene name based on selected cancer type (for driver mutation portion)
+  output$gene_name_ui_driver <- renderUI({
+    selectInput("gene_name_driver", "Select Gene:", choices = NULL)
   })
   
-  # Update sample name based on selected cancer type (for driver mutation portion)
+  # Update gene name based on selected cancer type (for driver mutation portion)
   observeEvent(input$cancer_type_driver, {
     selected_cancer_type <- input$cancer_type_driver
-    sample_names <- driver_mutation_data$sample[driver_mutation_data$cancer == selected_cancer_type]
-    updateSelectInput(session, "sample_name_driver", choices = sample_names)
+    gene_names <- unique(driver_mutation_data$gene[driver_mutation_data$cancer == selected_cancer_type])
+    updateSelectInput(session, "gene_name_driver", choices = gene_names)
   })
   
   # Make clonal red and subclonal blue
