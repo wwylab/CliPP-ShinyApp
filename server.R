@@ -1,4 +1,4 @@
-library(reticulate)
+library(reticulate
 library(ggplot2)
 library(dplyr)
 library(purrr)
@@ -6,7 +6,7 @@ library(plotly)
 library(readr)
 library(shinyjs)
 library(DT)
-library(circlize)
+# library(circlize) # Commented out for now
 
 global_TCGA_PCAWG <- "./dataSource"
 
@@ -958,37 +958,37 @@ server <- function(input, output, session) {
   })
   
   # Generate circos plot for CliPP-on-Web
-  observeEvent(input$submitCircos, {
-    selectedSample <- input$circosSample
-    sampleFiles <- uploadedSamples$samples[[selectedSample]]
-    
-    if (is.null(sampleFiles)) return()
-    
-    snvFile <- sampleFiles$snvFile
-    cnaFile <- sampleFiles$cnaFile
-    purityFile <- sampleFiles$purityFile
-    
-    if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) return()
-    
-    file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
-    if (is.null(file_data)) return()
-    
-    df_snv <- file_data$df_snv
-    df_cna <- file_data$df_cna
-    purity <- file_data$purity
-    
-    circos.clear()
-    
-    circos.initializeWithIdeogram(plotType = c("axis", "labels"))
-    
-    circos.genomicTrack(df_snv, panel.fun = function(region, value, ...) {
-      circos.genomicPoints(region, value, col = "blue", cex = 0.5, pch = 16, ...)
-    })
-    
-    circos.genomicTrack(df_cna, panel.fun = function(region, value, ...) {
-      circos.genomicRect(region, value, col = "red", ...)
-    })
-    
-    circos.clear()
-  })
+  # observeEvent(input$submitCircos, {
+  #   selectedSample <- input$circosSample
+  #   sampleFiles <- uploadedSamples$samples[[selectedSample]]
+  #   
+  #   if (is.null(sampleFiles)) return()
+  #   
+  #   snvFile <- sampleFiles$snvFile
+  #   cnaFile <- sampleFiles$cnaFile
+  #   purityFile <- sampleFiles$purityFile
+  #   
+  #   if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) return()
+  #   
+  #   file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
+  #   if (is.null(file_data)) return()
+  #   
+  #   df_snv <- file_data$df_snv
+  #   df_cna <- file_data$df_cna
+  #   purity <- file_data$purity
+  #   
+  #   circos.clear()
+  #   
+  #   circos.initializeWithIdeogram(plotType = c("axis", "labels"))
+  #   
+  #   circos.genomicTrack(df_snv, panel.fun = function(region, value, ...) {
+  #     circos.genomicPoints(region, value, col = "blue", cex = 0.5, pch = 16, ...)
+  #   })
+  #   
+  #   circos.genomicTrack(df_cna, panel.fun = function(region, value, ...) {
+  #     circos.genomicRect(region, value, col = "red", ...)
+  #   })
+  #   
+  #   circos.clear()
+  # })
 }
