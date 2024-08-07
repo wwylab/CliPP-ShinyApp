@@ -6,7 +6,7 @@ library(plotly)
 library(readr)
 library(shinyjs)
 library(DT)
-# library(circlize) # Commented out for now
+# library(circlize)
 
 global_TCGA_PCAWG <- "./dataSource"
 
