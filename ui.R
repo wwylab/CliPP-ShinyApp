@@ -160,10 +160,11 @@ ui <- fluidPage(
                           sidebarPanel(
                             uiOutput("cancer_type_ui_driver"),
                             uiOutput("gene_name_ui_driver"),
+                            selectInput("sample_name_driver", "Select Sample Name:", choices = NULL), # Add this line
                             actionButton("submitDriver", "Submit", class = "btn-primary")
                           ),
                           mainPanel(
-                            tableOutput("driverMutationTable"),
+                            DT::DTOutput("driverMutationTable"),
                             tags$h4(tags$b(tags$span("References:"))),
                             p("Yujie Jiang, Matthew D Montierth, Kaixian Yu, Shuangxi Ji, Shuai Guo, Quang Tran, Seung Jun Shin, Shaolong Cao, 
              Ruonan Li, Yuxin Tang, Tom Lesluyes, Scott Kopetz, Jaffer Ajani, Pavlos Msaouel, Sumit K Subudhi, Ana Aparicio, 
