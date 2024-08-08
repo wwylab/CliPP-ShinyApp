@@ -251,8 +251,13 @@ server <- function(input, output, session) {
     command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
                        shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile))
     
-    # Execute the command
-    system(command, intern = TRUE)
+    # Debugging
+    cat("Executing command:", command, "\n")
+    
+    result <- system(command, intern = TRUE)
+    
+    # Debugging
+    cat("Command output:", result, "\n")
     
     # Update the file selection dropdown
     updateSelectInput(session, "selectedFile", choices = list.files(resultPath, pattern = "\\.txt$"))
@@ -490,11 +495,12 @@ server <- function(input, output, session) {
         # print(head(merged_df))
         
         subclonality_counts <- merged_df %>%
-          count(Subclonality)
-        
-        # Rename the count column to 'n'
-        subclonality_counts <- subclonality_counts %>%
+          count(Subclonality) %>%
           rename(n = n)
+        
+        # Ensures no NA or NULL values in columns used for plotting
+        merged_df <- merged_df %>%
+          filter(!is.na(CP_unpenalized), !is.na(Subclonality), !is.na(ReadDepth))
         
         # Determine the color aesthetic based on the user input
         color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
@@ -931,30 +937,44 @@ server <- function(input, output, session) {
     selectInput("gene_name_driver", "Select Gene:", choices = NULL)
   })
   
-  # Update gene name based on selected cancer type (for driver mutation portion)
+  # Update sample name based on selected cancer type and gene name (for driver mutation portion)
   observeEvent(input$cancer_type_driver, {
     selected_cancer_type <- input$cancer_type_driver
     gene_names <- unique(driver_mutation_data$gene[driver_mutation_data$cancer == selected_cancer_type])
     updateSelectInput(session, "gene_name_driver", choices = gene_names)
   })
   
+  observeEvent(input$gene_name_driver, {
+    selected_gene_name <- input$gene_name_driver
+    sample_names <- unique(driver_mutation_data$sample[driver_mutation_data$gene == selected_gene_name])
+    updateSelectInput(session, "sample_name_driver", choices = sample_names)
+  })
+  
   # Make clonal red and subclonal blue
   observeEvent(input$submitDriver, {
     selected_sample <- input$sample_name_driver
+    
+    if (is.null(selected_sample) || selected_sample == "") {
+      showNotification("Please select a valid sample.", type = "error")
+      return()
+    }
+    
     selected_data <- driver_mutation_data %>% filter(sample == selected_sample)
-    output$driverMutationTable <- renderTable({
-      selected_data %>% select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized)
-    }, rownames = TRUE, options = list(
-      rowCallback = JS(
-        "function(row, data, index) {",
-        "  if (data[4] === 'Clonal') {",
-        "    $('td:eq(4)', row).html('<span style=\"color: blue;\">' + data[4] + '</span>');",
-        "  } else if (data[4] === 'Subclonal') {",
-        "    $('td:eq(4)', row).html('<span style=\"color: red;\">' + data[4] + '</span>');",
-        "  }",
-        "}"
-      )
-    ))
+    
+    if (nrow(selected_data) == 0) {
+      showNotification("No data available for the selected sample.", type = "error")
+      return()
+    }
+    
+    output$driverMutationTable <- DT::renderDataTable({
+      DT::datatable(selected_data %>% select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized),
+                    options = list(pageLength = 10)) %>%
+        DT::formatStyle(
+          'Subclonality',
+          backgroundColor = DT::styleEqual(c("Clonal", "Subclonal"), c('blue', 'red')),
+          color = DT::styleEqual(c("Clonal", "Subclonal"), c('white', 'white'))
+        )
+    })
   })
   
   # Generate circos plot for CliPP-on-Web
