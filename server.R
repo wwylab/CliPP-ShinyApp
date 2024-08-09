@@ -947,7 +947,7 @@ server <- function(input, output, session) {
                     options = list(pageLength = 10)) %>%
         DT::formatStyle(
           'Subclonality',
-          backgroundColor = DT::styleEqual(c("Clonal", "Subclonal"), c('blue', 'red')),
+          backgroundColor = DT::styleEqual(c("Clonal", "Subclonal"), c('#C9EDEF', '#FED9D7')),
           color = DT::styleEqual(c("Clonal", "Subclonal"), c('white', 'white'))
         )
     })
