@@ -99,7 +99,7 @@ server <- function(input, output, session) {
     shinyjs::hide("plot2")
     shinyjs::hide("caption1")
     shinyjs::hide("caption2")
-    shinyjs::hide("plotOutputArea")
+    #shinyjs::hide("plotOutputArea")
     #print("Sample selection change")
   })
   
