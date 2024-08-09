@@ -160,7 +160,7 @@ ui <- fluidPage(
                           sidebarPanel(
                             uiOutput("cancer_type_ui_driver"),
                             uiOutput("gene_name_ui_driver"),
-                            selectInput("sample_name_driver", "Select Sample Name:", choices = NULL), # Add this line
+                            selectInput("sample_name_driver", "Select Sample Name:", choices = NULL), 
                             actionButton("submitDriver", "Submit", class = "btn-primary")
                           ),
                           mainPanel(
