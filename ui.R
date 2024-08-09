@@ -165,13 +165,10 @@ ui <- fluidPage(
                           ),
                           mainPanel(
                             DT::DTOutput("driverMutationTable"),
-                            tags$h4(tags$b(tags$span("References:"))),
-                            p("Yujie Jiang, Matthew D Montierth, Kaixian Yu, Shuangxi Ji, Shuai Guo, Quang Tran, Seung Jun Shin, Shaolong Cao, 
-             Ruonan Li, Yuxin Tang, Tom Lesluyes, Scott Kopetz, Jaffer Ajani, Pavlos Msaouel, Sumit K Subudhi, Ana Aparicio, 
-             Padmanee Sharma, John Paul Shen, Anil K. Sood, Maxime Tarabichi, Jennifer R. Wang, Marek Kimmel, Peter Van Loo, 
-             Hongtu Zhu, Wenyi Wang. Pan-cancer subclonal mutation analysis of 7,827 tumors predicts clinical outcome."),
-                            p("Martínez-Jiménez, Francisco, Ferran Muiños, Inés Sentís, Jordi Deu-Pons, Iker Reyes-Salazar, Claudia Arnedo-Pac, Loris Mularoni et al. 
+                            tags$h4(tags$b(tags$span("Reference:"))),
+    p("Martínez-Jiménez, Francisco, Ferran Muiños, Inés Sentís, Jordi Deu-Pons, Iker Reyes-Salazar, Claudia Arnedo-Pac, Loris Mularoni et al. 
              'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20, no. 10 (2020): 555-572.")
+
                           )
                         )
                       )
