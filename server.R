@@ -188,7 +188,7 @@ server <- function(input, output, session) {
     shinyjs::hide("plot2")
     shinyjs::hide("caption1")
     shinyjs::hide("caption2")
-    shinyjs::hide("plotOutputArea")
+    #shinyjs::hide("plotOutputArea")
     shinyjs::hide("smoothingFactor1")
     shinyjs::hide("smoothingFactor2")
     shinyjs::show("setSamples")
