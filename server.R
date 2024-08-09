@@ -254,6 +254,7 @@ server <- function(input, output, session) {
     # Debugging
     cat("Executing command:", command, "\n")
     
+    # Execute the command
     result <- system(command, intern = TRUE)
     
     # Debugging
@@ -378,14 +379,11 @@ server <- function(input, output, session) {
         merged_df <- merged_df %>%
           mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                  ReadDepth = sum_counts)
-        
         # print(head(merged_df))
         
-        subclonality_counts <- merged_df %>%
-          count(Subclonality)
-        
         # Rename the count column to 'n'
-        subclonality_counts <- subclonality_counts %>%
+        subclonality_counts <- merged_df %>%
+          count(Subclonality) %>%
           rename(n = n)
         
         # Determine the color aesthetic based on the user input
@@ -491,9 +489,9 @@ server <- function(input, output, session) {
         merged_df <- merged_df %>%
           mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                  ReadDepth = sum_counts)
-        
         # print(head(merged_df))
         
+        # Rename the count column to 'n'
         subclonality_counts <- merged_df %>%
           count(Subclonality) %>%
           rename(n = n)
@@ -674,7 +672,6 @@ server <- function(input, output, session) {
           merged_df <- merged_df %>%
             mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                    ReadDepth = sum_counts)
-          
           #print(head(merged_df))
           
           # Rename the count column to 'n'
@@ -781,11 +778,14 @@ server <- function(input, output, session) {
           merged_df <- merged_df %>%
             mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                    ReadDepth = sum_counts)
+          #print(head(merged_df))
           
+          # Rename the count column to 'n'
           subclonality_counts <- merged_df %>%
             count(Subclonality) %>%
             rename(n = n)
           
+          # Determine the color aesthetic based on the user input
           color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
           
           #print(input[[paste0("colorBy", prefix)]])
@@ -795,9 +795,13 @@ server <- function(input, output, session) {
           gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
             geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
             suppressWarnings(geom_point(
+              # Draw horizontal lines instead of points
               shape = 142,
+              # Adjust size based on the figure's dimensions
               size = 5,
+              # Transparency
               alpha = 0.3,
+              # Fixed y-position and dynamic color
               aes(y = -0.75, color = !!sym(color_aesthetic))
             )) +
             xlim(0, 1.5) +
@@ -808,7 +812,7 @@ server <- function(input, output, session) {
             ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
             theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
             geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
-  
+          
           # , tooltip = c("x", "color", "text"))
           ggplotly(gg2)
         }
