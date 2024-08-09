@@ -405,7 +405,7 @@ server <- function(input, output, session) {
               # Fixed y-position
               y = -0.75,
               # Dynamic color
-              color = color_aesthetic
+              color = !!sym(color_aesthetic)
             )
           )) +
           xlim(0, 1) +
@@ -519,7 +519,7 @@ server <- function(input, output, session) {
               # Fixed y-position
               y = -0.75,
               # Dynamic color
-              color = color_aesthetic
+              color = !!sym(color_aesthetic)
             )
           )) +
           xlim(0, 1.5) +
@@ -529,18 +529,6 @@ server <- function(input, output, session) {
           ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
           geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
-        
-        # Add driver mutations as extra vertical lines
-        if (!is.null(input$cancer_type_driver) && !is.null(input$gene_name_driver)) {
-          driver_mutations <- driver_mutation_data %>%
-            filter(cancer == input$cancer_type_driver, gene == input$gene_name_driver)
-          
-          if (nrow(driver_mutations) > 0) {
-            gg2 <- gg2 +
-              geom_vline(data = driver_mutations, aes(xintercept = CP_unpenalized), color = "red", linetype = "dotted") +
-              geom_text(data = driver_mutations, aes(x = CP_unpenalized, y = 5.7, label = paste(gene, collapse = ", ")), color = "red", angle = 90, vjust = -0.5, hjust = 0)
-          }
-        }
         
         # , tooltip = c("x", "color", "text"))
         ggplotly(gg2)
@@ -708,7 +696,7 @@ server <- function(input, output, session) {
               # Transparency
               alpha = 0.3,
               # Fixed y-position and dynamic color
-              aes(y = -0.75, color = color_aesthetic)
+              aes(y = -0.75, color = !!sym(color_aesthetic))
             )) +
             xlim(0, 1) +
             #ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
@@ -810,7 +798,7 @@ server <- function(input, output, session) {
               shape = 142,
               size = 5,
               alpha = 0.3,
-              aes(y = -0.75, color = color_aesthetic)
+              aes(y = -0.75, color = !!sym(color_aesthetic))
             )) +
             xlim(0, 1.5) +
             #ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
@@ -820,19 +808,7 @@ server <- function(input, output, session) {
             ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
             theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
             geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
-          
-          # Add driver mutations as extra vertical lines
-          if (!is.null(input$cancer_type_driver) && !is.null(input$gene_name_driver)) {
-            driver_mutations <- driver_mutation_data %>%
-              filter(cancer == input$cancer_type_driver, gene == input$gene_name_driver)
-            
-            if (nrow(driver_mutations) > 0) {
-              gg2 <- gg2 +
-                geom_vline(data = driver_mutations, aes(xintercept = CP_unpenalized), color = "red", linetype = "dotted") +
-                geom_text(data = driver_mutations, aes(x = CP_unpenalized, y = 5.7, label = paste(gene, collapse = ", ")), color = "red", angle = 90, vjust = -0.5, hjust = 0)
-            }
-          }
-          
+  
           # , tooltip = c("x", "color", "text"))
           ggplotly(gg2)
         }
