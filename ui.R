@@ -159,16 +159,16 @@ ui <- fluidPage(
                         sidebarLayout(
                           sidebarPanel(
                             uiOutput("cancer_type_ui_driver"),
-                            uiOutput("gene_name_ui_driver"),
+                            uiOutput("gene_name_ui_driver", style = "visibility: hidden; height: 0; overflow: hidden;"),
                             selectInput("sample_name_driver", "Select Sample Name:", choices = NULL), 
                             actionButton("submitDriver", "Submit", class = "btn-primary")
                           ),
                           mainPanel(
                             DT::DTOutput("driverMutationTable"),
                             tags$h4(tags$b(tags$span("Reference:"))),
-    p("Martínez-Jiménez, Francisco, Ferran Muiños, Inés Sentís, Jordi Deu-Pons, Iker Reyes-Salazar, Claudia Arnedo-Pac, Loris Mularoni et al. 
+                            p("Martínez-Jiménez, Francisco, Ferran Muiños, Inés Sentís, Jordi Deu-Pons, Iker Reyes-Salazar, Claudia Arnedo-Pac, Loris Mularoni et al. 
              'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20, no. 10 (2020): 555-572.")
-
+                            
                           )
                         )
                       )
