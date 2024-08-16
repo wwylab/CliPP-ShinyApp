@@ -17,23 +17,17 @@ ui <- fluidPage(
              tabPanel("About",
                       tags$div(
                         tags$h4(tags$b(tags$span("Description"))),
-                        p("Subpopulations of tumor cells characterized by mutation profiles may confer differential fitness 
-                          and consequently influence prognosis of cancers. Understanding subclonal architecture has the potential 
-                          to provide biological insight in tumor evolution and advance precision cancer treatment. Recent methods 
-                          comprehensively integrate single nucleotide variants (SNVs) and copy number aberrations (CNAs) to 
-                          reconstruct subclonal architecture using whole-genome or whole-exome sequencing (WGS, WES) data 
-                          from bulk tumor samples. However, the commonly used Bayesian methods require a large amount of 
-                          computational resources, a prior knowledge of the number of subclones, and extensive post-processing. 
-                          Regularized likelihood modeling approach, never explored for subclonal reconstruction, can inherently 
-                          address these drawbacks. We therefore propose a model-based method, Clonal structure identification 
-                          through Pair-wise Penalization, or CliPP, for clustering subclonal mutations without prior knowledge 
-                          or post-processing. The CliPP model is applicable to genomic regions with or without CNAs. CliPP 
-                          demonstrates high accuracy in subclonal reconstruction through extensive simulation studies. 
-                          A penalized likelihood framework for subclonal reconstruction will help address intrinsic drawbacks 
-                          of existing methods and expand the scope of computational analysis for cancer evolution in large 
-                          cancer genomic studies. Also see our paper:",
-                          a(href = "https://www.biorxiv.org/content/10.1101/2021.03.31.437383v1",
-                            "https://www.biorxiv.org/content/10.1101/2021.03.31.437383v1"),"."),
+                        p("Intra-tumor heterogeneity is an important driver of tumor evolution and therapy response. Advances in precision cancer treatment will require understanding of 
+                        mutation clonality and subclonal architecture. Currently the slow computational speed of subclonal reconstruction hinders large cohort studies. To overcome this 
+                        bottleneck, we developed Clonal structure identification through Pairwise Penalization, or CliPP, which clusters subclonal mutations using a regularized likelihood 
+                        model. CliPP reliably processed whole-genome and whole-exome sequencing data from over 12,000 tumor samples within 24 hours, thus enabling large-scale downstream 
+                        association analyses between subclonal structures and clinical outcomes. Through a pan-cancer investigation of 7,827 tumors from 32 cancer types, we found that high 
+                        subclonal mutational load (sML), a measure of latency time in tumor evolution, was significantly associated with better patient outcomes in 16 cancer types with low to 
+                        moderate tumor mutation burden (TMB). In a cohort of prostate cancer patients participating in an immunotherapy clinical trial, high sML was indicative of favorable 
+                        response to immune checkpoint blockade. This comprehensive study using CliPP underscores sML as a key feature of cancer. sML may be essential for linking mutation 
+                        dynamics with immunotherapy response in the large population of non-high TMB cancers. Also see our paper:",
+                          a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1",
+                            "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"),"."),
                         tags$br(),
                         p(tags$b(tags$span(style = "color: #D22B2B;", "For issues with the app, please contact:"))),
                         p("Aaron Wu - ", a(href = "mailto:aw80@rice.edu", "aw80@rice.edu")),
@@ -161,7 +155,9 @@ ui <- fluidPage(
                             uiOutput("cancer_type_ui_driver"),
                             uiOutput("gene_name_ui_driver", style = "visibility: hidden; height: 0; overflow: hidden;"),
                             selectInput("sample_name_driver", "Select Sample Name:", choices = NULL), 
-                            actionButton("submitDriver", "Submit", class = "btn-primary")
+                            actionButton("submitDriver", "Submit", class = "btn-primary"),
+                            shinyjs::hidden(downloadButton("downloadDriverMutation", "Download Data"))
+                            
                           ),
                           mainPanel(
                             DT::DTOutput("driverMutationTable"),
