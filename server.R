@@ -209,7 +209,7 @@ server <- function(input, output, session) {
   })
   
   # This event allows for the plots and output to only be displayed after the entire code has been run
-  observeEvent(input$submit, {
+  observeEvent(input$submit, {3
     plotsReadyCliPP(FALSE)
     
     selectedSample <- input$selectedSample
@@ -955,7 +955,24 @@ server <- function(input, output, session) {
           color = DT::styleEqual(c("Clonal", "Subclonal"), c('white', 'white'))
         )
     })
+    shinyjs::show("downloadDriverMutation")
   })
+  
+  # Allow for downloading of Driver Mutation plot
+  output$downloadDriverMutation <- downloadHandler(
+    filename = function() {
+      paste("Driver_Mutation_Data-", Sys.Date(), ".csv", sep = "")
+    },
+    content = function(file) {
+      selected_sample <- input$sample_name_driver
+      if (!is.null(selected_sample)) {
+        selected_data <- driver_mutation_data %>%
+          filter(sample == selected_sample) %>%
+          select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized)
+        write.csv(selected_data, file, row.names = FALSE)
+      }
+    }
+  )
   
   # Generate circos plot for CliPP-on-Web
   # observeEvent(input$submitCircos, {
