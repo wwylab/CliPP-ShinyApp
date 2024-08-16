@@ -10,7 +10,7 @@ ui <- fluidPage(
   div(p("Copyright ", HTML("&copy;"), " 2024 Wang Lab at MD Anderson. All rights reserved.")),
   
   # New formatting splits into 4 pages: about section which has all of the descriptions of the process Wenyi pioneered, CliPP-on-Web used for clinicians to determine subclonal information
-  # CliPP Data Resources that loads PCAWG and TCGA directly from a folder for automatic information, and a citations for all of the users on the web
+  # CliPP Data Resources that loads PCAWG and TCGA directly from a folder for automatic information, and citations for all of the users on the web
   
   # Page 1: About
   navbarPage("",
