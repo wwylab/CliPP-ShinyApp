@@ -42,6 +42,28 @@ server <- function(input, output, session) {
   outputDir <- getwd()
   resultPath <- file.path(outputDir, "forCliPP/CliPP/sample_id/final_result/Best_lambda")
   
+  check_delimiter_consistency <- function(filepath) {
+    first_line <- readLines(filepath, n = 1)
+    if (grepl("\t", first_line) & grepl(" ", first_line)) {
+      return(FALSE)
+    }
+    return(TRUE)
+  }
+  
+  check_file_naming <- function(filepath) {
+    # Extract filename from the path
+    filename <- basename(filepath)
+    # Define the expected suffixes
+    expected_suffixes <- c("_snv.txt", "_cna.txt", "_purity.txt")
+    # Check if filename ends with any of the expected suffixes
+    for (suffix in expected_suffixes) {
+      if (grepl(paste0(".*", suffix, "$"), filename)) {
+        return(TRUE)
+      }
+    }
+    return(FALSE)
+  }
+  
   # Centralized function to read and validate files
   read_and_validate_files <- function(snvFile, cnaFile, purityFile) {
     if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) {
@@ -133,9 +155,9 @@ server <- function(input, output, session) {
           uploadedNames <- files$name
           
           samples[[sampleName]] <- list(
-            snvFile = uploadedFiles[grepl("snv.txt", uploadedNames)],
-            cnaFile = uploadedFiles[grepl("cna.txt", uploadedNames)],
-            purityFile = uploadedFiles[grepl("purity.txt", uploadedNames)]
+            snvFile = uploadedFiles[grepl(".*_snv\\.txt$", uploadedNames)],
+            cnaFile = uploadedFiles[grepl(".*_cna\\.txt$", uploadedNames)],
+            purityFile = uploadedFiles[grepl(".*_purity\\.txt$", uploadedNames)]
           )
         }
       } else {
@@ -212,6 +234,7 @@ server <- function(input, output, session) {
   # This event allows for the plots and output to only be displayed after the entire code has been run
   observeEvent(input$submit, {
     updateProgressBar(session = session, id = "progress", value = 0, total = 100, title = "Starting...")
+    Sys.sleep(0.5)
     plotsReadyCliPP(FALSE)
     
     selectedSample <- input$selectedSample
@@ -232,17 +255,20 @@ server <- function(input, output, session) {
     }
     
     updateProgressBar(session = session, id = "progress", value = 20, title = "Processing files...")
+    Sys.sleep(0.5)
     
     file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
     if (is.null(file_data)) return()
     
     updateProgressBar(session = session, id = "progress", value = 40, title = "Files validated")
+    Sys.sleep(0.5)
     
     df_snv <- file_data$df_snv
     df_cna <- file_data$df_cna
     purity <- file_data$purity
     
     updateProgressBar(session = session, id = "progress", value = 60, title = "Data prepared for analysis")
+    Sys.sleep(0.5)
     
     # Define the directory path
     directoryPath <- "forCliPP/CliPP/sample_id/"
@@ -276,6 +302,7 @@ server <- function(input, output, session) {
     result <- system(command, intern = TRUE)
     
     updateProgressBar(session = session, id = "progress", value = 80, title = "Analysis complete")
+    Sys.sleep(0.5)
     
     # Debugging
     cat("Command output:", result, "\n")
