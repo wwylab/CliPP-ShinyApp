@@ -1,7 +1,6 @@
 library(shiny)
 library(plotly)
 library(shinyjs)
-library(shinyWidgets)
 
 ui <- fluidPage(
   shinyjs::useShinyjs(), 
@@ -82,8 +81,7 @@ ui <- fluidPage(
                             plotlyOutput("plot2"),
                             uiOutput("caption2"),
                             uiOutput("plotOutputArea"),
-                            hidden(div(id = "plotReadyTextCliPP")),
-                            shinyWidgets::progressBar(id = "progress", value = 0, total = 100, display_pct = TRUE)
+                            hidden(div(id = "plotReadyTextCliPP"))
                           )
                         )
                       )
@@ -158,11 +156,12 @@ ui <- fluidPage(
                             uiOutput("cancer_type_ui_driver"),
                             uiOutput("gene_name_ui_driver", style = "visibility: hidden; height: 0; overflow: hidden;"),
                             selectInput("sample_name_driver", "Select Sample Name:", choices = NULL), 
-                            actionButton("submitDriver", "Submit", class = "btn-primary")
+                            actionButton("submitDriver", "Submit", class = "btn-primary"),
+                            shinyjs::hidden(downloadButton("downloadDriverMutation", "Download Data"))
+                            
                           ),
                           mainPanel(
                             DT::DTOutput("driverMutationTable"),
-                            shinyjs::hidden(downloadButton("downloadDriverMutation", "Download Data")),
                             tags$h4(tags$b(tags$span("Reference:"))),
                             p("Martínez-Jiménez, Francisco, Ferran Muiños, Inés Sentís, Jordi Deu-Pons, Iker Reyes-Salazar, Claudia Arnedo-Pac, Loris Mularoni et al. 
              'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20, no. 10 (2020): 555-572.")
