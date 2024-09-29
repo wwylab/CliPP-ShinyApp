@@ -1,10 +1,23 @@
 library(shiny)
 library(plotly)
 library(shinyjs)
+library(shinyWidgets)
 
 ui <- fluidPage(
   shinyjs::useShinyjs(), 
-  
+  tags$head(
+    tags$style(HTML("
+      #progress {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 50%;  # Adjust width as needed
+        z-index: 9999;
+      }
+    "))
+  ),
+
   # Title and copyright page important to display for research purposes
   titlePanel("CliPP-on-Web: Clonal structure identification through penalizing pairwise differences"),
   div(p("Copyright ", HTML("&copy;"), " 2024 Wang Lab at MD Anderson. All rights reserved.")),
@@ -35,7 +48,15 @@ ui <- fluidPage(
                         p("Quang Tran - ", a(href = "mailto:qmtran@mdanderson.org", "qmtran@mdanderson.org"))
                       )
              ),
-             
+             # Page 2: Tutorial
+             tabPanel("Tutorial",
+                      tags$div(
+                        tags$h4(tags$b("Video Tutorial")),
+                        tags$p("Watch the video below to learn how to use the CliPP-on-Web application:"),
+                        tags$iframe(src="https://www.youtube.com/embed/jxsKUxkiaLI", 
+                                    style="width:80%; height:700px; border:none;"))),
+
+                        
              # Page 2: CliPP-on-Web
              tabPanel("CliPP-on-Web",
                       tags$div(
@@ -81,7 +102,15 @@ ui <- fluidPage(
                             plotlyOutput("plot2"),
                             uiOutput("caption2"),
                             uiOutput("plotOutputArea"),
-                            hidden(div(id = "plotReadyTextCliPP"))
+                            hidden(div(id = "plotReadyTextCliPP")),
+                            shinyjs::hidden(
+                              shinyWidgets::progressBar(
+                                id = "progress",
+                                value = 0,
+                                total = 100,
+                                display_pct = TRUE
+                              )
+                            )
                           )
                         )
                       )
@@ -156,12 +185,11 @@ ui <- fluidPage(
                             uiOutput("cancer_type_ui_driver"),
                             uiOutput("gene_name_ui_driver", style = "visibility: hidden; height: 0; overflow: hidden;"),
                             selectInput("sample_name_driver", "Select Sample Name:", choices = NULL), 
-                            actionButton("submitDriver", "Submit", class = "btn-primary"),
-                            shinyjs::hidden(downloadButton("downloadDriverMutation", "Download Data"))
-                            
+                            actionButton("submitDriver", "Submit", class = "btn-primary")
                           ),
                           mainPanel(
                             DT::DTOutput("driverMutationTable"),
+                            shinyjs::hidden(downloadButton("downloadDriverMutation", "Download Data")),
                             tags$h4(tags$b(tags$span("Reference:"))),
                             p("Martínez-Jiménez, Francisco, Ferran Muiños, Inés Sentís, Jordi Deu-Pons, Iker Reyes-Salazar, Claudia Arnedo-Pac, Loris Mularoni et al. 
              'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20, no. 10 (2020): 555-572.")
@@ -172,19 +200,19 @@ ui <- fluidPage(
              ),
              
              # Page 5: Circos Plot
-             tabPanel("Circos Plot",
-                      tags$div(
-                        sidebarLayout(
-                          sidebarPanel(
-                            selectInput("circosSample", "Select a sample to visualize:", choices = NULL),
-                            actionButton("submitCircos", "Generate Circos Plot", class = "btn-primary")
-                          ),
-                          mainPanel(
-                            plotOutput("circosPlot")
-                          )
-                        )
-                      )
-             ),
+             #tabPanel("Circos Plot",
+             #         tags$div(
+             #           sidebarLayout(
+             #             sidebarPanel(
+             #               selectInput("circosSample", "Select a sample to visualize:", choices = NULL),
+             #               actionButton("submitCircos", "Generate Circos Plot", class = "btn-primary")
+             #             ),
+              #            mainPanel(
+             #               plotOutput("circosPlot")
+             #             )
+              #          )
+             #         )
+           #  ),
              
              # Page 6: Citations
              tabPanel("Citations",
