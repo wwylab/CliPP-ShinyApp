@@ -53,7 +53,7 @@ ui <- fluidPage(
                       tags$div(
                         tags$h4(tags$b("Video Tutorial")),
                         tags$p("Watch the video below to learn how to use the CliPP-on-Web application:"),
-                        tags$iframe(src="https://www.youtube.com/embed/jxsKUxkiaLI", 
+                        tags$iframe(src="https://www.youtube.com/embed/YzbJJRlXgDs", 
                                     style="width:80%; height:700px; border:none;"))),
 
                         
