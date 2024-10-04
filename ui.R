@@ -17,7 +17,7 @@ ui <- fluidPage(
       }
     "))
   ),
-
+  
   # Title and copyright page important to display for research purposes
   titlePanel("CliPP-on-Web: Clonal structure identification through penalizing pairwise differences"),
   div(p("Copyright ", HTML("&copy;"), " 2024 Wang Lab at MD Anderson. All rights reserved.")),
@@ -55,8 +55,8 @@ ui <- fluidPage(
                         tags$p("Watch the video below to learn how to use the CliPP-on-Web application:"),
                         tags$iframe(src="https://www.youtube.com/embed/YzbJJRlXgDs", 
                                     style="width:80%; height:700px; border:none;"))),
-
-                        
+             
+             
              # Page 2: CliPP-on-Web
              tabPanel("CliPP-on-Web",
                       tags$div(
@@ -207,21 +207,25 @@ ui <- fluidPage(
              #               selectInput("circosSample", "Select a sample to visualize:", choices = NULL),
              #               actionButton("submitCircos", "Generate Circos Plot", class = "btn-primary")
              #             ),
-              #            mainPanel(
+             #            mainPanel(
              #               plotOutput("circosPlot")
              #             )
-              #          )
+             #          )
              #         )
-           #  ),
+             #  ),
              
              # Page 6: Citations
              tabPanel("Citations",
                       tags$div(
                         tags$h4(tags$b(tags$span("Manuscript under preparation:"))),
-                        p("Yujie Jiang, Matthew D Montierth, Kaixian Yu, Shuangxi Ji, Shuai Guo, Quang Tran, Seung Jun Shin, Shaolong Cao, 
-             Ruonan Li, Yuxin Tang, Tom Lesluyes, Scott Kopetz, Jaffer Ajani, Pavlos Msaouel, Sumit K Subudhi, Ana Aparicio, 
-             Padmanee Sharma, John Paul Shen, Anil K. Sood, Maxime Tarabichi, Jennifer R. Wang, Marek Kimmel, Peter Van Loo, 
-             Hongtu Zhu, Wenyi Wang. Pan-cancer subclonal mutation analysis of 7,827 tumors predicts clinical outcome.")
+                        p("YYujie Jiang, Matthew D Montierth, Kaixian Yu, Shuangxi Ji, 
+                          Quang Tran, Xiaoqian Liu, Jessica C Lal, Shuai Guo, Aaron Wu, 
+                          Seung Jun Shin, Shaolong Cao, Ruonan Li, Yuxin Tang, Tom Lesluyes, 
+                          Scott Kopetz, Pavlos Msaouel, Anil K. Sood, Christopher Jones, Jaffer Ajani, 
+                          Sumit K Subudhi, Ana Aparicio, Padmanee Sharma, John Paul Shen,  Marek Kimmel, 
+                          Jennifer R. Wang, Maxime Tarabichi, Rebecca Fitzgerald, Peter Van Loo, Hongtu Zhu, 
+                          Wenyi Wang. Subclonal mutational load predicts survival and response to immunotherapy 
+                          in cancers with low to moderate TMB.")
                       )
              )
   )
