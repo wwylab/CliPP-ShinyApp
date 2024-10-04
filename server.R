@@ -933,6 +933,8 @@ server <- function(input, output, session) {
   # Make clonal red and subclonal blue
   observeEvent(input$submitDriver, {
     selected_sample <- input$sample_name_driver
+    selected_cancer_type <- input$cancer_type_driver  # Capture the selected cancer type
+    
     
     if (is.null(selected_sample) || selected_sample == "") {
       showNotification("Please select a valid sample.", type = "error")
@@ -945,6 +947,9 @@ server <- function(input, output, session) {
       showNotification("No data available for the selected sample.", type = "error")
       return()
     }
+    
+    selected_data <- selected_data %>%
+      mutate(cancer = selected_cancer_type)
     
     output$driverMutationTable <- DT::renderDataTable({
       DT::datatable(selected_data %>% select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized),
