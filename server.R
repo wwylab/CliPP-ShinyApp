@@ -1,3 +1,4 @@
+
 library(reticulate)
 library(ggplot2)
 library(dplyr)
@@ -281,17 +282,27 @@ server <- function(input, output, session) {
     #print("Processed data")
   })
   
-  # Download handler
   output$downloadResult <- downloadHandler(
     filename = function() {
-      file_path <- file.path(resultPath, input$selectedFile)
-      validate(need(file.exists(file_path), "File not found."))
-      basename(file_path)
+      # Directly use the selected file's name for the download
+      # Ensuring it ends with '.txt' to handle any file type correctly
+      if (grepl(".txt$", input$selectedFile)) {
+        return(input$selectedFile)
+      } else {
+        return(paste(input$selectedFile, ".txt", sep=""))  # Append '.txt' if it's not already there
+      }
     },
     content = function(file) {
-      req(input$tabs == "CliPP-on-Web")
-      file.copy(from = file.path(resultPath, input$selectedFile), to = file)
-    }
+      # Construct the full path to the file
+      filePath <- file.path(resultPath, input$selectedFile)
+      # Ensure the file exists, stop execution if it does not
+      if (!file.exists(filePath)) {
+        stop("File not found.")
+      }
+      # Copy the file to the Shiny app's temporary file path for download
+      file.copy(from = filePath, to = file)
+    },
+    contentType = "text/plain"  # Make sure the content type is plain text to avoid HTML interpretations
   )
   
   output$warning <- renderText({
