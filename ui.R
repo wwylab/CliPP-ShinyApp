@@ -218,7 +218,7 @@ ui <- fluidPage(
              tabPanel("Citations",
                       tags$div(
                         tags$h4(tags$b(tags$span("Manuscript under preparation:"))),
-                        p("YYujie Jiang, Matthew D Montierth, Kaixian Yu, Shuangxi Ji, 
+                        p("Yujie Jiang, Matthew D Montierth, Kaixian Yu, Shuangxi Ji, 
                           Quang Tran, Xiaoqian Liu, Jessica C Lal, Shuai Guo, Aaron Wu, 
                           Seung Jun Shin, Shaolong Cao, Ruonan Li, Yuxin Tang, Tom Lesluyes, 
                           Scott Kopetz, Pavlos Msaouel, Anil K. Sood, Christopher Jones, Jaffer Ajani, 
