@@ -6,7 +6,6 @@ library(plotly)
 library(readr)
 library(shinyjs)
 library(DT)
-# library(circlize)
 
 global_TCGA_PCAWG <- "./dataSource"
 
@@ -99,8 +98,6 @@ server <- function(input, output, session) {
     shinyjs::hide("plot2")
     shinyjs::hide("caption1")
     shinyjs::hide("caption2")
-    #shinyjs::hide("plotOutputArea")
-    #print("Sample selection change")
   })
   
   # Hide submit buttons after they are clicked
@@ -109,7 +106,6 @@ server <- function(input, output, session) {
     shinyjs::show("colorByTCGA")
     shinyjs::show("smoothingFactor1_TCGA")
     shinyjs::show("smoothingFactor2_TCGA")
-    #print("Hide TCGA")
   })
   
   observeEvent(input$submitPCAWG, {
@@ -117,7 +113,6 @@ server <- function(input, output, session) {
     shinyjs::show("colorByPCAWG")
     shinyjs::show("smoothingFactor1_PCAWG")
     shinyjs::show("smoothingFactor2_PCAWG")
-    #print("Hide PCAWG")
   })
   
   # Helper function to store uploaded files
@@ -170,8 +165,6 @@ server <- function(input, output, session) {
     shinyjs::show("colorBy")
     shinyjs::show("smoothingFactor1")
     shinyjs::show("smoothingFactor2")
-    
-    #print("Uploaded samples")
   })
   
   # Event to clear the current batch and restart the upload process
@@ -188,7 +181,6 @@ server <- function(input, output, session) {
     shinyjs::hide("plot2")
     shinyjs::hide("caption1")
     shinyjs::hide("caption2")
-    #shinyjs::hide("plotOutputArea")
     shinyjs::hide("smoothingFactor1")
     shinyjs::hide("smoothingFactor2")
     shinyjs::show("setSamples")
@@ -204,8 +196,6 @@ server <- function(input, output, session) {
     output$caption2 <- renderUI({ NULL })
     output$plotOutputArea <- renderUI({ NULL })
     plotsReadyCliPP(FALSE)
-    
-    #print("Cleared all values")
   })
   
   # This event allows for the plots and output to only be displayed after the entire code has been run
@@ -247,6 +237,12 @@ server <- function(input, output, session) {
       system(paste("rm -rf", shQuote(directoryPath)), intern = TRUE)
     }
     
+    # penalty_type <- tolower(input$penaltyType)  # 'lasso' or 'mcp'
+    
+    # Construct the command
+    #command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s --penalty %s",
+    #                   shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile), shQuote(penalty_type))
+    
     # Construct the command
     command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
                        shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile))
@@ -277,8 +273,6 @@ server <- function(input, output, session) {
     shinyjs::show("caption1")
     shinyjs::show("caption2")
     shinyjs::show("plotOutputArea")
-    
-    #print("Processed data")
   })
   
   output$downloadResult <- downloadHandler(
@@ -301,7 +295,7 @@ server <- function(input, output, session) {
       # Copy the file to the Shiny app's temporary file path for download
       file.copy(from = filePath, to = file)
     },
-    contentType = "text/plain"  # Make sure the content type is plain text to avoid HTML interpretations
+    contentType = "text/plain"  
   )
   
   output$warning <- renderText({
@@ -326,8 +320,6 @@ server <- function(input, output, session) {
   # Observe plot readiness and render plots
   observe({
     req(plotsReadyCliPP())
-    
-    #print("Plot 1 rendered")
     
     # Plot 1
     output$plot1 <- renderPlotly({
@@ -414,7 +406,6 @@ server <- function(input, output, session) {
         merged_df <- merged_df %>%
           mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                  ReadDepth = sum_counts)
-        # print(head(merged_df))
         
         # Rename the count column to 'n'
         subclonality_counts <- merged_df %>%
@@ -447,7 +438,6 @@ server <- function(input, output, session) {
           geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = .85, y = -2.65)) +
           ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
         
-        # , tooltip = c("x", "color", "text"))
         ggplotly(gg1)
       }
     })
@@ -462,8 +452,6 @@ server <- function(input, output, session) {
     </p>")
       }
     })
-    
-    #print("Plot 2 rendered")
     
     # Plot 2
     output$plot2 <- renderPlotly({
@@ -549,7 +537,6 @@ server <- function(input, output, session) {
         merged_df <- merged_df %>%
           mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                  ReadDepth = sum_counts)
-        # print(head(merged_df))
         
         # Rename the count column to 'n'
         subclonality_counts <- merged_df %>%
@@ -587,8 +574,7 @@ server <- function(input, output, session) {
           ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
           geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
-        
-        # , tooltip = c("x", "color", "text"))
+
         ggplotly(gg2)
       }
     })
@@ -624,10 +610,48 @@ server <- function(input, output, session) {
                                "PCAWG" = plotsReadyPCAWG
     )
     
+    observeEvent(plotsReadyPrefix(), {
+      if (plotsReadyPrefix()) {
+        selectedSample <- input[[paste0("sample_name_", prefix)]]
+        sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
+        resultPath <- sampleDir  
+        
+        # This will give the available options for the user to download
+        result_files <- list.files(resultPath, pattern = "\\.txt$", full.names = FALSE)
+        
+        output[[paste0("downloadUI_", prefix)]] <- renderUI({
+          tagList(
+            selectInput(paste0("selectedFile", prefix), "Choose a file to download:", choices = result_files),
+            downloadButton(paste0("downloadResult", prefix), "Download Result")
+          )
+        })
+      }
+    })
+    
+    output[[paste0("downloadResult", prefix)]] <- downloadHandler(
+      filename = function() {
+        selected_file <- input[[paste0("selectedFile", prefix)]]
+        if (grepl(".txt$", selected_file)) {
+          return(selected_file)
+        } else {
+          return(paste0(selected_file, ".txt"))
+        }
+      },
+      content = function(file) {
+        selectedSample <- input[[paste0("sample_name_", prefix)]]
+        sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
+        filePath <- file.path(sampleDir, input[[paste0("selectedFile", prefix)]])
+        if (!file.exists(filePath)) {
+          stop("File not found.")
+        }
+        file.copy(from = filePath, to = file)
+      },
+      contentType = "text/plain"
+    )
+    
     observeEvent(input[[paste0("submit", prefix)]], {
       plotsReadyPrefix(FALSE)
       
-      #selectedSample <- input[[paste0("selectedSample", prefix)]]
       selectedSample <- input[[paste0("sample_name_", prefix)]]
       sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
       
@@ -639,7 +663,6 @@ server <- function(input, output, session) {
       snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
       cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
       purityFile <- list.files(sampleDir, pattern = "*.purity.txt", full.names = TRUE)
-      
       
       if (length(snvFile) == 0 || length(cnaFile) == 0 || length(purityFile) == 0) {
         showNotification("One or more required files are missing.", type = "error")
@@ -653,6 +676,15 @@ server <- function(input, output, session) {
       df_snv <- file_data$df_snv
       df_cna <- file_data$df_cna
       purity <- file_data$purity
+      
+      # Apply cut-off for PCAWG
+      if (prefix == "PCAWG") {
+        num_SNVs <- nrow(df_snv)
+        if (num_SNVs > 20000) {
+          showNotification(paste("The selected sample has", num_SNVs, "SNVs, which exceeds the limit of 20,000 SNVs for PCAWG samples."), type = "error")
+          return()
+        }
+      }
       
       # Update the file selection dropdown
       updateSelectInput(session, paste0("selectedFile", prefix), choices = list.files(resultPath, pattern = "\\.txt$"))
@@ -757,7 +789,6 @@ server <- function(input, output, session) {
           merged_df <- merged_df %>%
             mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                    ReadDepth = sum_counts)
-          #print(head(merged_df))
           
           # Rename the count column to 'n'
           subclonality_counts <- merged_df %>%
@@ -766,6 +797,18 @@ server <- function(input, output, session) {
           
           # Determine the color aesthetic based on the user input
           color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
+          
+          annotations <- list()
+          
+          if ("Clonal" %in% subclonality_counts$Subclonality) {
+            n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -1.65, label = paste0("n clonal = ", n_clonal))))
+          }
+          
+          if ("Subclonal" %in% subclonality_counts$Subclonality) {
+            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
+          }
           
           # Create plot
           gg1 <- ggplot(merged_df, aes(x = AF)) +
@@ -781,13 +824,11 @@ server <- function(input, output, session) {
               aes(y = -0.75, color = !!sym(color_aesthetic))
             )) +
             xlim(0, 1) +
-            #ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
             ggtitle(paste("Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd,), "      ", "Range read depth =", min_rd, "-", max_rd)) +
             geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = .85, y = -1.65)) +
             geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = .85, y = -2.65)) +
             ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
-          
-          # , tooltip = c("x", "color", "text"))
+
           ggplotly(gg1)
         }
       })
@@ -807,7 +848,6 @@ server <- function(input, output, session) {
       output[[paste0("plot2", prefix)]] <- renderPlotly({
         if (input[[paste0("submit", prefix)]] == 0 || !plotsReadyPrefix()) return()
         
-        #selectedSample <- input[[paste0("selectedSample", prefix)]]
         selectedSample <- input[[paste0("sample_name_", prefix)]]
         sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
         
@@ -888,7 +928,6 @@ server <- function(input, output, session) {
           merged_df <- merged_df %>%
             mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                    ReadDepth = sum_counts)
-          #print(head(merged_df))
           
           # Rename the count column to 'n'
           subclonality_counts <- merged_df %>%
@@ -898,8 +937,17 @@ server <- function(input, output, session) {
           # Determine the color aesthetic based on the user input
           color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
           
-          #print(input[[paste0("colorBy", prefix)]])
-          #print(summary(merged_df$CP_unpenalized))
+          annotations <- list()
+          
+          if ("Clonal" %in% subclonality_counts$Subclonality) {
+            n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -1.65, label = paste0("n clonal = ", n_clonal))))
+          }
+          
+          if ("Subclonal" %in% subclonality_counts$Subclonality) {
+            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
+          }
           
           # Create plot
           gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
@@ -915,15 +963,13 @@ server <- function(input, output, session) {
               aes(y = -0.75, color = !!sym(color_aesthetic))
             )) +
             xlim(0, 1.5) +
-            #ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
             ggtitle("Estimated mutation-specific CP") +
             geom_text(data = data.frame(), aes(label = paste0("n clonal = ", subclonality_counts %>% filter(Subclonality == "Clonal") %>% select(n)), x = 1.3, y = -1.65)) +
             geom_text(data = data.frame(), aes(label = paste0("n subclonal = ", subclonality_counts %>% filter(Subclonality == "Subclonal") %>% select(n)), x = 1.3, y = -2.65)) +
             ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
             theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
             geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
-          
-          # , tooltip = c("x", "color", "text"))
+
           ggplotly(gg2)
         }
       })
@@ -1043,7 +1089,7 @@ server <- function(input, output, session) {
   # Make clonal red and subclonal blue
   observeEvent(input$submitDriver, {
     selected_sample <- input$sample_name_driver
-    selected_cancer_type <- input$cancer_type_driver  # Capture the selected cancer type
+    selected_cancer_type <- input$cancer_type_driver  
     
     
     if (is.null(selected_sample) || selected_sample == "") {
@@ -1088,39 +1134,4 @@ server <- function(input, output, session) {
       }
     }
   )
-  
-  # Generate circos plot for CliPP-on-Web
-  # observeEvent(input$submitCircos, {
-  #   selectedSample <- input$circosSample
-  #   sampleFiles <- uploadedSamples$samples[[selectedSample]]
-  #   
-  #   if (is.null(sampleFiles)) return()
-  #   
-  #   snvFile <- sampleFiles$snvFile
-  #   cnaFile <- sampleFiles$cnaFile
-  #   purityFile <- sampleFiles$purityFile
-  #   
-  #   if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) return()
-  #   
-  #   file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
-  #   if (is.null(file_data)) return()
-  #   
-  #   df_snv <- file_data$df_snv
-  #   df_cna <- file_data$df_cna
-  #   purity <- file_data$purity
-  #   
-  #   circos.clear()
-  #   
-  #   circos.initializeWithIdeogram(plotType = c("axis", "labels"))
-  #   
-  #   circos.genomicTrack(df_snv, panel.fun = function(region, value, ...) {
-  #     circos.genomicPoints(region, value, col = "blue", cex = 0.5, pch = 16, ...)
-  #   })
-  #   
-  #   circos.genomicTrack(df_cna, panel.fun = function(region, value, ...) {
-  #     circos.genomicRect(region, value, col = "red", ...)
-  #   })
-  #   
-  #   circos.clear()
-  # })
 }
