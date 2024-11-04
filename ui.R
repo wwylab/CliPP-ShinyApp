@@ -92,12 +92,12 @@ ui <- fluidPage(
                             hidden(selectInput("selectedSample", "Select a sample to analyze:", choices = NULL)),
                             hidden(actionButton("submit", "Submit", class = "btn-primary")),
                             hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
-                            selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
+                            #selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
                             hidden(sliderInput("smoothingFactor1", "Smoothing Factor for VAF Plot:",
-                                               min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                                               min = 0.2, max = 0.7, value = 0.45, step = 0.05)),
                             uiOutput("smoothingExplanation1"),
                             hidden(sliderInput("smoothingFactor2", "Smoothing Factor for CP Plot:",
-                                               min = 0.2, max = 0.7, value = 0.2)),
+                                               min = 0.2, max = 0.7, value = 0.45)),
                             uiOutput("smoothingExplanation2"),
                             hidden(actionButton("clear", "Clear", class = "btn-danger"))
                           ),
@@ -111,7 +111,6 @@ ui <- fluidPage(
                             uiOutput("plotOutputArea"),
                             hidden(div(id = "plotReadyTextCliPP")),
                             shinyjs::hidden(
-                              # Making a note that this needs to be updated for visual (timing is not up to par with what I want)
                               shinyWidgets::progressBar(
                                 id = "progress",
                                 value = 0,
@@ -138,12 +137,12 @@ ui <- fluidPage(
                                          uiOutput("sample_name_ui_TCGA"),
                                          actionButton("submitTCGA", "Submit", class = "btn-primary"),
                                          hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
-                                         selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
+                                         #selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
                                          hidden(sliderInput("smoothingFactor1_TCGA", "Smoothing Factor for VAF Plot:",
-                                                            min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                                                            min = 0.2, max = 0.7, value = 0.45, step = 0.05)),
                                          uiOutput("smoothingExplanation1_TCGA"),
                                          hidden(sliderInput("smoothingFactor2_TCGA", "Smoothing Factor for CP Plot:",
-                                                            min = 0.2, max = 0.7, value = 0.2)),
+                                                            min = 0.2, max = 0.7, value = 0.45)),
                                          uiOutput("smoothingExplanation2_TCGA")
                                        ),
                                        mainPanel(
@@ -168,12 +167,12 @@ ui <- fluidPage(
                                          uiOutput("sample_name_ui_PCAWG"),
                                          actionButton("submitPCAWG", "Submit", class = "btn-primary"),
                                          hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
-                                         selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
+                                         #selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
                                          hidden(sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor for VAF Plot:",
-                                                            min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                                                            min = 0.2, max = 0.7, value = 0.45, step = 0.05)),
                                          uiOutput("smoothingExplanation1_PCAWG"),
                                          hidden(sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor for CP Plot:",
-                                                            min = 0.2, max = 0.7, value = 0.2)),
+                                                            min = 0.2, max = 0.7, value = 0.45)),
                                          uiOutput("smoothingExplanation2_PCAWG")
                                          ),
                                        mainPanel(
