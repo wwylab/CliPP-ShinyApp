@@ -97,7 +97,7 @@ ui <- fluidPage(
                                                min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
                             uiOutput("smoothingExplanation1"),
                             hidden(sliderInput("smoothingFactor2", "Smoothing Factor for CP Plot:",
-                                               min = 0.2, max = 0.7, value = 0.1)),
+                                               min = 0.2, max = 0.7, value = 0.2)),
                             uiOutput("smoothingExplanation2"),
                             hidden(actionButton("clear", "Clear", class = "btn-danger"))
                           ),
@@ -143,7 +143,7 @@ ui <- fluidPage(
                                                             min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
                                          uiOutput("smoothingExplanation1_TCGA"),
                                          hidden(sliderInput("smoothingFactor2_TCGA", "Smoothing Factor for CP Plot:",
-                                                            min = 0.2, max = 0.7, value = 0.1)),
+                                                            min = 0.2, max = 0.7, value = 0.2)),
                                          uiOutput("smoothingExplanation2_TCGA")
                                        ),
                                        mainPanel(
@@ -173,7 +173,7 @@ ui <- fluidPage(
                                                             min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
                                          uiOutput("smoothingExplanation1_PCAWG"),
                                          hidden(sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor for CP Plot:",
-                                                            min = 0.2, max = 0.7, value = 0.1)),
+                                                            min = 0.2, max = 0.7, value = 0.2)),
                                          uiOutput("smoothingExplanation2_PCAWG")
                                          ),
                                        mainPanel(
