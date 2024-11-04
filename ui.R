@@ -3,8 +3,11 @@ library(plotly)
 library(shinyjs)
 library(shinyWidgets)
 
+# UI for the Shiny application
 ui <- fluidPage(
+  # shinyjs for additional JavaScript functionality
   shinyjs::useShinyjs(), 
+  # CSS for styling a progress bar overlay
   tags$head(
     tags$style(HTML("
       #progress {
@@ -18,16 +21,14 @@ ui <- fluidPage(
     "))
   ),
   
-  # Title and copyright page important to display for research purposes
+  # Title and attribution for research purposes
   titlePanel("CliPP-on-Web: Clonal structure identification through penalizing pairwise differences"),
   div(p("Copyright ", HTML("&copy;"), " 2024 Wang Lab at MD Anderson. All rights reserved.")),
   
-  # New formatting splits into 5 pages: about section which has all of the descriptions of the process Wenyi pioneered, CliPP-on-Web used for clinicians to determine subclonal information
-  # CliPP Data Resources that loads PCAWG and TCGA directly from a folder for automatic information, Driver Mutation that creates tables based on gene information, Circos (in progress),
-  # and citations for all of the users on the web
-  
-  # Page 1: About
+  # Multi-page navigation structure
   navbarPage("",
+             
+             # Page 1: About section with application description and contact info
              tabPanel("About",
                       tags$div(
                         tags$h4(tags$b(tags$span("Description"))),
@@ -48,7 +49,8 @@ ui <- fluidPage(
                         p("Quang Tran - ", a(href = "mailto:qmtran@mdanderson.org", "qmtran@mdanderson.org"))
                       )
              ),
-             # Page 2: Tutorial
+             
+             # Page 2: Tutorial section with an embedded video
              tabPanel("Tutorial",
                       tags$div(
                         tags$h4(tags$b("Video Tutorial")),
@@ -57,11 +59,13 @@ ui <- fluidPage(
                                     style="width:80%; height:700px; border:none;"))),
              
              
-             # Page 2: CliPP-on-Web
+             # Page 3: Main functionality for uploading and analyzing data with CliPP-on-Web
              tabPanel("CliPP-on-Web",
                       tags$div(
                         tags$h4(tags$b("Upload Files")),
                         sidebarLayout(
+                          
+                          # Sidebar for file upload and input controls
                           sidebarPanel(
                             tags$div(
                               p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
@@ -98,7 +102,7 @@ ui <- fluidPage(
                             hidden(actionButton("clear", "Clear", class = "btn-danger"))
                           ),
                           
-                          # This controls the production of plots and captions
+                          # Main panel to display plots and analysis output
                           mainPanel(
                             plotlyOutput("plot1"),
                             uiOutput("caption1"),
@@ -120,12 +124,11 @@ ui <- fluidPage(
                       )
              ),
              
-             # Page 3: CliPP Data Resources
-             # Automatically runs the analysis on the files in the folder and produces the plots
+             # Page 4: CliPP Data Resources with automatic data loading and visualization
              tabPanel("CliPP Data Resources",
                       tags$div(
                         tabsetPanel(
-                          # Type 1: TCGA
+                          # Subsection for TCGA data selection and analysis
                           tabPanel("TCGA",
                                    tags$div(
                                      tags$h4(tags$b("TCGA Select")),
@@ -155,7 +158,7 @@ ui <- fluidPage(
                                      )
                                    )
                           ),
-                          # Type 2: PCAWG
+                          # Subsection for PCAWG data selection and analysis
                           tabPanel("PCAWG",
                                    tags$div(
                                      tags$h4(tags$b("PCAWG Select")),
@@ -189,7 +192,7 @@ ui <- fluidPage(
                       )
              ),
              
-             # Page 4: Driver Mutation
+             # Page 5: Driver Mutation analysis tool
              tabPanel("Driver Mutation",
                       tags$div(
                         sidebarLayout(
@@ -211,7 +214,7 @@ ui <- fluidPage(
                       )
              ),
              
-             # Page 5: Citations
+             # Page 6: Citations for related studies and resources
              tabPanel("Citations",
                       tags$div(
                         tags$h4(tags$b(tags$span("Manuscript under preparation:"))),
