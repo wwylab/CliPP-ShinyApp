@@ -7,52 +7,59 @@ library(readr)
 library(shinyjs)
 library(DT)
 
+# Data source directory
 global_TCGA_PCAWG <- "./dataSource"
 
-# Load the sample data
+# Sample data from PCAWG and TCGA datasets
 sample_PCAWG <- read.csv(file.path(global_TCGA_PCAWG, "CliPP_PCAWG.tsv"), sep='\t')
 sample_TCGA <- read.csv(file.path(global_TCGA_PCAWG, "CliPP_TCGA.tsv"), sep='\t')
 
-# Add dataset column to distinguish between PCAWG and TCGA
+# Dataset identifiers for PCAWG and TCGA
 sample_PCAWG$dataset <- "PCAWG"
 sample_TCGA$dataset <- "TCGA"
 
+# Both datasets combined in a single dataframe
 sample_data <- rbind(sample_PCAWG, sample_TCGA)
 
-# Load the driver mutation data
+# Load driver mutation data
 driver_mutation_data <- read.delim("./driver_mut_data.tsv")
 
+# Shiny server logic
 server <- function(input, output, session) {
+  
+  # Reactive values to track plot readiness for different sections
   plotsReadyCliPP <- reactiveVal(FALSE)
   plotsReadyTCGA <- reactiveVal(FALSE)
   plotsReadyPCAWG <- reactiveVal(FALSE)
   
+  # Uploaded samples are tracked
   samplesUploaded <- reactiveVal(FALSE)
-  # Define reactive values for the uploaded sample files
+  # Uploaded sample files are stored
   uploadedSamples <- reactiveValues(samples = list())
   
+  # Python path based on environment
   if (Sys.info()[['user']] == 'shiny') {
     # Sys.setenv(RETICULATE_PYTHON = "./python3")
     Sys.setenv(RETICULATE_PYTHON = "/usr/local/bin/python3")
   }
   
-  # Define the output directory globally
+  # Output directories for analysis results
   outputDir <- getwd()
   resultPath <- file.path(outputDir, "forCliPP/CliPP/sample_id/final_result/Best_lambda")
   
-  # Centralized function to read and validate files
+  # Function to read and validate input files (SNV, CNA, and purity files)
   read_and_validate_files <- function(snvFile, cnaFile, purityFile) {
     if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) {
       showNotification("One or more required files are missing.", type = "error")
       return(NULL)
     }
     
-    # Reading data
+    # Input data
     df_snv <- read.table(snvFile, header = TRUE)
     df_cna <- read.table(cnaFile, header = TRUE)
     purity <- as.numeric(readLines(purityFile, warn = FALSE))
     
-    # Ensure the required columns are present
+    # Check required columns in SNV data
     required_cols <- c("chromosome_index", "position", "ref_count", "alt_count")
     if (!all(required_cols %in% colnames(df_snv))) {
       missing_cols <- required_cols[!required_cols %in% colnames(df_snv)]
@@ -63,7 +70,7 @@ server <- function(input, output, session) {
     list(df_snv = df_snv, df_cna = df_cna, purity = purity)
   }
   
-  # Generate input samples dynamically based on input amount
+  # Dynamic file upload inputs based on selected number of samples
   observeEvent(input$setSamples, {
     numSamples <- input$numSamples
     output$dynamicFileInputs <- renderUI({
@@ -71,11 +78,10 @@ server <- function(input, output, session) {
         tagList(
           h4(paste("Sample", i)),
           textInput(paste0("sampleName", i), "Sample Name:", value = paste0("Sample", i)),
-          # All_at_once path
+          # File upload mode (all files at once or individual uploads)
           if (input$uploadMode == "all_at_once") {
             fileInput(paste0("fileInput", i), "Upload all three required files (snv.txt, cna.txt, purity.txt):",
                       multiple = TRUE, accept = c(".txt"))
-            # Single upload (gives users less experienced with technology to upload)
           } else {
             tagList(
               fileInput(paste0("snvFile", i), "SNV file:", multiple = FALSE, accept = c(".txt")),
@@ -92,7 +98,7 @@ server <- function(input, output, session) {
     shinyjs::disable("numSamples")
   })
   
-  # Hide plots when selection process is changed
+  # Hide plots when a new sample is selected for analysis
   observeEvent(input$selectedSample, {
     shinyjs::hide("plot1")
     shinyjs::hide("plot2")
@@ -100,7 +106,7 @@ server <- function(input, output, session) {
     shinyjs::hide("caption2")
   })
   
-  # Hide submit buttons after they are clicked
+  # Toggle visibility of TCGA and PCAWG submit options
   observeEvent(input$submitTCGA, {
     shinyjs::hide("submitTCGA")
     shinyjs::show("colorByTCGA")
@@ -115,7 +121,7 @@ server <- function(input, output, session) {
     shinyjs::show("smoothingFactor2_PCAWG")
   })
   
-  # Helper function to store uploaded files
+  # Function to store uploaded files
   storeUploadedFiles <- function(input, numSamples) {
     samples <- list()
     for (i in 1:numSamples) {
@@ -150,7 +156,7 @@ server <- function(input, output, session) {
     return(samples)
   }
   
-  # Store uploaded samples
+  # Store uploaded samples and show relevant UI elements for further processing
   observeEvent(input$uploadSamples, {
     numSamples <- input$numSamples
     samples <- storeUploadedFiles(input, numSamples)
@@ -167,7 +173,7 @@ server <- function(input, output, session) {
     shinyjs::show("smoothingFactor2")
   })
   
-  # Event to clear the current batch and restart the upload process
+  # Clear current session data and reset UI for new uploads
   observeEvent(input$clear, {
     uploadedSamples$samples <- list()
     samplesUploaded(FALSE)
@@ -189,7 +195,7 @@ server <- function(input, output, session) {
     shinyjs::show("uploadSamples")
     shinyjs::reset("numSamples")
     
-    # Ensure all plot related reactive values are reset
+    # Reset all plot outputs
     output$plot1 <- renderPlotly({ NULL })
     output$plot2 <- renderPlotly({ NULL })
     output$caption1 <- renderUI({ NULL })
@@ -198,13 +204,14 @@ server <- function(input, output, session) {
     plotsReadyCliPP(FALSE)
   })
   
-  # This event allows for the plots and output to only be displayed after the entire code has been run
+  # Generate plots and other outputs only after submitting all required files
   observeEvent(input$submit, {3
     plotsReadyCliPP(FALSE)
     
     selectedSample <- input$selectedSample
     sampleFiles <- uploadedSamples$samples[[selectedSample]]
     
+    # Validate selected sample files
     if (is.null(sampleFiles)) {
       showNotification("Please select a sample to analyze.", type = "error")
       return()
@@ -214,6 +221,7 @@ server <- function(input, output, session) {
     cnaFile <- sampleFiles$cnaFile
     purityFile <- sampleFiles$purityFile
     
+    # Validate existence of required files
     if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) {
       showNotification("One or more required files are missing.", type = "error")
       return()
@@ -263,11 +271,11 @@ server <- function(input, output, session) {
     output$result <- renderText({
       "Processing complete. Select a file to download."
     })
-    plotsReadyCliPP(TRUE)
-    # Show the clear button only after submission
-    shinyjs::show("clear")
     
-    # Ensure that plot and output UI elements are shown
+    # Mark plots as ready for display
+    plotsReadyCliPP(TRUE)
+    # Clear button after submission
+    shinyjs::show("clear")
     shinyjs::show("plot1")
     shinyjs::show("plot2")
     shinyjs::show("caption1")
@@ -275,24 +283,20 @@ server <- function(input, output, session) {
     shinyjs::show("plotOutputArea")
   })
   
+  # Handlers to enable file downloads after plot generation
   output$downloadResult <- downloadHandler(
     filename = function() {
-      # Directly use the selected file's name for the download
-      # Ensuring it ends with '.txt' to handle any file type correctly
       if (grepl(".txt$", input$selectedFile)) {
         return(input$selectedFile)
       } else {
-        return(paste(input$selectedFile, ".txt", sep=""))  # Append '.txt' if it's not already there
+        return(paste(input$selectedFile, ".txt", sep=""))  
       }
     },
     content = function(file) {
-      # Construct the full path to the file
       filePath <- file.path(resultPath, input$selectedFile)
-      # Ensure the file exists, stop execution if it does not
       if (!file.exists(filePath)) {
         stop("File not found.")
       }
-      # Copy the file to the Shiny app's temporary file path for download
       file.copy(from = filePath, to = file)
     },
     contentType = "text/plain"  
@@ -388,7 +392,7 @@ server <- function(input, output, session) {
         recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
         recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
         
-        # This should update the sliders with the recommended smoothing factor
+        # Sliders with the recommended smoothing factor
         updateSliderInput(session, "smoothingFactor1", value = recommended_smooth1)
         updateSliderInput(session, "smoothingFactor2", value = recommended_smooth2)
         
@@ -400,7 +404,7 @@ server <- function(input, output, session) {
           HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
         })
         
-        # Smoothing is adjustable with slider
+        # Smoothing slider
         smoothing_factor1 <- input$smoothingFactor1
         
         merged_df <- merged_df %>%
@@ -412,16 +416,15 @@ server <- function(input, output, session) {
           count(Subclonality) %>%
           rename(n = n)
         
-        # Determine the color aesthetic based on the user input
+        # Color aesthetic based on the user input
         color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
         
-        # Create plot
         gg1 <- ggplot(merged_df, aes(x = AF)) +
           geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
           suppressWarnings(geom_point(
-            # Draw horizontal lines instead of points
+            # Lines
             shape = 142,
-            # Adjust size based on the figure's dimensions
+            # Size
             size = 5,
             # Transparency
             alpha = 0.3,
@@ -442,7 +445,7 @@ server <- function(input, output, session) {
       }
     })
     
-    # Here is where the captions for graph 1 are stored
+    # Captions for graph 1 
     output$caption1 <- renderUI({
       if (plotsReadyCliPP()) {
         HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
@@ -519,7 +522,7 @@ server <- function(input, output, session) {
         recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
         recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
         
-        # This should update the sliders with the recommended smoothing factor
+        # Sliders with the recommended smoothing factor
         updateSliderInput(session, "smoothingFactor1", value = recommended_smooth1)
         updateSliderInput(session, "smoothingFactor2", value = recommended_smooth2)
         
@@ -531,7 +534,7 @@ server <- function(input, output, session) {
           HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
         })
         
-        # Smoothing is adjustable with slider
+        # Smoothing slider
         smoothing_factor2 <- input$smoothingFactor2
         
         merged_df <- merged_df %>%
@@ -550,13 +553,12 @@ server <- function(input, output, session) {
         # Determine the color aesthetic based on the user input
         color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
         
-        # Create plot
         gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
           geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
           suppressWarnings(geom_point(
-            # Draw horizontal lines instead of points
+            # Lines
             shape = 142,
-            # Adjust size based on the figure's dimensions
+            # Size
             size = 5,
             # Transparency
             alpha = 0.3,
@@ -579,7 +581,7 @@ server <- function(input, output, session) {
       }
     })
     
-    # Here is where the captions for graph 2 are stored
+    # Captions for graph 2 
     output$caption2 <- renderUI({
       if (plotsReadyCliPP()) {
         HTML("<p> - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
@@ -589,7 +591,7 @@ server <- function(input, output, session) {
       }
     })
     
-    # Makes it so that the output file does not appear until after the graphs are generated
+    # Output file does not appear until after graphs are generated
     output$plotOutputArea <- renderUI({
       if (plotsReadyCliPP()) {
         fluidPage(
@@ -602,9 +604,8 @@ server <- function(input, output, session) {
     })
   })
   
-  # Handlers for TCGA and PCAWG sections
+  # Set up handlers for TCGA and PCAWG sections with helper functions for each
   createSectionHandlers <- function(prefix) {
-    # Define a separate reactive value for each prefix
     plotsReadyPrefix <- switch(prefix,
                                "TCGA" = plotsReadyTCGA,
                                "PCAWG" = plotsReadyPCAWG
@@ -616,7 +617,7 @@ server <- function(input, output, session) {
         sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
         resultPath <- sampleDir  
         
-        # This will give the available options for the user to download
+        # File selection dropdown for result files
         result_files <- list.files(resultPath, pattern = "\\.txt$", full.names = FALSE)
         
         output[[paste0("downloadUI_", prefix)]] <- renderUI({
@@ -628,6 +629,7 @@ server <- function(input, output, session) {
       }
     })
     
+    # Download handler for TCGA/PCAWG results
     output[[paste0("downloadResult", prefix)]] <- downloadHandler(
       filename = function() {
         selected_file <- input[[paste0("selectedFile", prefix)]]
@@ -677,7 +679,7 @@ server <- function(input, output, session) {
       df_cna <- file_data$df_cna
       purity <- file_data$purity
       
-      # Apply cut-off for PCAWG
+      # Cut-off for PCAWG
       if (prefix == "PCAWG") {
         num_SNVs <- nrow(df_snv)
         if (num_SNVs > 20000) {
@@ -686,7 +688,7 @@ server <- function(input, output, session) {
         }
       }
       
-      # Update the file selection dropdown
+      # File selection dropdown
       updateSelectInput(session, paste0("selectedFile", prefix), choices = list.files(resultPath, pattern = "\\.txt$"))
       
       # Output message
@@ -694,7 +696,7 @@ server <- function(input, output, session) {
         "Processing complete. Select a file to download."
       })
       plotsReadyPrefix(TRUE)
-      # Show the clear button only after submission
+      # Clear button only after submission
       shinyjs::show(paste0("clear", prefix))
     })
     
@@ -771,7 +773,7 @@ server <- function(input, output, session) {
           recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
-          # This should update the sliders with the recommended smoothing factor
+          # Update the sliders with the recommended smoothing factor
           updateSliderInput(session, paste0("smoothingFactor1_", prefix), value = recommended_smooth1)
           updateSliderInput(session, paste0("smoothingFactor2_", prefix), value = recommended_smooth2)
           
@@ -783,7 +785,7 @@ server <- function(input, output, session) {
             HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
           })
           
-          # Smoothing is adjustable with slider
+          # Smoothing slider
           smoothing_factor1 <- input[[paste0("smoothingFactor1_", prefix)]]
           
           merged_df <- merged_df %>%
@@ -810,13 +812,12 @@ server <- function(input, output, session) {
             annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
           }
           
-          # Create plot
           gg1 <- ggplot(merged_df, aes(x = AF)) +
             geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
             suppressWarnings(geom_point(
-              # Draw horizontal lines instead of points
+              # Lines
               shape = 142,
-              # Adjust size based on the figure's dimensions
+              # Size
               size = 5,
               # Transparency
               alpha = 0.3,
@@ -833,7 +834,7 @@ server <- function(input, output, session) {
         }
       })
       
-      # Here is where the captions for graph 1 are stored
+      # Captions for graph 1 
       output[[paste0("caption1", prefix)]] <- renderUI({
         if (plotsReadyPrefix()) {
           HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
@@ -910,7 +911,7 @@ server <- function(input, output, session) {
           recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
-          # This should update the sliders with the recommended smoothing factor
+          # Sliders with the recommended smoothing factor
           updateSliderInput(session, paste0("smoothingFactor1_", prefix), value = recommended_smooth1)
           updateSliderInput(session, paste0("smoothingFactor2_", prefix), value = recommended_smooth2)
           
@@ -922,7 +923,7 @@ server <- function(input, output, session) {
             HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
           })
           
-          # Smoothing is adjustable with slider
+          # Smoothing slider
           smoothing_factor2 <- input[[paste0("smoothingFactor2_", prefix)]]
           
           merged_df <- merged_df %>%
@@ -949,13 +950,12 @@ server <- function(input, output, session) {
             annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
           }
           
-          # Create plot
           gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
             geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
             suppressWarnings(geom_point(
-              # Draw horizontal lines instead of points
+              # Lines
               shape = 142,
-              # Adjust size based on the figure's dimensions
+              # Size
               size = 5,
               # Transparency
               alpha = 0.3,
@@ -974,7 +974,7 @@ server <- function(input, output, session) {
         }
       })
       
-      # Here is where the captions for graph 2 are stored
+      # Captions for graph 2 
       output[[paste0("caption2", prefix)]] <- renderUI({
         if (plotsReadyPrefix()) {
           HTML("<p> - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
@@ -984,7 +984,7 @@ server <- function(input, output, session) {
         }
       })
       
-      # Makes it so that the output file does not appear until after the graphs are generated
+      # Output file does not appear until after the graphs are generated
       output[[paste0("plotOutputArea", prefix)]] <- renderUI({
         if (plotsReadyPrefix()) {
           fluidPage(
@@ -1014,7 +1014,7 @@ server <- function(input, output, session) {
   createSectionHandlers("TCGA")
   createSectionHandlers("PCAWG")
   
-  # List files in their respective folders and subsequently update the dropdown
+  # Files in their respective folders and dropdown updates
   list_files <- function(path) {
     list.files(path = path, full.names = TRUE)
   }
@@ -1029,51 +1029,44 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, "selectedSamplePCAWG", choices = files, server = TRUE)
   })
   
-  # Generate cancer type based on selected cancer type (for TCGA portion)
+  # Dynamic UI elements for selecting TCGA/PCAWG samples based on cancer type
   output$cancer_type_ui_TCGA <- renderUI({
     selectInput("cancer_type_TCGA", "Select Cancer Type:", choices = unique(sample_TCGA$cancer_type))
   })
   
-  # Generate sample name based on selected cancer type (for TCGA portion)
   output$sample_name_ui_TCGA <- renderUI({
     selectInput("sample_name_TCGA", "Select Sample Name:", choices = NULL)
   })
   
-  # Update sample name based on selected cancer type (for TCGA portion)
   observeEvent(input$cancer_type_TCGA, {
     selected_cancer_type <- input$cancer_type_TCGA
     sample_names <- sample_TCGA$samplename[sample_TCGA$cancer_type == selected_cancer_type]
     updateSelectInput(session, "sample_name_TCGA", choices = sample_names)
   })
   
-  # Generate cancer type based on selected dataset (for PCAWG portion)
   output$cancer_type_ui_PCAWG <- renderUI({
     selectInput("cancer_type_PCAWG", "Select Cancer Type:", choices = unique(sample_PCAWG$cancer_type))
   })
   
-  # Generate sample name based on selected dataset (for PCAWG portion)
   output$sample_name_ui_PCAWG <- renderUI({
     selectInput("sample_name_PCAWG", "Select Sample Name:", choices = NULL)
   })
   
-  # Update sample name based on selected cancer type (for PCAWG portion)
   observeEvent(input$cancer_type_PCAWG, {
     selected_cancer_type <- input$cancer_type_PCAWG
     sample_names <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == selected_cancer_type]
     updateSelectInput(session, "sample_name_PCAWG", choices = sample_names)
   })
   
-  # Generate cancer type based on selected dataset (for driver mutation portion)
+  # Dynamic UI elements for driver mutation section based on selected cancer type and gene
   output$cancer_type_ui_driver <- renderUI({
     selectInput("cancer_type_driver", "Select Cancer Type:", choices = unique(driver_mutation_data$cancer))
   })
   
-  # Generate gene name based on selected cancer type (for driver mutation portion)
   output$gene_name_ui_driver <- renderUI({
     selectInput("gene_name_driver", "Select Gene:", choices = NULL)
   })
   
-  # Update sample name based on selected cancer type and gene name (for driver mutation portion)
   observeEvent(input$cancer_type_driver, {
     selected_cancer_type <- input$cancer_type_driver
     gene_names <- unique(driver_mutation_data$gene[driver_mutation_data$cancer == selected_cancer_type])
@@ -1086,11 +1079,10 @@ server <- function(input, output, session) {
     updateSelectInput(session, "sample_name_driver", choices = sample_names)
   })
   
-  # Make clonal red and subclonal blue
+  # Generate driver mutation data table and configure file download for driver mutation data
   observeEvent(input$submitDriver, {
     selected_sample <- input$sample_name_driver
     selected_cancer_type <- input$cancer_type_driver  
-    
     
     if (is.null(selected_sample) || selected_sample == "") {
       showNotification("Please select a valid sample.", type = "error")
@@ -1119,7 +1111,7 @@ server <- function(input, output, session) {
     shinyjs::show("downloadDriverMutation")
   })
   
-  # Allow for downloading of Driver Mutation plot
+  # Allow downloading of the driver mutation data table as a CSV
   output$downloadDriverMutation <- downloadHandler(
     filename = function() {
       paste("Driver_Mutation_Data-", Sys.Date(), ".csv", sep = "")
