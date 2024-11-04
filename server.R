@@ -1,4 +1,3 @@
-
 library(reticulate)
 library(ggplot2)
 library(dplyr)
@@ -384,6 +383,31 @@ server <- function(input, output, session) {
         merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
         
         total_SNVs <- sum(df_subc$num_SNV)
+        
+        recommended_smoothing_factor <- function(total_mutations) {
+          min_smooth <- 0.2
+          max_smooth <- 0.7
+          min_mut <- 100
+          max_mut <- 10000
+          smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
+          smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
+          return(round(smoothing_factor, 2))
+        }
+        recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
+        recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
+        
+        # This should update the sliders with the recommended smoothing factor
+        updateSliderInput(session, "smoothingFactor1", value = recommended_smooth1)
+        updateSliderInput(session, "smoothingFactor2", value = recommended_smooth2)
+        
+        output$smoothingExplanation1 <- renderUI({
+          HTML(paste0("The smoothing factor is set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+        })
+        
+        output$smoothingExplanation2 <- renderUI({
+          HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+        })
+        
         # Smoothing is adjustable with slider
         smoothing_factor1 <- input$smoothingFactor1
         
@@ -494,6 +518,31 @@ server <- function(input, output, session) {
         merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
         
         total_SNVs <- sum(df_subc$num_SNV)
+        
+        recommended_smoothing_factor <- function(total_mutations) {
+          min_smooth <- 0.2
+          max_smooth <- 0.7
+          min_mut <- 100
+          max_mut <- 10000
+          smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
+          smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
+          return(round(smoothing_factor, 2))
+        }
+        recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
+        recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
+        
+        # This should update the sliders with the recommended smoothing factor
+        updateSliderInput(session, "smoothingFactor1", value = recommended_smooth1)
+        updateSliderInput(session, "smoothingFactor2", value = recommended_smooth2)
+        
+        output$smoothingExplanation1 <- renderUI({
+          HTML(paste0("The smoothing factor is set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+        })
+        
+        output$smoothingExplanation2 <- renderUI({
+          HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+        })
+        
         # Smoothing is adjustable with slider
         smoothing_factor2 <- input$smoothingFactor2
         
@@ -677,6 +726,31 @@ server <- function(input, output, session) {
           merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
           
           total_SNVs <- sum(df_subc$num_SNV)
+          
+          recommended_smoothing_factor <- function(total_mutations) {
+            min_smooth <- 0.2
+            max_smooth <- 0.7
+            min_mut <- 100
+            max_mut <- 10000
+            smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
+            smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
+            return(round(smoothing_factor, 2))
+          }
+          recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
+          recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
+          
+          # This should update the sliders with the recommended smoothing factor
+          updateSliderInput(session, paste0("smoothingFactor1_", prefix), value = recommended_smooth1)
+          updateSliderInput(session, paste0("smoothingFactor2_", prefix), value = recommended_smooth2)
+          
+          output[[paste0("smoothingExplanation1_", prefix)]] <- renderUI({
+            HTML(paste0("The smoothing factor is set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+          })
+          
+          output[[paste0("smoothingExplanation2_", prefix)]] <- renderUI({
+            HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+          })
+          
           # Smoothing is adjustable with slider
           smoothing_factor1 <- input[[paste0("smoothingFactor1_", prefix)]]
           
@@ -783,6 +857,31 @@ server <- function(input, output, session) {
           merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
           
           total_SNVs <- sum(df_subc$num_SNV)
+          
+          recommended_smoothing_factor <- function(total_mutations) {
+            min_smooth <- 0.2
+            max_smooth <- 0.7
+            min_mut <- 100
+            max_mut <- 10000
+            smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
+            smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
+            return(round(smoothing_factor, 2))
+          }
+          recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
+          recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
+          
+          # This should update the sliders with the recommended smoothing factor
+          updateSliderInput(session, paste0("smoothingFactor1_", prefix), value = recommended_smooth1)
+          updateSliderInput(session, paste0("smoothingFactor2_", prefix), value = recommended_smooth2)
+          
+          output[[paste0("smoothingExplanation1_", prefix)]] <- renderUI({
+            HTML(paste0("The smoothing factor is set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+          })
+          
+          output[[paste0("smoothingExplanation2_", prefix)]] <- renderUI({
+            HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+          })
+          
           # Smoothing is adjustable with slider
           smoothing_factor2 <- input[[paste0("smoothingFactor2_", prefix)]]
           
