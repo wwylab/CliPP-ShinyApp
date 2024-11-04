@@ -12,7 +12,7 @@ ui <- fluidPage(
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 50%;  # Adjust width as needed
+        width: 50%;  
         z-index: 9999;
       }
     "))
@@ -90,8 +90,10 @@ ui <- fluidPage(
                             hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
                             hidden(sliderInput("smoothingFactor1", "Smoothing Factor for VAF Plot:",
                                                min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                            uiOutput("smoothingExplanation1"),
                             hidden(sliderInput("smoothingFactor2", "Smoothing Factor for CP Plot:",
-                                               min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                                               min = 0.2, max = 0.7, value = 0.1)),
+                            uiOutput("smoothingExplanation2"),
                             hidden(actionButton("clear", "Clear", class = "btn-danger"))
                           ),
                           
@@ -104,6 +106,7 @@ ui <- fluidPage(
                             uiOutput("plotOutputArea"),
                             hidden(div(id = "plotReadyTextCliPP")),
                             shinyjs::hidden(
+                              # Making a note that this needs to be updated for visual (timing is not up to par with what I want)
                               shinyWidgets::progressBar(
                                 id = "progress",
                                 value = 0,
@@ -133,8 +136,10 @@ ui <- fluidPage(
                                          hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
                                          hidden(sliderInput("smoothingFactor1_TCGA", "Smoothing Factor for VAF Plot:",
                                                             min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                                         uiOutput("smoothingExplanation1_TCGA"),
                                          hidden(sliderInput("smoothingFactor2_TCGA", "Smoothing Factor for CP Plot:",
-                                                            min = 0.2, max = 0.7, value = 0.5, step = 0.1))
+                                                            min = 0.2, max = 0.7, value = 0.1)),
+                                         uiOutput("smoothingExplanation2_TCGA")
                                        ),
                                        mainPanel(
                                          plotlyOutput("plot1TCGA"),
@@ -159,9 +164,11 @@ ui <- fluidPage(
                                          hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
                                          hidden(sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor for VAF Plot:",
                                                             min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
+                                         uiOutput("smoothingExplanation1_PCAWG"),
                                          hidden(sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor for CP Plot:",
-                                                            min = 0.2, max = 0.7, value = 0.5, step = 0.1))
-                                       ),
+                                                            min = 0.2, max = 0.7, value = 0.1)),
+                                         uiOutput("smoothingExplanation2_PCAWG")
+                                         ),
                                        mainPanel(
                                          plotlyOutput("plot1PCAWG"),
                                          uiOutput("caption1PCAWG"),
