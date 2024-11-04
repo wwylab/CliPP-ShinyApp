@@ -446,18 +446,16 @@ server <- function(input, output, session) {
           
           if ("Clonal" %in% subclonality_counts$Subclonality) {
             n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
-            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -1.65, label = paste0("n clonal = ", n_clonal))))
-          }
-          
-          if ("Subclonal" %in% subclonality_counts$Subclonality) {
-            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
-            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
+            
+            annotations <- c(annotations, 
+                             annotate("text", x = 0.85, y = -1.65, 
+                                      label = paste0("n clonal = ", n_clonal), 
+                                      size = 3, color = "black", vjust = -1.5))
           }
           
           # Increment progress
           incProgress(0.8, detail = "Rendering plot...")
           
-          # Create plot
           gg1 <- ggplot(merged_df, aes(x = AF)) +
             geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
             suppressWarnings(geom_point(
@@ -476,7 +474,7 @@ server <- function(input, output, session) {
             )) +
             xlim(0, 1) +
             ggtitle(paste(selectedSample, " - Purity =", round(purity, 3), "      ", "Mean read depth =", round(mean_rd), "      ", "Range read depth =", min_rd, "-", max_rd)) +
-            annotations +  # Add the annotations conditionally
+            suppressWarnings(annotations) +  
             ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
           
           # Increment progress to completion
@@ -611,12 +609,11 @@ server <- function(input, output, session) {
           
           if ("Clonal" %in% subclonality_counts$Subclonality) {
             n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
-            annotations <- c(annotations, geom_text(aes(x = 1.3, y = -1.65, label = paste0("n clonal = ", n_clonal))))
-          }
-          
-          if ("Subclonal" %in% subclonality_counts$Subclonality) {
-            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
-            annotations <- c(annotations, geom_text(aes(x = 1.3, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
+            
+            annotations <- c(annotations, 
+                             annotate("text", x = 1.3, y = -1.65, 
+                                      label = paste0("n clonal = ", n_clonal), 
+                                      size = 3, color = "black", vjust = -1.5))
           }
           
           # Increment progress
@@ -641,7 +638,7 @@ server <- function(input, output, session) {
             )) +
             xlim(0, 1.5) +
             ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
-            annotations +  # Add the annotations conditionally
+            suppressWarnings(annotations) + 
             ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
             theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
             geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
@@ -676,6 +673,7 @@ server <- function(input, output, session) {
       }
     })
   })
+  
   
   # Set up handlers for TCGA and PCAWG sections with helper functions for each
   createSectionHandlers <- function(prefix) {
@@ -877,12 +875,11 @@ server <- function(input, output, session) {
           
           if ("Clonal" %in% subclonality_counts$Subclonality) {
             n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
-            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -1.65, label = paste0("n clonal = ", n_clonal))))
-          }
-          
-          if ("Subclonal" %in% subclonality_counts$Subclonality) {
-            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
-            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
+            
+            annotations <- c(annotations, 
+                             annotate("text", x = 0.85, y = -1.65, 
+                                      label = paste0("n clonal = ", n_clonal), 
+                                      size = 3, color = "black", vjust = -1.5))
           }
           
           gg1 <- ggplot(merged_df, aes(x = AF)) +
@@ -1015,12 +1012,11 @@ server <- function(input, output, session) {
           
           if ("Clonal" %in% subclonality_counts$Subclonality) {
             n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
-            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -1.65, label = paste0("n clonal = ", n_clonal))))
-          }
-          
-          if ("Subclonal" %in% subclonality_counts$Subclonality) {
-            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
-            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
+            
+            annotations <- c(annotations, 
+                             annotate("text", x = 1.3, y = -1.65, 
+                                      label = paste0("n clonal = ", n_clonal), 
+                                      size = 3, color = "black", vjust = -1.5))
           }
           
           gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
