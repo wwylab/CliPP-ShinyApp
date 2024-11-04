@@ -22,7 +22,7 @@ ui <- fluidPage(
   titlePanel("CliPP-on-Web: Clonal structure identification through penalizing pairwise differences"),
   div(p("Copyright ", HTML("&copy;"), " 2024 Wang Lab at MD Anderson. All rights reserved.")),
   
-  # New formatting splits into 6 pages: about section which has all of the descriptions of the process Wenyi pioneered, CliPP-on-Web used for clinicians to determine subclonal information
+  # New formatting splits into 5 pages: about section which has all of the descriptions of the process Wenyi pioneered, CliPP-on-Web used for clinicians to determine subclonal information
   # CliPP Data Resources that loads PCAWG and TCGA directly from a folder for automatic information, Driver Mutation that creates tables based on gene information, Circos (in progress),
   # and citations for all of the users on the web
   
@@ -88,6 +88,7 @@ ui <- fluidPage(
                             hidden(selectInput("selectedSample", "Select a sample to analyze:", choices = NULL)),
                             hidden(actionButton("submit", "Submit", class = "btn-primary")),
                             hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                            selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
                             hidden(sliderInput("smoothingFactor1", "Smoothing Factor for VAF Plot:",
                                                min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
                             uiOutput("smoothingExplanation1"),
@@ -134,6 +135,7 @@ ui <- fluidPage(
                                          uiOutput("sample_name_ui_TCGA"),
                                          actionButton("submitTCGA", "Submit", class = "btn-primary"),
                                          hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                                         selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
                                          hidden(sliderInput("smoothingFactor1_TCGA", "Smoothing Factor for VAF Plot:",
                                                             min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
                                          uiOutput("smoothingExplanation1_TCGA"),
@@ -147,7 +149,8 @@ ui <- fluidPage(
                                          plotlyOutput("plot2TCGA"),
                                          uiOutput("caption2TCGA"),
                                          hidden(uiOutput("plotOutputAreaTCGA")),
-                                         hidden(div(id = "plotReadyTextTCGA"))
+                                         hidden(div(id = "plotReadyTextTCGA")),
+                                         uiOutput("downloadUI_TCGA")
                                        )
                                      )
                                    )
@@ -162,6 +165,7 @@ ui <- fluidPage(
                                          uiOutput("sample_name_ui_PCAWG"),
                                          actionButton("submitPCAWG", "Submit", class = "btn-primary"),
                                          hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                                         selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
                                          hidden(sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor for VAF Plot:",
                                                             min = 0.2, max = 0.7, value = 0.5, step = 0.1)),
                                          uiOutput("smoothingExplanation1_PCAWG"),
@@ -175,7 +179,8 @@ ui <- fluidPage(
                                          plotlyOutput("plot2PCAWG"),
                                          uiOutput("caption2PCAWG"),
                                          hidden(uiOutput("plotOutputAreaPCAWG")),
-                                         hidden(div(id = "plotReadyTextPCAWG"))
+                                         hidden(div(id = "plotReadyTextPCAWG")),
+                                         uiOutput("downloadUI_PCAWG")
                                        )
                                      )
                                    )
@@ -206,22 +211,7 @@ ui <- fluidPage(
                       )
              ),
              
-             # Page 5: Circos Plot
-             #tabPanel("Circos Plot",
-             #         tags$div(
-             #           sidebarLayout(
-             #             sidebarPanel(
-             #               selectInput("circosSample", "Select a sample to visualize:", choices = NULL),
-             #               actionButton("submitCircos", "Generate Circos Plot", class = "btn-primary")
-             #             ),
-             #            mainPanel(
-             #               plotOutput("circosPlot")
-             #             )
-             #          )
-             #         )
-             #  ),
-             
-             # Page 6: Citations
+             # Page 5: Citations
              tabPanel("Citations",
                       tags$div(
                         tags$h4(tags$b(tags$span("Manuscript under preparation:"))),
