@@ -7,6 +7,11 @@ library(readr)
 library(shinyjs)
 library(DT)
 
+#For RShinyApp deployment, uncomment the lines below:
+#old_path <- Sys.getenv("PATH")
+#Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
+#Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
+
 # Data source directory
 global_TCGA_PCAWG <- "./dataSource"
 
