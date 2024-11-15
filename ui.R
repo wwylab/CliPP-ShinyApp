@@ -224,7 +224,9 @@ ui <- fluidPage(
                           Sumit K Subudhi, Ana Aparicio, Padmanee Sharma, John Paul Shen,  Marek Kimmel, 
                           Jennifer R. Wang, Maxime Tarabichi, Rebecca Fitzgerald, Peter Van Loo, Hongtu Zhu, 
                           Wenyi Wang. Subclonal mutational load predicts survival and response to immunotherapy 
-                          in cancers with low to moderate TMB.")
+                          in cancers with low to moderate TMB.",
+                          a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1",
+                          "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"),".")
                       )
              )
   )
