@@ -174,7 +174,7 @@ ui <- fluidPage(
                                          hidden(sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor for CP Plot:",
                                                             min = 0.2, max = 0.7, value = 0.45)),
                                          uiOutput("smoothingExplanation2_PCAWG")
-                                         ),
+                                       ),
                                        mainPanel(
                                          plotlyOutput("plot1PCAWG"),
                                          uiOutput("caption1PCAWG"),
@@ -198,8 +198,6 @@ ui <- fluidPage(
                           sidebarPanel(
                             uiOutput("cancer_type_ui_driver"),
                             uiOutput("gene_name_ui_driver", style = "visibility: hidden; height: 0; overflow: hidden;"),
-                            selectInput("sample_name_driver", "Select Sample Name:", choices = NULL), 
-                            actionButton("submitDriver", "Submit", class = "btn-primary")
                           ),
                           mainPanel(
                             DT::DTOutput("driverMutationTable"),
@@ -226,7 +224,7 @@ ui <- fluidPage(
                           Wenyi Wang. Subclonal mutational load predicts survival and response to immunotherapy 
                           in cancers with low to moderate TMB.",
                           a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1",
-                          "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"),".")
+                            "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"),".")
                       )
              )
   )
