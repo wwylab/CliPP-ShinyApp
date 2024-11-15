@@ -7,11 +7,6 @@ library(readr)
 library(shinyjs)
 library(DT)
 
-#For RShinyApp deployment, uncomment the lines below:
-#old_path <- Sys.getenv("PATH")
-#Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
-#Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
-
 # Data source directory
 global_TCGA_PCAWG <- "./dataSource"
 
@@ -1141,10 +1136,32 @@ server <- function(input, output, session) {
     selectInput("gene_name_driver", "Select Gene:", choices = NULL)
   })
   
+  # Generate driver mutation data table and configure file download for driver mutation data
   observeEvent(input$cancer_type_driver, {
     selected_cancer_type <- input$cancer_type_driver
-    gene_names <- unique(driver_mutation_data$gene[driver_mutation_data$cancer == selected_cancer_type])
-    updateSelectInput(session, "gene_name_driver", choices = gene_names)
+    
+    selected_data <- driver_mutation_data %>% filter(cancer == selected_cancer_type)
+    
+    if (nrow(selected_data) == 0) {
+      showNotification("No data available for the selected cancer type.", type = "error")
+      return()
+    }
+    
+    selected_data <- selected_data %>%
+      mutate(cancer = selected_cancer_type)
+    
+    output$driverMutationTable <- DT::renderDataTable({
+      DT::datatable(selected_data %>% select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized),
+                    options = list(pageLength = 10, searchHighlight = TRUE),
+                    rownames = FALSE) %>%
+        DT::formatStyle(
+          'Subclonality',
+          backgroundColor = DT::styleEqual(c("Clonal", "Subclonal"), c('#C9EDEF', '#FED9D7')),
+          color = DT::styleEqual(c("Clonal", "Subclonal"), c('black', 'black'))
+        )
+    })
+    
+    shinyjs::show("downloadDriverMutation")
   })
   
   observeEvent(input$gene_name_driver, {
@@ -1185,16 +1202,15 @@ server <- function(input, output, session) {
     shinyjs::show("downloadDriverMutation")
   })
   
-  # Allow downloading of the driver mutation data table as a CSV
   output$downloadDriverMutation <- downloadHandler(
     filename = function() {
-      paste("Driver_Mutation_Data-", Sys.Date(), ".csv", sep = "")
+      paste("Driver_Mutation_Data-", selected_cancer_type, "-", Sys.Date(), ".csv", sep = "")
     },
     content = function(file) {
-      selected_sample <- input$sample_name_driver
-      if (!is.null(selected_sample)) {
+      selected_cancer_type <- input$cancer_type_driver
+      if (!is.null(selected_cancer_type)) {
         selected_data <- driver_mutation_data %>%
-          filter(sample == selected_sample) %>%
+          filter(cancer == selected_cancer_type) %>%
           select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized)
         write.csv(selected_data, file, row.names = FALSE)
       }
