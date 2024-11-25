@@ -197,7 +197,6 @@ ui <- fluidPage(
                         sidebarLayout(
                           sidebarPanel(
                             uiOutput("cancer_type_ui_driver"),
-                            uiOutput("gene_name_ui_driver", style = "visibility: hidden; height: 0; overflow: hidden;"),
                           ),
                           mainPanel(
                             DT::DTOutput("driverMutationTable"),
