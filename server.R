@@ -411,16 +411,12 @@ server <- function(input, output, session) {
           recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
-          # Sliders with the recommended smoothing factor
-          updateSliderInput(session, "smoothingFactor1", value = recommended_smooth1)
-          updateSliderInput(session, "smoothingFactor2", value = recommended_smooth2)
-          
           output$smoothingExplanation1 <- renderUI({
-            HTML(paste0("The smoothing factor is set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
           })
           
           output$smoothingExplanation2 <- renderUI({
-            HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
           })
           
           # Increment progress
@@ -447,10 +443,12 @@ server <- function(input, output, session) {
           if ("Clonal" %in% subclonality_counts$Subclonality) {
             n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
             
-            annotations <- c(annotations, 
-                             annotate("text", x = 0.85, y = -1.65, 
-                                      label = paste0("n clonal = ", n_clonal), 
-                                      size = 3, color = "black", vjust = -1.5))
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -1.65, label = paste0("n clonal = ", n_clonal))))
+          }
+          
+          if ("Subclonal" %in% subclonality_counts$Subclonality) {
+            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
           }
           
           # Increment progress
@@ -570,16 +568,12 @@ server <- function(input, output, session) {
           recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
-          # Sliders with the recommended smoothing factor
-          updateSliderInput(session, "smoothingFactor1", value = recommended_smooth1)
-          updateSliderInput(session, "smoothingFactor2", value = recommended_smooth2)
-          
           output$smoothingExplanation1 <- renderUI({
-            HTML(paste0("The smoothing factor is set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
           })
           
           output$smoothingExplanation2 <- renderUI({
-            HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
           })
           
           # Increment progress
@@ -610,10 +604,12 @@ server <- function(input, output, session) {
           if ("Clonal" %in% subclonality_counts$Subclonality) {
             n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
             
-            annotations <- c(annotations, 
-                             annotate("text", x = 1.3, y = -1.65, 
-                                      label = paste0("n clonal = ", n_clonal), 
-                                      size = 3, color = "black", vjust = -1.5))
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -1.65, label = paste0("n clonal = ", n_clonal))))
+          }
+          
+          if ("Subclonal" %in% subclonality_counts$Subclonality) {
+            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
           }
           
           # Increment progress
@@ -844,16 +840,12 @@ server <- function(input, output, session) {
           recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
-          # Update the sliders with the recommended smoothing factor
-          updateSliderInput(session, paste0("smoothingFactor1_", prefix), value = recommended_smooth1)
-          updateSliderInput(session, paste0("smoothingFactor2_", prefix), value = recommended_smooth2)
-          
           output[[paste0("smoothingExplanation1_", prefix)]] <- renderUI({
-            HTML(paste0("The smoothing factor is set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
           })
           
           output[[paste0("smoothingExplanation2_", prefix)]] <- renderUI({
-            HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
           })
           
           # Smoothing slider
@@ -876,10 +868,12 @@ server <- function(input, output, session) {
           if ("Clonal" %in% subclonality_counts$Subclonality) {
             n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
             
-            annotations <- c(annotations, 
-                             annotate("text", x = 0.85, y = -1.65, 
-                                      label = paste0("n clonal = ", n_clonal), 
-                                      size = 3, color = "black", vjust = -1.5))
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -1.65, label = paste0("n clonal = ", n_clonal))))
+          }
+          
+          if ("Subclonal" %in% subclonality_counts$Subclonality) {
+            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
           }
           
           gg1 <- ggplot(merged_df, aes(x = AF)) +
@@ -981,16 +975,12 @@ server <- function(input, output, session) {
           recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
-          # Sliders with the recommended smoothing factor
-          updateSliderInput(session, paste0("smoothingFactor1_", prefix), value = recommended_smooth1)
-          updateSliderInput(session, paste0("smoothingFactor2_", prefix), value = recommended_smooth2)
-          
           output[[paste0("smoothingExplanation1_", prefix)]] <- renderUI({
-            HTML(paste0("The smoothing factor is set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
           })
           
           output[[paste0("smoothingExplanation2_", prefix)]] <- renderUI({
-            HTML(paste0("The smoothing factor is set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
           })
           
           # Smoothing slider
@@ -1013,10 +1003,12 @@ server <- function(input, output, session) {
           if ("Clonal" %in% subclonality_counts$Subclonality) {
             n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
             
-            annotations <- c(annotations, 
-                             annotate("text", x = 1.3, y = -1.65, 
-                                      label = paste0("n clonal = ", n_clonal), 
-                                      size = 3, color = "black", vjust = -1.5))
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -1.65, label = paste0("n clonal = ", n_clonal))))
+          }
+          
+          if ("Subclonal" %in% subclonality_counts$Subclonality) {
+            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
+            annotations <- c(annotations, geom_text(aes(x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal))))
           }
           
           gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
@@ -1174,20 +1166,20 @@ server <- function(input, output, session) {
       if (is.null(selected_data)) return()
       
       DT::datatable(
-        selected_data %>% select(cancer, sample, gene, protein, consequence, Subclonality, VAF, CP_unpenalized),
+        selected_data %>% select(gene, sample, protein, consequence, Subclonality, VAF, CP_unpenalized),
         options = list(
           pageLength = 10,
           searchHighlight = TRUE,
           autoWidth = FALSE,
           columnDefs = list(
-            list(width = '30px', targets = 0:7)
+            list(width = '30px', targets = 0:6)
           ),
           scrollX = TRUE
         ),
         rownames = FALSE
       ) %>%
         DT::formatStyle(
-          columns = c('cancer', 'sample', 'gene', 'protein', 'consequence', 'Subclonality', 'VAF', 'CP_unpenalized'),
+          columns = c('gene', 'sample', 'protein', 'consequence', 'Subclonality', 'VAF', 'CP_unpenalized'),
           `white-space` = 'normal'  
         ) %>%
         DT::formatStyle(
