@@ -94,7 +94,7 @@ ui <- fluidPage(
                             hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
                             #selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
                             hidden(sliderInput("smoothingFactor1", "Smoothing Factor for VAF Plot:",
-                                               min = 0.2, max = 0.7, value = 0.45)),
+                                               min = 0.2, max = 0.7, value = 0.45, step = 0.05)),
                             uiOutput("smoothingExplanation1"),
                             hidden(sliderInput("smoothingFactor2", "Smoothing Factor for CP Plot:",
                                                min = 0.2, max = 0.7, value = 0.45)),
@@ -139,7 +139,7 @@ ui <- fluidPage(
                                          hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
                                          #selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
                                          hidden(sliderInput("smoothingFactor1_TCGA", "Smoothing Factor for VAF Plot:",
-                                                            min = 0.2, max = 0.7, value = 0.45)),
+                                                            min = 0.2, max = 0.7, value = 0.45, step = 0.05)),
                                          uiOutput("smoothingExplanation1_TCGA"),
                                          hidden(sliderInput("smoothingFactor2_TCGA", "Smoothing Factor for CP Plot:",
                                                             min = 0.2, max = 0.7, value = 0.45)),
@@ -169,7 +169,7 @@ ui <- fluidPage(
                                          hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
                                          #selectInput("penaltyType", "Select Penalty Type:", choices = c("Lasso", "MCP"), selected = "Lasso"),
                                          hidden(sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor for VAF Plot:",
-                                                            min = 0.2, max = 0.7, value = 0.45)),
+                                                            min = 0.2, max = 0.7, value = 0.45, step = 0.05)),
                                          uiOutput("smoothingExplanation1_PCAWG"),
                                          hidden(sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor for CP Plot:",
                                                             min = 0.2, max = 0.7, value = 0.45)),
@@ -197,14 +197,17 @@ ui <- fluidPage(
                         sidebarLayout(
                           sidebarPanel(
                             uiOutput("cancer_type_ui_driver"),
+                            uiOutput("subclonalityCounts"),
+                            sliderInput("smoothingFactor1_driver", "Smoothing Factor for VAF Plot:",
+                                        min = 0.2, max = 0.7, value = 0.45, step = 0.05),
+                            sliderInput("smoothingFactor2_driver", "Smoothing Factor for CP Plot:",
+                                        min = 0.2, max = 0.7, value = 0.45, step = 0.05),
+                            selectInput("colorByDriver", "Color points by:", 
+                                        choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), 
+                                        selected = "clonality")
                           ),
                           mainPanel(
-                            DT::DTOutput("driverMutationTable"),
-                            shinyjs::hidden(downloadButton("downloadDriverMutation", "Download Data")),
-                            tags$h4(tags$b(tags$span("Reference:"))),
-                            p("Martínez-Jiménez, Francisco, Ferran Muiños, Inés Sentís, Jordi Deu-Pons, Iker Reyes-Salazar, Claudia Arnedo-Pac, Loris Mularoni et al. 
-             'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20, no. 10 (2020): 555-572.")
-                            
+                            uiOutput("driverMutationPlots")
                           )
                         )
                       )
