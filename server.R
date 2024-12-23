@@ -1401,19 +1401,17 @@ server <- function(input, output, session) {
       ggplotly(gg2)
     })
     
-    # Update captions with proper formatting and information
     output$driverCaption1 <- renderUI({
       HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele in driver mutations.<br>
-         - Distribution shows the frequency of different VAF values across identified driver mutations.<br>
-         - Points are colored by clonality status of the driver mutations.<br>
-         - Adjust the smoothing factor to refine the density plot visualization.</p>")
+         - Density estimates the probability density function of VAFs based on kernel density estimation (KDE).<br>
+         - Distribution shows the frequency of different VAF values across identified driver mutations.</p>")
     })
     
     output$driverCaption2 <- renderUI({
-      HTML("<p> - <b>Cellular Prevalence (CP)</b> shows the fraction of cells containing each driver mutation.<br>
-         - The dashed line indicates the median CP value for driver mutations.<br>
-         - Points are colored by clonality status of the driver mutations.<br>
-         - Adjust the smoothing factor to refine the density plot visualization.</p>")
+      HTML("<p> - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
+         - Annotations on the x-axis indicate whether mutations are clonal (present in all tumor cells) or subclonal (found in a subset).<br>
+         - Counts of clonal and subclonal mutations are indicated as n clonal and n subclonal respectively.<br>
+         - The dashed line indicates the median CP value for driver mutations.</p>")
     })
   })
   
