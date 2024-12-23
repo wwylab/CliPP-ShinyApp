@@ -6,6 +6,7 @@ library(plotly)
 library(readr)
 library(shinyjs)
 library(DT)
+library(tidyr)
 
 #old_path <- Sys.getenv("PATH")
 #Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
@@ -1278,6 +1279,161 @@ server <- function(input, output, session) {
           color = 'black'
         )
     })
+  })
+  
+  output$driverMutationPlots <- renderUI({
+    if (!is.null(input$cancer_type_driver)) {
+      tagList(
+        plotlyOutput("driverPlot1"),
+        uiOutput("driverCaption1"), 
+        plotlyOutput("driverPlot2"),
+        uiOutput("driverCaption2"),
+        DT::DTOutput("driverMutationTable"),
+        shinyjs::hidden(downloadButton("downloadDriverMutation", "Download Data")),
+        tags$h4(tags$b(tags$span("Reference:"))),
+        p("Martínez-Jiménez, Francisco, et al. 'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20.10 (2020): 555-572.")
+      )
+    }
+  })
+  
+  observe({
+    req(input$cancer_type_driver)
+    selected_data <- driver_data()
+    
+    if (is.null(selected_data)) return()
+    
+    # Determine color aesthetic based on user input
+    color_aesthetic <- if (input$colorByDriver == "clonality") "Subclonality" else "ReadDepth"
+    
+    # Calculate required metrics for the plots
+    selected_data <- selected_data %>%
+      mutate(
+        Subclonality = factor(Subclonality, levels = c("Clonal", "Subclonal"))
+      )
+    
+    # Get counts for annotations
+    subclonality_counts <- selected_data %>%
+      count(Subclonality) %>%
+      spread(Subclonality, n, fill = 0)
+    
+    # Initialize annotations
+    annotations <- list()
+    
+    # For Clonal mutations
+    if (!is.null(subclonality_counts$Clonal) && subclonality_counts$Clonal > 0) {
+      annotations <- c(
+        annotations,
+        annotate(
+          "text", x = 0.85, y = -1.65,
+          label = paste0("n clonal = ", subclonality_counts$Clonal),
+          size = 3, color = "black", vjust = -1.5
+        )
+      )
+    }
+    
+    # For Subclonal mutations
+    if (!is.null(subclonality_counts$Subclonal) && subclonality_counts$Subclonal > 0) {
+      annotations <- c(
+        annotations,
+        annotate(
+          "text", x = 0.85, y = -2.65,
+          label = paste0("n subclonal = ", subclonality_counts$Subclonal),
+          size = 3, color = "black", vjust = -1.5
+        )
+      )
+    }
+    
+    # VAF Plot
+    output$driverPlot1 <- renderPlotly({
+      gg1 <- ggplot(selected_data, aes(x = VAF)) +
+        geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
+        geom_point(
+          aes(y = -0.75, color = !!sym(color_aesthetic)),  
+          shape = 142,
+          size = 5,
+          alpha = 0.3
+        ) +
+        xlim(0, 1) +
+        ggtitle(paste(
+          input$cancer_type_driver,
+          " - Driver Mutations VAF Distribution"
+        )) +
+        annotations +
+        ggpubr::theme_pubr() +
+        xlab("VAF") + 
+        ylab("Density") +
+        theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+      
+      if (input$colorByDriver == "clonality") {
+        gg1 <- gg1 + scale_color_manual(values = c("Clonal" = "#C9EDEF", "Subclonal" = "#FED9D7"))
+      }
+      
+      ggplotly(gg1)
+    })
+    
+    # CP Plot update
+    output$driverPlot2 <- renderPlotly({
+      # Calculate median CP for the dotted line
+      median_cp <- median(selected_data$CP_unpenalized, na.rm = TRUE)
+      max_density <- max(density(selected_data$CP_unpenalized, adjust = input$smoothingFactor2_driver)$y)
+      
+      gg2 <- ggplot(selected_data, aes(x = CP_unpenalized)) +
+        geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
+        geom_point(
+          aes(y = -0.75, color = !!sym(color_aesthetic)),  
+          shape = 142,
+          size = 5,
+          alpha = 0.3
+        ) +
+        geom_vline(xintercept = median_cp, linetype = "dashed", alpha = 0.7) +
+        xlim(0, 1.5) +
+        ggtitle(paste(input$cancer_type_driver, " - Driver Mutations CP Distribution")) +
+        annotations +
+        ggpubr::theme_pubr() +
+        xlab("Estimated mutation-specific CP") +
+        ylab("Density") +
+        theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+      
+      if (input$colorByDriver == "clonality") {
+        gg2 <- gg2 + scale_color_manual(values = c("Clonal" = "#C9EDEF", "Subclonal" = "#FED9D7"))
+      }
+      
+      ggplotly(gg2)
+    })
+    
+    # Update captions with proper formatting and information
+    output$driverCaption1 <- renderUI({
+      HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele in driver mutations.<br>
+         - Distribution shows the frequency of different VAF values across identified driver mutations.<br>
+         - Points are colored by clonality status of the driver mutations.<br>
+         - Adjust the smoothing factor to refine the density plot visualization.</p>")
+    })
+    
+    output$driverCaption2 <- renderUI({
+      HTML("<p> - <b>Cellular Prevalence (CP)</b> shows the fraction of cells containing each driver mutation.<br>
+         - The dashed line indicates the median CP value for driver mutations.<br>
+         - Points are colored by clonality status of the driver mutations.<br>
+         - Adjust the smoothing factor to refine the density plot visualization.</p>")
+    })
+  })
+  
+  # Update the subclonality counts display
+  output$subclonalityCounts <- renderUI({
+    req(input$cancer_type_driver)
+    selected_data <- driver_data()
+    
+    if (is.null(selected_data)) return()
+    
+    counts <- selected_data %>%
+      count(Subclonality) %>%
+      spread(Subclonality, n, fill = 0)
+    
+    HTML(sprintf("
+    <p>Number of clonal mutations: %d<br>
+    Number of subclonal mutations: %d</p>",
+                 counts$Clonal,
+                 counts$Subclonal
+    ))
   })
   
   observe({
