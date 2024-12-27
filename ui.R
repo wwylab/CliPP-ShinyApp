@@ -193,22 +193,22 @@ ui <- fluidPage(
              
              # Page 5: Driver Mutation analysis tool
              tabPanel("Driver Mutation",
-                      tags$div(
-                        sidebarLayout(
-                          sidebarPanel(
-                            uiOutput("cancer_type_ui_driver"),
-                            uiOutput("subclonalityCounts"),
-                            sliderInput("smoothingFactor1_driver", "Smoothing Factor for VAF Plot:",
-                                        min = 0.2, max = 0.7, value = 0.45),
-                            sliderInput("smoothingFactor2_driver", "Smoothing Factor for CP Plot:",
-                                        min = 0.2, max = 0.7, value = 0.45),
-                            selectInput("colorByDriver", "Color points by:", 
-                                        choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), 
-                                        selected = "clonality")
-                          ),
-                          mainPanel(
-                            uiOutput("driverMutationPlots")
-                          )
+                      sidebarLayout(
+                        sidebarPanel(
+                          uiOutput("cancer_type_ui_driver"),
+                          sliderInput("smoothingFactor1_driver", "VAF Plot Smoothing:", 
+                                      min = 0.2, max = 0.7, value = 0.45),
+                          sliderInput("smoothingFactor2_driver", "CP Plot Smoothing:", 
+                                      min = 0.2, max = 0.7, value = 0.45)
+                        ),
+                        mainPanel(
+                          DT::DTOutput("driverMutationTable"),
+                          uiOutput("selectedMutationInfo"),
+                          plotlyOutput("driverPlot1"),
+                          plotlyOutput("driverPlot2"),
+                          downloadButton("downloadDriverMutation", "Download Data"),
+                          tags$h4(tags$b(tags$span("Reference:"))),
+                          p("Martínez-Jiménez, Francisco, et al. 'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20.10 (2020): 555-572.")
                         )
                       )
              ),
