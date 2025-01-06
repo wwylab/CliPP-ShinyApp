@@ -196,10 +196,12 @@ ui <- fluidPage(
                       sidebarLayout(
                         sidebarPanel(
                           uiOutput("cancer_type_ui_driver"),
-                          sliderInput("smoothingFactor1_driver", "VAF Plot Smoothing:", 
+                          sliderInput("smoothingFactor1_driver", "Smoothing Factor for VAF Plot:",
                                       min = 0.2, max = 0.7, value = 0.45),
-                          sliderInput("smoothingFactor2_driver", "CP Plot Smoothing:", 
-                                      min = 0.2, max = 0.7, value = 0.45)
+                          uiOutput("smoothingExplanation1_driver"),
+                          sliderInput("smoothingFactor2_driver", "Smoothing Factor for CP Plot:", 
+                                      min = 0.2, max = 0.7, value = 0.45),
+                          uiOutput("smoothingExplanation2_driver")
                         ),
                         mainPanel(
                           DT::DTOutput("driverMutationTable"),
