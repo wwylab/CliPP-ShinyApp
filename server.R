@@ -1121,7 +1121,7 @@ server <- function(input, output, session) {
             ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
             theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
             geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
-
+          
           ggplotly(gg2)
         }
       })
@@ -1218,7 +1218,7 @@ server <- function(input, output, session) {
   output$gene_name_ui_driver <- renderUI({
     selectInput("gene_name_driver", "Select Gene:", choices = NULL)
   })
-
+  
   # Using reactive expression to reorder data
   driver_data <- reactive({
     selected_cancer_type <- input$cancer_type_driver
@@ -1240,6 +1240,8 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$cancer_type_driver, {
+    shinyjs::hide("smoothingControls")
+    
     selected_cancer_type <- input$cancer_type_driver
     
     selected_data <- driver_mutation_data %>% filter(cancer == selected_cancer_type)
@@ -1377,15 +1379,20 @@ server <- function(input, output, session) {
     
     observeEvent(input$driverMutationTable_rows_selected, {
       row_selected <- input$driverMutationTable_rows_selected
-      if (is.null(row_selected)) return()
+      if (is.null(row_selected)) {
+        # Hide the smoothing controls if no row is selected
+        shinyjs::hide("smoothingControls")
+        return()
+      }
+      
+      # Show the smoothing controls when a row is selected
+      shinyjs::show("smoothingControls")
       
       selected_row <- selected_data[row_selected, ]
       
       output$selectedMutationInfo <- renderUI({
         tags$div(
-          class = "p-4 bg-gray-100 rounded",
-          tags$h3(class = "font-bold", paste("Selected Gene:", selected_row$gene)),
-          tags$h3(class = "font-bold", paste("Selected Sample:", selected_row$sample)),
+          class = "p-4 bg-gray-100 rounded"
         )
       })
       
@@ -1467,24 +1474,18 @@ server <- function(input, output, session) {
     content = function(file) {
       selected_cancer_type <- input$cancer_type_driver
       if (!is.null(selected_cancer_type)) {
-        # Get the selected data
         selected_data <- driver_data() %>%
           select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized)
         
         if (!is.null(selected_data) && nrow(selected_data) > 0) {
-          # Create header with tab separation
           header <- paste(colnames(selected_data), collapse = "\t")
           
-          # Create data rows with tab separation
           rows <- apply(selected_data, 1, function(x) paste(x, collapse = "\t"))
           
-          # Combine header and rows
           content <- c(header, rows)
           
-          # Write to file with line breaks
           writeLines(content, file)
         } else {
-          # Handle empty data case
           writeLines("No data available", file)
         }
       }
