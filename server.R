@@ -1279,6 +1279,45 @@ server <- function(input, output, session) {
           color = 'black'
         )
     })
+    
+    if (!is.null(selected_data)) {
+      # Calculate total mutations for this cancer type
+      total_mutations <- nrow(selected_data)
+      
+      # Calculate recommended smoothing factor
+      recommended_smoothing_factor <- function(total_mutations) {
+        min_smooth <- 0.2
+        max_smooth <- 0.7
+        min_mut <- 100
+        max_mut <- 10000
+        smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
+        smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
+        return(round(smoothing_factor, 2))
+      }
+      
+      recommended_smooth <- recommended_smoothing_factor(total_mutations)
+      
+      # Update smoothing explanations
+      output$smoothingExplanation1_driver <- renderUI({
+        HTML(paste0(
+          "<div style='margin: 10px 0;'>",
+          "The recommended smoothing factor is ", recommended_smooth, 
+          " based on ", total_mutations, " mutations in this cancer type. ",
+          "Adjust it to refine the VAF plot.",
+          "</div>"
+        ))
+      })
+      
+      output$smoothingExplanation2_driver <- renderUI({
+        HTML(paste0(
+          "<div style='margin: 10px 0;'>",
+          "The recommended smoothing factor is ", recommended_smooth,
+          " based on ", total_mutations, " mutations in this cancer type. ",
+          "Adjust it to refine the CP plot.",
+          "</div>"
+        ))
+      })
+    }
   })
   
   output$driverMutationPlots <- renderUI({
@@ -1286,8 +1325,11 @@ server <- function(input, output, session) {
       tagList(
         tabsetPanel(
           tabPanel("Plots",
+                   # Add smoothing explanations above the plots
+                   uiOutput("smoothingExplanation1_driver"),
                    plotlyOutput("driverPlot1"),
                    uiOutput("driverCaption1"),
+                   uiOutput("smoothingExplanation2_driver"),
                    plotlyOutput("driverPlot2"),
                    uiOutput("driverCaption2")
           ),
@@ -1342,9 +1384,8 @@ server <- function(input, output, session) {
       output$selectedMutationInfo <- renderUI({
         tags$div(
           class = "p-4 bg-gray-100 rounded",
-          tags$h3(class = "font-bold", paste("Selected Mutation:", selected_row$gene)),
-          tags$p(paste("Sample:", selected_row$sample)),
-          tags$p(paste("Consequence:", selected_row$consequence))
+          tags$h3(class = "font-bold", paste("Selected Gene:", selected_row$gene)),
+          tags$h3(class = "font-bold", paste("Selected Sample:", selected_row$sample)),
         )
       })
       
@@ -1371,21 +1412,6 @@ server <- function(input, output, session) {
       })
     })
   })
-  
-  output$downloadDriverMutation <- downloadHandler(
-    filename = function() {
-      paste("Driver_Mutation_Data-", input$cancer_type_driver, "-", Sys.Date(), ".csv", sep = "")
-    },
-    content = function(file) {
-      selected_cancer_type <- input$cancer_type_driver
-      if (!is.null(selected_cancer_type)) {
-        selected_data <- driver_mutation_data %>%
-          filter(cancer == selected_cancer_type) %>%
-          select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized)
-        write.csv(selected_data, file, row.names = FALSE)
-      }
-    }
-  )
   
   observe({
     selected_data <- driver_data()
@@ -1436,16 +1462,43 @@ server <- function(input, output, session) {
   
   output$downloadDriverMutation <- downloadHandler(
     filename = function() {
-      paste("Driver_Mutation_Data-", selected_cancer_type, "-", Sys.Date(), ".csv", sep = "")
+      paste("Driver_Mutation_Data-", input$cancer_type_driver, "-", Sys.Date(), ".txt", sep = "")
     },
     content = function(file) {
       selected_cancer_type <- input$cancer_type_driver
       if (!is.null(selected_cancer_type)) {
-        selected_data <- driver_mutation_data %>%
-          filter(cancer == selected_cancer_type) %>%
+        # Get the selected data
+        selected_data <- driver_data() %>%
           select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized)
-        write.csv(selected_data, file, row.names = FALSE)
+        
+        if (!is.null(selected_data) && nrow(selected_data) > 0) {
+          # Create header with tab separation
+          header <- paste(colnames(selected_data), collapse = "\t")
+          
+          # Create data rows with tab separation
+          rows <- apply(selected_data, 1, function(x) paste(x, collapse = "\t"))
+          
+          # Combine header and rows
+          content <- c(header, rows)
+          
+          # Write to file with line breaks
+          writeLines(content, file)
+        } else {
+          # Handle empty data case
+          writeLines("No data available", file)
+        }
       }
-    }
+    },
+    contentType = "text/plain"
   )
+  
+  # Add observer to control button visibility
+  observe({
+    selected_data <- driver_data()
+    if (!is.null(selected_data) && nrow(selected_data) > 0) {
+      shinyjs::show("downloadDriverMutation")
+    } else {
+      shinyjs::hide("downloadDriverMutation")
+    }
+  })
 }
