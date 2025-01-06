@@ -206,11 +206,11 @@ ui <- fluidPage(
                         mainPanel(
                           DT::DTOutput("driverMutationTable"),
                           uiOutput("selectedMutationInfo"),
-                          plotlyOutput("driverPlot1"),
-                          plotlyOutput("driverPlot2"),
                           downloadButton("downloadDriverMutation", "Download Data"),
                           tags$h4(tags$b(tags$span("Reference:"))),
-                          p("Martínez-Jiménez, Francisco, et al. 'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20.10 (2020): 555-572.")
+                          p("Martínez-Jiménez, Francisco, et al. 'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20.10 (2020): 555-572."),
+                          plotlyOutput("driverPlot1"),
+                          plotlyOutput("driverPlot2")
                         )
                       )
              ),
