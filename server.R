@@ -1331,6 +1331,7 @@ server <- function(input, output, session) {
                    uiOutput("smoothingExplanation1_driver"),
                    plotlyOutput("driverPlot1"),
                    uiOutput("driverCaption1"),
+                   
                    uiOutput("smoothingExplanation2_driver"),
                    plotlyOutput("driverPlot2"),
                    uiOutput("driverCaption2")
@@ -1400,10 +1401,22 @@ server <- function(input, output, session) {
         gg1 <- ggplot(selected_data, aes(x = VAF)) +
           geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
           geom_vline(xintercept = selected_row$VAF, linetype = "dashed", color = "black") +
+          # Add clonal/subclonal points
+          geom_point(
+            shape = 142,
+            size = 5,
+            alpha = 0.3,
+            aes(
+              y = -0.75,
+              color = Subclonality
+            )
+          ) +
           xlim(0, 1) +
           ggtitle(paste("VAF Distribution -", selected_row$gene)) +
           ggpubr::theme_pubr() +
-          xlab("VAF") + ylab("Density")
+          xlab("VAF") + ylab("Density") +
+          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
+          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
         ggplotly(gg1)
       })
       
@@ -1411,11 +1424,39 @@ server <- function(input, output, session) {
         gg2 <- ggplot(selected_data, aes(x = CP_unpenalized)) +
           geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
           geom_vline(xintercept = selected_row$CP_unpenalized, linetype = "dashed", color = "black") +
+          # Add clonal/subclonal points
+          geom_point(
+            shape = 142,
+            size = 5,
+            alpha = 0.3,
+            aes(
+              y = -0.75,
+              color = Subclonality
+            )
+          ) +
           xlim(0, 1.5) +
           ggtitle(paste("CP Distribution -", selected_row$gene)) +
           ggpubr::theme_pubr() +
-          xlab("CP") + ylab("Density")
+          xlab("CP") + ylab("Density") +
+          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
+          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
         ggplotly(gg2)
+      })
+      
+      output$driverCaption1 <- renderUI({
+        HTML("<p>
+    - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
+    - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
+    - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE).<br>
+  </p>")
+      })
+      
+      output$driverCaption2 <- renderUI({
+        HTML("<p>
+    - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
+    - Annotations on the x-axis indicate whether mutations are <b>clonal</b> (present in all tumor cells) or <b>subclonal</b> (found in a subset).<br>
+    - Counts of clonal and subclonal mutations are indicated as <b>n clonal</b> and <b>n subclonal</b> respectively.<br>
+  </p>")
       })
     })
   })
