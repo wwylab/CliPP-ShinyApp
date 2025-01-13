@@ -199,6 +199,8 @@ server <- function(input, output, session) {
     shinyjs::hide("caption2")
     shinyjs::hide("smoothingFactor1")
     shinyjs::hide("smoothingFactor2")
+    shinyjs::hide("smoothingExplanation1")  
+    shinyjs::hide("smoothingExplanation2")
     shinyjs::show("setSamples")
     shinyjs::enable("numSamples")
     plotsReadyCliPP(FALSE)
