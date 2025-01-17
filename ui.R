@@ -6,6 +6,7 @@ library(shinyWidgets)
 # UI for the Shiny application
 ui <- fluidPage(
   # shinyjs for additional JavaScript functionality
+  tags$head(includeHTML("google-analytics.html")),
   shinyjs::useShinyjs(),
   # CSS for styling a progress bar overlay
   tags$head(
@@ -137,15 +138,11 @@ ui <- fluidPage(
                                     div(class = "plot-area",
                                         plotlyOutput("plot1")
                                     ),
-                                    hidden(
-                                      div(class = "controls-area",
-                                          div(id = "smoothing-controls-1",
-                                              sliderInput("smoothingFactor1", "Smoothing Factor:",
-                                                          min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                              div(class = "recommended-smoothing",
-                                                  uiOutput("smoothingExplanation1")
-                                              )
-                                          )
+                                    div(class = "controls-area",
+                                        sliderInput("smoothingFactor1", "Smoothing Factor:",
+                                                    min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                        div(class = "recommended-smoothing",
+                                            uiOutput("smoothingExplanation1")
                                         )
                                     )
                                 ),
@@ -160,16 +157,12 @@ ui <- fluidPage(
                                     div(class = "plot-area",
                                         plotlyOutput("plot2")
                                     ),
-                                    hidden(
-                                      div(class = "controls-area",
-                                          div(id = "smoothing-controls-2",
-                                              sliderInput("smoothingFactor2", "Smoothing Factor:",
-                                                          min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                              div(class = "recommended-smoothing",
-                                                  uiOutput("smoothingExplanation2")
-                                              )
-                                          )
-                                      )
+                                    div(class = "controls-area",
+                                        sliderInput("smoothingFactor2", "Smoothing Factor:",
+                                                    min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                        div(class = "recommended-smoothing",
+                                            uiOutput("smoothingExplanation2")
+                                        )
                                     )
                                 ),
                                 div(class = "caption-area",
@@ -217,16 +210,12 @@ ui <- fluidPage(
                                                  div(class = "plot-area",
                                                      plotlyOutput("plot1TCGA")
                                                  ),
-                                                 hidden(
-                                                   div(class = "controls-area",
-                                                       div(id = "smoothing-controls-1-tcga",
-                                                           sliderInput("smoothingFactor1_TCGA", "Smoothing Factor:",
-                                                                       min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                           div(class = "recommended-smoothing",
-                                                               uiOutput("smoothingExplanation1_TCGA")
-                                                           )
-                                                       )
-                                                   )
+                                                 div(class = "controls-area",
+                                                     sliderInput("smoothingFactor1_TCGA", "Smoothing Factor:",
+                                                                 min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                     div(class = "recommended-smoothing",
+                                                         uiOutput("smoothingExplanation1_TCGA")
+                                                     )
                                                  )
                                              ),
                                              div(class = "caption-area",
@@ -344,16 +333,12 @@ ui <- fluidPage(
                                   div(class = "plot-area",
                                       plotlyOutput("driverPlot1")
                                   ),
-                                  hidden(
-                                    div(class = "controls-area",
-                                        div(id = "smoothing-controls-1-driver",
-                                            sliderInput("smoothingFactor1_driver", "Smoothing Factor:",
-                                                        min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                            div(class = "recommended-smoothing",
-                                                uiOutput("smoothingExplanation1_driver")
-                                            )
-                                        )
-                                    )
+                                  div(class = "controls-area",
+                                      sliderInput("smoothingFactor1_driver", "Smoothing Factor:",
+                                                  min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                      div(class = "recommended-smoothing",
+                                          uiOutput("smoothingExplanation1_driver")
+                                      )
                                   )
                               ),
                               div(class = "caption-area",
@@ -367,16 +352,12 @@ ui <- fluidPage(
                                   div(class = "plot-area",
                                       plotlyOutput("driverPlot2")
                                   ),
-                                  hidden(
-                                    div(class = "controls-area",
-                                        div(id = "smoothing-controls-2-driver",
-                                            sliderInput("smoothingFactor2_driver", "Smoothing Factor:",
-                                                        min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                            div(class = "recommended-smoothing",
-                                                uiOutput("smoothingExplanation2_driver")
-                                            )
-                                        )
-                                    )
+                                  div(class = "controls-area",
+                                      sliderInput("smoothingFactor2_driver", "Smoothing Factor:",
+                                                  min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                      div(class = "recommended-smoothing",
+                                          uiOutput("smoothingExplanation2_driver")
+                                      )
                                   )
                               ),
                               div(class = "caption-area",

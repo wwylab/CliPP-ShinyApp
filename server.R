@@ -348,9 +348,6 @@ server <- function(input, output, session) {
   observe({
     req(plotsReadyCliPP())
     
-    shinyjs::show("smoothing-controls-1")
-    shinyjs::show("smoothing-controls-2")
-    
     # Plot 1
     output$plot1 <- renderPlotly({
       # Initialize the progress bar for Plot 1
