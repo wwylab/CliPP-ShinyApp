@@ -6,6 +6,7 @@ library(shinyWidgets)
 # UI for the Shiny application
 ui <- fluidPage(
   # shinyjs for additional JavaScript functionality
+  tags$head(includeHTML("google-analytics.html")),
   shinyjs::useShinyjs(),
   # CSS for styling a progress bar overlay
   tags$head(
