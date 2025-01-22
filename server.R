@@ -347,6 +347,7 @@ server <- function(input, output, session) {
   # Observe plot readiness and render plots
   observe({
     req(plotsReadyCliPP())
+    shinyjs::show(selector = ".controls-area")
     
     # Plot 1
     output$plot1 <- renderPlotly({
@@ -822,6 +823,7 @@ server <- function(input, output, session) {
     
     observe({
       req(plotsReadyPrefix())
+      shinyjs::show(selector = paste0(".controls-area-", prefix))
       
       # Plot 1
       output[[paste0("plot1", prefix)]] <- renderPlotly({
