@@ -1247,7 +1247,6 @@ server <- function(input, output, session) {
     shinyjs::hide("smoothingControls")
     
     selected_cancer_type <- input$cancer_type_driver
-    
     selected_data <- driver_mutation_data %>% filter(cancer == selected_cancer_type)
     
     if (nrow(selected_data) == 0) {
@@ -1255,77 +1254,112 @@ server <- function(input, output, session) {
       return()
     }
     
-    selected_data <- selected_data %>%
-      mutate(cancer = selected_cancer_type)
+    # Calculate total mutations and recommended smoothing factor
+    total_mutations <- nrow(selected_data)
     
+    # Calculate recommended smoothing factor
+    recommended_smoothing_factor <- function(total_mutations) {
+      min_smooth <- 0.2
+      max_smooth <- 0.7
+      min_mut <- 100
+      max_mut <- 10000
+      smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
+      smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
+      return(round(smoothing_factor, 2))
+    }
+    recommended_smooth <- recommended_smoothing_factor(total_mutations)
+    
+    # Update smoothing explanations
+    output$smoothingExplanation1_driver <- renderUI({
+      HTML(paste0(
+        "<div style='margin: 10px 0;'>",
+        "The recommended smoothing factor is ", recommended_smooth,
+        " based on ", total_mutations, " mutations in this cancer type. ",
+        "Adjust it to refine the VAF plot.",
+        "</div>"
+      ))
+    })
+    
+    output$smoothingExplanation2_driver <- renderUI({
+      HTML(paste0(
+        "<div style='margin: 10px 0;'>",
+        "The recommended smoothing factor is ", recommended_smooth,
+        " based on ", total_mutations, " mutations in this cancer type. ",
+        "Adjust it to refine the CP plot.",
+        "</div>"
+      ))
+    })
+    
+    # Render initial plots with all data points
+    output$driverPlot1 <- renderPlotly({
+      gg1 <- ggplot(selected_data, aes(x = VAF)) +
+        geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
+        geom_point(
+          shape = 142,
+          size = 5,
+          alpha = 0.3,
+          aes(
+            y = -0.75,
+            color = Subclonality
+          )
+        ) +
+        xlim(0, 1) +
+        ggtitle(paste("VAF Distribution -", selected_cancer_type)) +
+        ggpubr::theme_pubr() +
+        xlab("VAF") + ylab("Density") +
+        scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
+        theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+      ggplotly(gg1)
+    })
+    
+    output$driverPlot2 <- renderPlotly({
+      gg2 <- ggplot(selected_data, aes(x = CP_unpenalized)) +
+        geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
+        geom_point(
+          shape = 142,
+          size = 5,
+          alpha = 0.3,
+          aes(
+            y = -0.75,
+            color = Subclonality
+          )
+        ) +
+        xlim(0, 1.5) +
+        ggtitle(paste("CP Distribution -", selected_cancer_type)) +
+        ggpubr::theme_pubr() +
+        xlab("CP") + ylab("Density") +
+        scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
+        theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+      ggplotly(gg2)
+    })
+    
+    # Update the data table
     output$driverMutationTable <- DT::renderDataTable({
-      selected_data <- driver_data()
-      if (is.null(selected_data)) return()
-      
       DT::datatable(
-        selected_data %>% select(gene, sample, protein, consequence, Subclonality, VAF, CP_unpenalized),
+        selected_data %>% 
+          select(gene, sample, protein, consequence, Subclonality, VAF, CP_unpenalized),
+        selection = 'single',
         options = list(
           pageLength = 10,
           searchHighlight = TRUE,
           autoWidth = FALSE,
           columnDefs = list(
             list(width = '30px', targets = 0:6)
-          ),
-          scrollX = TRUE
+          )
         ),
         rownames = FALSE
       ) %>%
         DT::formatStyle(
-          columns = c('gene', 'sample', 'protein', 'consequence', 'Subclonality', 'VAF', 'CP_unpenalized'),
-          `white-space` = 'normal'  
-        ) %>%
-        DT::formatStyle(
           'Subclonality',
-          backgroundColor = DT::styleEqual(c("Clonal", "Subclonal"), c('#C9EDEF', '#FED9D7')),
+          backgroundColor = DT::styleEqual(
+            c("Clonal", "Subclonal"), 
+            c('#C9EDEF', '#FED9D7')
+          ),
           color = 'black'
         )
     })
-    
-    if (!is.null(selected_data)) {
-      # Calculate total mutations for this cancer type
-      total_mutations <- nrow(selected_data)
-      
-      # Calculate recommended smoothing factor
-      recommended_smoothing_factor <- function(total_mutations) {
-        min_smooth <- 0.2
-        max_smooth <- 0.7
-        min_mut <- 100
-        max_mut <- 10000
-        smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
-        smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
-        return(round(smoothing_factor, 2))
-      }
-      
-      recommended_smooth <- recommended_smoothing_factor(total_mutations)
-      
-      # Update smoothing explanations
-      output$smoothingExplanation1_driver <- renderUI({
-        HTML(paste0(
-          "<div style='margin: 10px 0;'>",
-          "The recommended smoothing factor is ", recommended_smooth, 
-          " based on ", total_mutations, " mutations in this cancer type. ",
-          "Adjust it to refine the VAF plot.",
-          "</div>"
-        ))
-      })
-      
-      output$smoothingExplanation2_driver <- renderUI({
-        HTML(paste0(
-          "<div style='margin: 10px 0;'>",
-          "The recommended smoothing factor is ", recommended_smooth,
-          " based on ", total_mutations, " mutations in this cancer type. ",
-          "Adjust it to refine the CP plot.",
-          "</div>"
-        ))
-      })
-    }
   })
-  
+    
   output$driverMutationPlots <- renderUI({
     if (!is.null(input$cancer_type_driver)) {
       tagList(
@@ -1382,30 +1416,26 @@ server <- function(input, output, session) {
         )
     })
     
+    # When a row is selected, update the plots to highlight the selected mutation
     observeEvent(input$driverMutationTable_rows_selected, {
       row_selected <- input$driverMutationTable_rows_selected
       if (is.null(row_selected)) {
-        # Hide the smoothing controls if no row is selected
-        shinyjs::hide("smoothingControls")
         return()
       }
       
-      # Show the smoothing controls when a row is selected
-      shinyjs::show("smoothingControls")
+      selected_cancer_type <- input$cancer_type_driver
+      selected_data <- driver_data()
+      if (is.null(selected_data)) return()
       
       selected_row <- selected_data[row_selected, ]
       
-      output$selectedMutationInfo <- renderUI({
-        tags$div(
-          class = "p-4 bg-gray-100 rounded"
-        )
-      })
-      
       output$driverPlot1 <- renderPlotly({
-        gg1 <- ggplot(selected_data, aes(x = VAF)) +
+        # Filter data for the selected gene
+        gene_data <- selected_data[selected_data$gene == selected_row$gene, ]
+        
+        gg1 <- ggplot(gene_data, aes(x = VAF)) +
           geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
           geom_vline(xintercept = selected_row$VAF, linetype = "dashed", color = "black") +
-          # Add clonal/subclonal points
           geom_point(
             shape = 142,
             size = 5,
@@ -1425,10 +1455,12 @@ server <- function(input, output, session) {
       })
       
       output$driverPlot2 <- renderPlotly({
-        gg2 <- ggplot(selected_data, aes(x = CP_unpenalized)) +
+        # Filter data for the selected gene
+        gene_data <- selected_data[selected_data$gene == selected_row$gene, ]
+        
+        gg2 <- ggplot(gene_data, aes(x = CP_unpenalized)) +
           geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
           geom_vline(xintercept = selected_row$CP_unpenalized, linetype = "dashed", color = "black") +
-          # Add clonal/subclonal points
           geom_point(
             shape = 142,
             size = 5,
@@ -1446,6 +1478,7 @@ server <- function(input, output, session) {
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
         ggplotly(gg2)
       })
+    })
       
       output$driverCaption1 <- renderUI({
         HTML("<p>
@@ -1463,7 +1496,6 @@ server <- function(input, output, session) {
   </p>")
       })
     })
-  })
   
   observe({
     selected_data <- driver_data()
