@@ -17,7 +17,7 @@
      <img alt="Pull Requests"
           src="https://img.shields.io/github/issues-pr/wwylab/CliPP-ShinyApp" />
    </a>
-   <a href="https://github.com/wwylab/CliPP-ShinyApp/blob/master/LICENSE.md" target="_blank">
+   <a href="https://github.com/wwylab/CliPP-ShinyApp/blob/master/LICENSE" target="_blank">
      <img alt="License: GPLv3"
           src="https://img.shields.io/badge/License-GPLv3-blue.svg" />
    </a>
