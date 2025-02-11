@@ -13,7 +13,7 @@ library(tidyr)
 #Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
 
 # Data source directory
-global_TCGA_PCAWG <- "./dataSource"
+global_TCGA_PCAWG <- file.path(getwd(), "dataSource")
 
 # Sample data from PCAWG and TCGA datasets
 sample_PCAWG <- read.csv(file.path(global_TCGA_PCAWG, "CliPP_PCAWG.tsv"), sep='\t')
@@ -36,7 +36,7 @@ driver_mutation_data$cancer <- gsub("CM", "SKCM", driver_mutation_data$cancer)
 
 # Shiny server logic
 server <- function(input, output, session) {
-  
+
   # Reactive values to track plot readiness for different sections
   plotsReadyCliPP <- reactiveVal(FALSE)
   plotsReadyTCGA <- reactiveVal(FALSE)
@@ -117,6 +117,7 @@ server <- function(input, output, session) {
   })
   
   # Toggle visibility of TCGA and PCAWG submit options
+  # Need to make updates to this area
   observeEvent(input$submitTCGA, {
     shinyjs::hide("submitTCGA")
     shinyjs::show("colorByTCGA")
@@ -173,7 +174,7 @@ server <- function(input, output, session) {
     uploadedSamples$samples <- samples
     samplesUploaded(TRUE)
     updateSelectInput(session, "selectedSample", choices = names(samples))
-    updateSelectInput(session, "circosSample", choices = names(samples)) # Update choices for circos plot
+    updateSelectInput(session, "circosSample", choices = names(samples)) 
     showNotification("Samples uploaded successfully.", type = "message")
     shinyjs::hide("uploadSamples")
     shinyjs::show("selectedSample")
@@ -1359,7 +1360,7 @@ server <- function(input, output, session) {
         )
     })
   })
-    
+  
   output$driverMutationPlots <- renderUI({
     if (!is.null(input$cancer_type_driver)) {
       tagList(
@@ -1479,23 +1480,23 @@ server <- function(input, output, session) {
         ggplotly(gg2)
       })
     })
-      
-      output$driverCaption1 <- renderUI({
-        HTML("<p>
+    
+    output$driverCaption1 <- renderUI({
+      HTML("<p>
     - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
     - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
     - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE).<br>
   </p>")
-      })
-      
-      output$driverCaption2 <- renderUI({
-        HTML("<p>
+    })
+    
+    output$driverCaption2 <- renderUI({
+      HTML("<p>
     - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
     - Annotations on the x-axis indicate whether mutations are <b>clonal</b> (present in all tumor cells) or <b>subclonal</b> (found in a subset).<br>
     - Counts of clonal and subclonal mutations are indicated as <b>n clonal</b> and <b>n subclonal</b> respectively.<br>
   </p>")
-      })
     })
+  })
   
   observe({
     selected_data <- driver_data()
