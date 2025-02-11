@@ -11,7 +11,6 @@ ui <- fluidPage(
   # CSS for styling a progress bar overlay
   tags$head(
     tags$style(HTML("
-      /* Progress bar styling */
       #progress {
         position: fixed;
         top: 50%;
@@ -21,7 +20,6 @@ ui <- fluidPage(
         z-index: 9999;
       }
       
-      /* Plot and controls layout */
       .plot-container {
         width: 100%;
         margin-bottom: 20px;
@@ -31,6 +29,7 @@ ui <- fluidPage(
         gap: 20px;
         margin-bottom: 10px;
       }
+      # Need to make updates to this
       .plot-area {
         flex: 3;
       }
@@ -206,6 +205,7 @@ ui <- fluidPage(
                                              div(class = "plot-area",
                                                  plotlyOutput("plot1TCGA") 
                                              ),
+                                             # Need to make updates to this area
                                              hidden(div(class = "controls-area",
                                                         sliderInput("smoothingFactor1_TCGA", "Smoothing Factor:",
                                                                     min = 0.2, max = 0.7, value = 0.45, width = "100%"),
