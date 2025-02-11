@@ -24,7 +24,7 @@ ui <- fluidPage(
   
   # Title and attribution for research purposes
   titlePanel("CliPP-on-Web: Clonal structure identification through penalizing pairwise differences"),
-  div(p("Copyright ", HTML("&copy;"), " 2024 Wang Lab at MD Anderson. All rights reserved.")),
+  div(p("Copyright ", HTML("&copy;"), " 2024 The University of Texas MD Anderson Cancer Center. All rights reserved.")),
   
   # Multi-page navigation structure
   navbarPage("",
