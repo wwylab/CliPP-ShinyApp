@@ -19,27 +19,32 @@ ui <- fluidPage(
         width: 50%;
         z-index: 9999;
       }
-      
       .plot-container {
+        position: relative;
         width: 100%;
         margin-bottom: 20px;
       }
       .plot-with-controls {
         display: flex;
-        gap: 20px;
+        flex-direction: column;
+        gap: 10px;
         margin-bottom: 10px;
       }
-      # Need to make updates to this
       .plot-area {
-        flex: 3;
+        width: 100%;
       }
       .controls-area {
-        flex: 1;
+        position: absolute;
+        top: 28%;
+        left: 86%;
+        width: 20%;
+        min-width: 100px;
+        max-width: 200px;
         background: #f5f5f5;
         padding: 15px;
         border-radius: 8px;
-        min-width: 200px;
-      }
+        z-index: 100;
+      } 
       .caption-area {
         width: 100%;
         margin-bottom: 30px;
@@ -137,11 +142,11 @@ ui <- fluidPage(
                                     plotlyOutput("plot1")
                                 ),
                                 hidden(div(class = "controls-area",
-                                           sliderInput("smoothingFactor1", "Smoothing Factor:",
-                                                       min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                           div(class = "recommended-smoothing",
-                                               uiOutput("smoothingExplanation1")
-                                           )
+                                    sliderInput("smoothingFactor1", "Smoothing Factor:",
+                                                min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                    div(class = "recommended-smoothing",
+                                        uiOutput("smoothingExplanation1")
+                                    )
                                 )),
                                 div(class = "caption-area",
                                     uiOutput("caption1")
@@ -154,11 +159,11 @@ ui <- fluidPage(
                                     plotlyOutput("plot2")
                                 ),
                                 hidden(div(class = "controls-area",
-                                           sliderInput("smoothingFactor2", "Smoothing Factor:",
-                                                       min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                           div(class = "recommended-smoothing",
-                                               uiOutput("smoothingExplanation2")
-                                           )
+                                    sliderInput("smoothingFactor2", "Smoothing Factor:",
+                                                min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                    div(class = "recommended-smoothing",
+                                        uiOutput("smoothingExplanation2")
+                                    )
                                 )),
                                 div(class = "caption-area",
                                     uiOutput("caption2")
@@ -205,13 +210,12 @@ ui <- fluidPage(
                                              div(class = "plot-area",
                                                  plotlyOutput("plot1TCGA") 
                                              ),
-                                             # Need to make updates to this area
                                              hidden(div(class = "controls-area",
-                                                        sliderInput("smoothingFactor1_TCGA", "Smoothing Factor:",
-                                                                    min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                        div(class = "recommended-smoothing",
-                                                            uiOutput("smoothingExplanation1_TCGA")
-                                                        )
+                                                sliderInput("smoothingFactor1_TCGA", "Smoothing Factor:",
+                                                            min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                div(class = "recommended-smoothing",
+                                                    uiOutput("smoothingExplanation1_TCGA")
+                                                 )
                                              )),
                                              div(class = "caption-area",
                                                  uiOutput("caption1TCGA")
@@ -224,11 +228,11 @@ ui <- fluidPage(
                                                  plotlyOutput("plot2TCGA") 
                                              ),
                                              hidden(div(class = "controls-area",
-                                                        sliderInput("smoothingFactor2_TCGA", "Smoothing Factor:",
-                                                                    min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                        div(class = "recommended-smoothing",
-                                                            uiOutput("smoothingExplanation2_TCGA")
-                                                        )
+                                                sliderInput("smoothingFactor2_TCGA", "Smoothing Factor:",
+                                                            min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                div(class = "recommended-smoothing",
+                                                    uiOutput("smoothingExplanation2_TCGA")
+                                                )
                                              )),
                                              div(class = "caption-area",
                                                  uiOutput("caption2TCGA")
@@ -264,11 +268,11 @@ ui <- fluidPage(
                                                  plotlyOutput("plot1PCAWG")
                                              ),
                                              hidden(div(class = "controls-area",
-                                                        sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor:",
-                                                                    min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                        div(class = "recommended-smoothing",
-                                                            uiOutput("smoothingExplanation1_PCAWG")
-                                                        )
+                                                sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor:",
+                                                            min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                div(class = "recommended-smoothing",
+                                                    uiOutput("smoothingExplanation1_PCAWG")
+                                                )
                                              )),
                                              div(class = "caption-area",
                                                  uiOutput("caption1PCAWG")
@@ -281,11 +285,11 @@ ui <- fluidPage(
                                                  plotlyOutput("plot2PCAWG") 
                                              ),
                                              hidden(div(class = "controls-area",
-                                                        sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor:",
-                                                                    min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                        div(class = "recommended-smoothing",
-                                                            uiOutput("smoothingExplanation2_PCAWG")
-                                                        )
+                                                sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor:",
+                                                            min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                div(class = "recommended-smoothing",
+                                                    uiOutput("smoothingExplanation2_PCAWG")
+                                                )
                                              )),
                                              div(class = "caption-area",
                                                  uiOutput("caption2PCAWG")
