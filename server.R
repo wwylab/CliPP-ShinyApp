@@ -117,19 +117,24 @@ server <- function(input, output, session) {
   })
   
   # Toggle visibility of TCGA and PCAWG submit options
-  # Need to make updates to this area
   observeEvent(input$submitTCGA, {
     shinyjs::hide("submitTCGA")
-    shinyjs::show("colorByTCGA")
-    shinyjs::show("smoothingFactor1_TCGA")
-    shinyjs::show("smoothingFactor2_TCGA")
+    plotsReadyTCGA(TRUE)
+    observe({
+      req(plotsReadyTCGA())
+      shinyjs::show("colorByTCGA")
+      shinyjs::show(selector = ".controls-area") 
+    })
   })
   
   observeEvent(input$submitPCAWG, {
     shinyjs::hide("submitPCAWG")
-    shinyjs::show("colorByPCAWG")
-    shinyjs::show("smoothingFactor1_PCAWG")
-    shinyjs::show("smoothingFactor2_PCAWG")
+    plotsReadyPCAWG(TRUE)
+    observe({
+      req(plotsReadyPCAWG())
+      shinyjs::show("colorByPCAWG")
+      shinyjs::show(selector = ".controls-area")
+    })
   })
   
   # Function to store uploaded files
@@ -180,8 +185,6 @@ server <- function(input, output, session) {
     shinyjs::show("selectedSample")
     shinyjs::show("submit")
     shinyjs::show("colorBy")
-    shinyjs::show("smoothingFactor1")
-    shinyjs::show("smoothingFactor2")
   })
   
   # Clear current session data and reset UI for new uploads
@@ -296,11 +299,13 @@ server <- function(input, output, session) {
       plotsReadyCliPP(TRUE)
       # Clear button after submission
       shinyjs::show("clear")
+      shinyjs::show("plotOutputArea")
       shinyjs::show("plot1")
       shinyjs::show("plot2")
       shinyjs::show("caption1")
       shinyjs::show("caption2")
       shinyjs::show("plotOutputArea")
+      shinyjs::show("controls-area")
       
       # Increment progress to completion
       incProgress(1, detail = "Done")
@@ -345,13 +350,9 @@ server <- function(input, output, session) {
   output$samplesUploaded <- reactive({ samplesUploaded() })
   outputOptions(output, "samplesUploaded", suspendWhenHidden = FALSE)
   
-  # Observe plot readiness and render plots
-  observe({
-    req(plotsReadyCliPP())
-    shinyjs::show(selector = ".controls-area")
-    
     # Plot 1
     output$plot1 <- renderPlotly({
+      req(plotsReadyCliPP())
       # Initialize the progress bar for Plot 1
       withProgress(message = 'Generating Plot 1...', value = 0, {
         # Ensure files are uploaded
@@ -426,11 +427,11 @@ server <- function(input, output, session) {
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
           output$smoothingExplanation1 <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations."))
           })
           
           output$smoothingExplanation2 <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations."))
           })
           
           # Increment progress
@@ -532,6 +533,7 @@ server <- function(input, output, session) {
     
     # Plot 2
     output$plot2 <- renderPlotly({
+      req(plotsReadyCliPP())
       # Initialize the progress bar for Plot 2
       withProgress(message = 'Generating Plot 2...', value = 0, {
         if (input$submit == 0 || !plotsReadyCliPP()) return()
@@ -605,11 +607,11 @@ server <- function(input, output, session) {
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
           output$smoothingExplanation1 <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations."))
           })
           
           output$smoothingExplanation2 <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations."))
           })
           
           # Increment progress
@@ -723,7 +725,7 @@ server <- function(input, output, session) {
         )
       }
     })
-  })
+
   
   
   # Set up handlers for TCGA and PCAWG sections with helper functions for each
@@ -824,6 +826,9 @@ server <- function(input, output, session) {
     
     observe({
       req(plotsReadyPrefix())
+      shinyjs::show(paste0("smoothingFactor1_", prefix))
+      shinyjs::show(paste0("smoothingFactor2_", prefix))
+      shinyjs::show(paste0("colorBy", prefix))
       shinyjs::show(selector = paste0(".controls-area-", prefix))
       
       # Plot 1
@@ -897,11 +902,11 @@ server <- function(input, output, session) {
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
           output[[paste0("smoothingExplanation1_", prefix)]] <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations."))
           })
           
           output[[paste0("smoothingExplanation2_", prefix)]] <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations."))
           })
           
           # Smoothing slider
@@ -1053,11 +1058,11 @@ server <- function(input, output, session) {
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
           output[[paste0("smoothingExplanation1_", prefix)]] <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations. Adjust it to refine the VAF plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations."))
           })
           
           output[[paste0("smoothingExplanation2_", prefix)]] <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations. Adjust it to refine the CP plot."))
+            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations."))
           })
           
           # Smoothing slider
@@ -1276,7 +1281,6 @@ server <- function(input, output, session) {
         "<div style='margin: 10px 0;'>",
         "The recommended smoothing factor is ", recommended_smooth,
         " based on ", total_mutations, " mutations in this cancer type. ",
-        "Adjust it to refine the VAF plot.",
         "</div>"
       ))
     })
@@ -1286,7 +1290,6 @@ server <- function(input, output, session) {
         "<div style='margin: 10px 0;'>",
         "The recommended smoothing factor is ", recommended_smooth,
         " based on ", total_mutations, " mutations in this cancer type. ",
-        "Adjust it to refine the CP plot.",
         "</div>"
       ))
     })
