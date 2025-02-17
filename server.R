@@ -1485,100 +1485,124 @@ server <- function(input, output, session) {
         )
     })
     
-    # Add observer for driver mutation table selection
     observeEvent(input$driverMutationTable_rows_selected, {
       row_selected <- input$driverMutationTable_rows_selected
       if (is.null(row_selected)) {
         return()
       }
       
-      # Get the selected data
+      # Access the reactive data directly, using the selected row index
       selected_data <- driver_data()
       if (is.null(selected_data)) return()
       
       selected_row <- selected_data[row_selected, ]
+      selected_cancer_type <- input$cancer_type_driver
       
-      # Update Plot 1 (VAF Distribution)
-      output$driverPlot1 <- renderPlotly({
-        # Get the smoothing factor from input
-        smoothing_factor1 <- input$smoothingFactor1_driver
-        
-        # Create base plot
-        p <- ggplot(selected_data, aes(x = VAF)) +
-          geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
-          geom_vline(xintercept = selected_row$VAF, linetype = "dashed", color = "red") +
-          geom_point(
-            data = selected_row,
-            aes(x = VAF, y = -0.75, color = Subclonality),
-            shape = 142,
-            size = 8,
-            alpha = 0.8
-          ) +
-          xlim(0, 1) +
-          ggtitle(paste0(
-            "VAF Distribution - ", selected_row$gene,
-            " (", selected_row$protein, ")"
-          )) +
-          ggpubr::theme_pubr() +
-          xlab("VAF") + ylab("Density") +
-          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A"))
-        
-        ggplotly(p)
-      })
+      # Find the corresponding sample
+      selected_sample <- selected_row$sample
+      # Get the TCGA/PCAWG prefix based on the sample
+      prefix <- if (selected_sample %in% sample_TCGA$samplename) "TCGA" else "PCAWG"
+      sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
       
-      # Update Plot 2 (CP Distribution)
-      output$driverPlot2 <- renderPlotly({
-        # Get the smoothing factor from input
-        smoothing_factor2 <- input$smoothingFactor2_driver
-        
-        # Create base plot
-        p <- ggplot(selected_data, aes(x = CP_unpenalized)) +
-          geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
-          geom_vline(xintercept = selected_row$CP_unpenalized, linetype = "dashed", color = "red") +
-          geom_point(
-            data = selected_row,
-            aes(x = CP_unpenalized, y = -0.75, color = Subclonality),
-            shape = 142,
-            size = 8,
-            alpha = 0.8
-          ) +
-          xlim(0, 1.5) +
-          ggtitle(paste0(
-            "CP Distribution - ", selected_row$gene,
-            " (", selected_row$protein, ")"
-          )) +
-          ggpubr::theme_pubr() +
-          xlab("CP") + ylab("Density") +
-          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A"))
-        
-        ggplotly(p)
-      })
+      # Read the necessary files
+      snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
+      cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
+      purityFile <- list.files(sampleDir, pattern = "*.purity.txt", full.names = TRUE)
       
-      # Update mutation info
-      output$selectedMutationInfo <- renderUI({
-        div(
-          h4("Selected Mutation Details"),
-          p(strong("Gene: "), selected_row$gene),
-          p(strong("Protein Change: "), selected_row$protein),
-          p(strong("Consequence: "), selected_row$consequence),
-          p(strong("Subclonality: "), selected_row$Subclonality),
-          p(strong("VAF: "), round(selected_row$VAF, 3)),
-          p(strong("CP: "), round(selected_row$CP_unpenalized, 3))
-        )
-      })
-    })
-    
-    # Make sure to show the plots initially
-    output$driverPlot1 <- renderPlotly({
-      req(driver_data())
-      ggplot() + ggpubr::theme_pubr() + 
-        ggtitle("Select a mutation to view VAF distribution")
-    })
-    
-    output$driverPlot2 <- renderPlotly({
-      req(driver_data())
-      ggplot() + ggpubr::theme_pubr() + 
-        ggtitle("Select a mutation to view CP distribution")
+      if (length(snvFile) == 0 || length(cnaFile) == 0 || length(purityFile) == 0) return()
+      
+      file_data <- read_and_validate_files(snvFile[1], cnaFile[1], purityFile[1])
+      if (is.null(file_data)) return()
+      
+      df_snv <- file_data$df_snv
+      df_cna <- file_data$df_cna
+      purity <- file_data$purity
+      
+      resultPath <- sampleDir
+      
+      # Read mutation and subclonal structure assignments
+      matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+      matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+      
+      if (length(matching_file1) > 0 && length(matching_file2) > 0) {
+        df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
+        df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
+        
+        df_snvcna <- df_snv %>%
+          mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
+            inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+            if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
+          }))
+        
+        # Calculate read depth
+        df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
+        mean_rd <- mean(df_snvcna$sum_counts)
+        min_rd <- min(df_snvcna$sum_counts)
+        max_rd <- max(df_snvcna$sum_counts)
+        
+        merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+        merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
+        
+        merged_df$total_cn <- as.numeric(merged_df$total_cn)
+        merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
+        merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
+        merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
+        
+        merged_df <- merged_df %>%
+          mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+                 ReadDepth = sum_counts)
+        
+        # Update Plot 1
+        output$driverPlot1 <- renderPlotly({
+          gg1 <- ggplot(merged_df, aes(x = AF)) +
+            geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
+            geom_vline(xintercept = selected_row$VAF, linetype = "dashed", color = "black") +
+            geom_point(
+              shape = 142,
+              size = 5,
+              alpha = 0.3,
+              aes(
+                y = -0.75,
+                color = Subclonality
+              )
+            ) +
+            xlim(0, 1) +
+            ggtitle(paste(selected_sample, " - Purity =", round(purity, 3),
+                          "      ", "Mean read depth =", round(mean_rd),
+                          "      ", "Range read depth =", min_rd, "-", max_rd)) +
+            ggpubr::theme_pubr() +
+            xlab("VAF") + ylab("Density") +
+            scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
+            theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+          
+          ggplotly(gg1)
+        })
+        
+        # Update Plot 2
+        output$driverPlot2 <- renderPlotly({
+          gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
+            geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
+            geom_vline(xintercept = selected_row$CP_unpenalized, linetype = "dashed", color = "black") +
+            geom_point(
+              shape = 142,
+              size = 5,
+              alpha = 0.3,
+              aes(
+                y = -0.75,
+                color = Subclonality
+              )
+            ) +
+            xlim(0, 1.5) +
+            ggtitle("CP Distribution - Selected Mutation") +
+            ggpubr::theme_pubr() +
+            xlab("CP") + ylab("Density") +
+            scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
+            theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+            geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
+          
+          ggplotly(gg2)
+        })
+      }
     })
     
     output$driverCaption1 <- renderUI({
