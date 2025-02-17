@@ -1485,64 +1485,100 @@ server <- function(input, output, session) {
         )
     })
     
+    # Add observer for driver mutation table selection
     observeEvent(input$driverMutationTable_rows_selected, {
       row_selected <- input$driverMutationTable_rows_selected
       if (is.null(row_selected)) {
         return()
       }
       
-      # Access the reactive data directly, using the selected row index
+      # Get the selected data
       selected_data <- driver_data()
       if (is.null(selected_data)) return()
       
       selected_row <- selected_data[row_selected, ]
       
-      # Update the plots focusing on the selected mutation's characteristics
+      # Update Plot 1 (VAF Distribution)
       output$driverPlot1 <- renderPlotly({
-        gg1 <- ggplot(selected_data, aes(x = VAF)) +
-          geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
-          geom_vline(xintercept = selected_row$VAF, linetype = "dashed", color = "black") +
+        # Get the smoothing factor from input
+        smoothing_factor1 <- input$smoothingFactor1_driver
+        
+        # Create base plot
+        p <- ggplot(selected_data, aes(x = VAF)) +
+          geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
+          geom_vline(xintercept = selected_row$VAF, linetype = "dashed", color = "red") +
           geom_point(
+            data = selected_row,
+            aes(x = VAF, y = -0.75, color = Subclonality),
             shape = 142,
-            size = 5,
-            alpha = 0.3,
-            aes(
-              y = -0.75,
-              color = Subclonality
-            )
+            size = 8,
+            alpha = 0.8
           ) +
           xlim(0, 1) +
-          ggtitle("VAF Distribution - Selected Mutation") +
+          ggtitle(paste0(
+            "VAF Distribution - ", selected_row$gene,
+            " (", selected_row$protein, ")"
+          )) +
           ggpubr::theme_pubr() +
           xlab("VAF") + ylab("Density") +
-          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
-          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A"))
         
-        ggplotly(gg1)
+        ggplotly(p)
       })
       
+      # Update Plot 2 (CP Distribution)
       output$driverPlot2 <- renderPlotly({
-        gg2 <- ggplot(selected_data, aes(x = CP_unpenalized)) +
-          geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
-          geom_vline(xintercept = selected_row$CP_unpenalized, linetype = "dashed", color = "black") +
+        # Get the smoothing factor from input
+        smoothing_factor2 <- input$smoothingFactor2_driver
+        
+        # Create base plot
+        p <- ggplot(selected_data, aes(x = CP_unpenalized)) +
+          geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
+          geom_vline(xintercept = selected_row$CP_unpenalized, linetype = "dashed", color = "red") +
           geom_point(
+            data = selected_row,
+            aes(x = CP_unpenalized, y = -0.75, color = Subclonality),
             shape = 142,
-            size = 5,
-            alpha = 0.3,
-            aes(
-              y = -0.75,
-              color = Subclonality
-            )
+            size = 8,
+            alpha = 0.8
           ) +
           xlim(0, 1.5) +
-          ggtitle("CP Distribution - Selected Mutation") +
+          ggtitle(paste0(
+            "CP Distribution - ", selected_row$gene,
+            " (", selected_row$protein, ")"
+          )) +
           ggpubr::theme_pubr() +
           xlab("CP") + ylab("Density") +
-          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
-          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A"))
         
-        ggplotly(gg2)
+        ggplotly(p)
       })
+      
+      # Update mutation info
+      output$selectedMutationInfo <- renderUI({
+        div(
+          h4("Selected Mutation Details"),
+          p(strong("Gene: "), selected_row$gene),
+          p(strong("Protein Change: "), selected_row$protein),
+          p(strong("Consequence: "), selected_row$consequence),
+          p(strong("Subclonality: "), selected_row$Subclonality),
+          p(strong("VAF: "), round(selected_row$VAF, 3)),
+          p(strong("CP: "), round(selected_row$CP_unpenalized, 3))
+        )
+      })
+    })
+    
+    # Make sure to show the plots initially
+    output$driverPlot1 <- renderPlotly({
+      req(driver_data())
+      ggplot() + ggpubr::theme_pubr() + 
+        ggtitle("Select a mutation to view VAF distribution")
+    })
+    
+    output$driverPlot2 <- renderPlotly({
+      req(driver_data())
+      ggplot() + ggpubr::theme_pubr() + 
+        ggtitle("Select a mutation to view CP distribution")
     })
     
     output$driverCaption1 <- renderUI({
