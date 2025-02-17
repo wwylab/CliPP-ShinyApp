@@ -220,6 +220,41 @@ server <- function(input, output, session) {
     plotsReadyCliPP(FALSE)
   })
   
+  # Observer for main navigation tab changes
+  observeEvent(input$`navbar-container`, {
+    # Hide all smoothing controls
+    shinyjs::hide("smoothingFactor1")
+    shinyjs::hide("smoothingFactor2")
+    shinyjs::hide("smoothingFactor1_TCGA")
+    shinyjs::hide("smoothingFactor2_TCGA")
+    shinyjs::hide("smoothingFactor1_PCAWG")
+    shinyjs::hide("smoothingFactor2_PCAWG")
+    shinyjs::hide("smoothingFactor1_driver")
+    shinyjs::hide("smoothingFactor2_driver")
+    
+    # Hide explanations too
+    shinyjs::hide("smoothingExplanation1")
+    shinyjs::hide("smoothingExplanation2")
+    shinyjs::hide("smoothingExplanation1_TCGA")
+    shinyjs::hide("smoothingExplanation2_TCGA")
+    shinyjs::hide("smoothingExplanation1_PCAWG")
+    shinyjs::hide("smoothingExplanation2_PCAWG")
+    shinyjs::hide("smoothingExplanation1_driver")
+    shinyjs::hide("smoothingExplanation2_driver")
+  })
+  
+  # Observer for CliPP Data Resources tab panel changes
+  observeEvent(input$`tabset`, {
+    shinyjs::hide("smoothingFactor1_TCGA")
+    shinyjs::hide("smoothingFactor2_TCGA")
+    shinyjs::hide("smoothingFactor1_PCAWG")
+    shinyjs::hide("smoothingFactor2_PCAWG")
+    shinyjs::hide("smoothingExplanation1_TCGA")
+    shinyjs::hide("smoothingExplanation2_TCGA")
+    shinyjs::hide("smoothingExplanation1_PCAWG")
+    shinyjs::hide("smoothingExplanation2_PCAWG")
+  })
+  
   # Generate plots and other outputs only after submitting all required files
   observeEvent(input$submit, {
     # Initialize the progress bar
@@ -1488,8 +1523,17 @@ server <- function(input, output, session) {
     observeEvent(input$driverMutationTable_rows_selected, {
       row_selected <- input$driverMutationTable_rows_selected
       if (is.null(row_selected)) {
+        shinyjs::hide("smoothingFactor1_driver")
+        shinyjs::hide("smoothingFactor2_driver")
+        shinyjs::hide("smoothingExplanation1_driver")
+        shinyjs::hide("smoothingExplanation2_driver")
         return()
       }
+      
+      shinyjs::show("smoothingFactor1_driver")
+      shinyjs::show("smoothingFactor2_driver")
+      shinyjs::show("smoothingExplanation1_driver")
+      shinyjs::show("smoothingExplanation2_driver")
       
       # Access the reactive data directly, using the selected row index
       selected_data <- driver_data()
@@ -1695,13 +1739,22 @@ server <- function(input, output, session) {
     contentType = "text/plain"
   )
   
-  # Add observer to control button visibility
+  # Observer to control button visibility
   observe({
     selected_data <- driver_data()
     if (!is.null(selected_data) && nrow(selected_data) > 0) {
       shinyjs::show("downloadDriverMutation")
     } else {
       shinyjs::hide("downloadDriverMutation")
+    }
+  })
+  # Observer to initially hide smoothing controls
+  observe({
+    if (is.null(input$driverMutationTable_rows_selected)) {
+      shinyjs::hide("smoothingFactor1_driver")
+      shinyjs::hide("smoothingFactor2_driver")
+      shinyjs::hide("smoothingExplanation1_driver")
+      shinyjs::hide("smoothingExplanation2_driver")
     }
   })
 }
