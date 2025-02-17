@@ -40,7 +40,7 @@ ui <- fluidPage(
         width: 20%;
         min-width: 100px;
         max-width: 200px;
-        background: #f5f5f5;
+        background: #ffffff;
         padding: 15px;
         border-radius: 8px;
         z-index: 100;
@@ -62,8 +62,7 @@ ui <- fluidPage(
   div(p("Copyright ", HTML("&copy;"), " 2025 The University of Texas MD Anderson Cancer Center. All rights reserved.")),
   
   # Multi-page navigation structure
-  navbarPage("",
-             
+  navbarPage("", id = "navbar-container",
              # Page 1: About section with application description and contact info
              tabPanel("About",
                       tags$div(
@@ -189,7 +188,7 @@ ui <- fluidPage(
              # Page 4: CliPP Data Resources with automatic data loading and visualization
              tabPanel("CliPP Data Resources",
                       tags$div(
-                        tabsetPanel(
+                        tabsetPanel(id = "tabset",
                           # Subsection for TCGA data selection and analysis
                           tabPanel("TCGA",
                                    tags$div(
