@@ -1368,9 +1368,6 @@ server <- function(input, output, session) {
     matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
     matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
     
-    # Inside observeEvent(input$cancer_type_driver, {
-    # ... existing code ...
-    
     if (length(matching_file1) > 0 && length(matching_file2) > 0) {
       df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
       df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
