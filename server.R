@@ -34,9 +34,70 @@ driver_mutation_data$cancer <- gsub("COREAD", "CRC", driver_mutation_data$cancer
 driver_mutation_data$cancer <- gsub("AML", "LAML", driver_mutation_data$cancer)
 driver_mutation_data$cancer <- gsub("CM", "SKCM", driver_mutation_data$cancer)
 
+# Recommended smoothing factor function
+recommended_smoothing_factor <- function(total_mutations) {
+  min_smooth <- 0.2
+  max_smooth <- 0.7
+  min_mut <- 100
+  max_mut <- 10000
+  smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
+  smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
+  return(round(smoothing_factor, 2))
+}
+
+# Plot annotations function
+create_annotations <- function(subclonality_counts) {
+  annotations <- list()
+  
+  if ("Clonal" %in% subclonality_counts$Subclonality) {
+    n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
+    if (length(n_clonal) > 0 && n_clonal > 0) {
+      annotations <- c(
+        annotations, 
+        annotate("text", x = 0.85, y = -1.65, label = paste0("n clonal = ", n_clonal), 
+                 size = 3, color = "black", vjust = -1.5)
+      )
+    }
+  }
+  
+  if ("Subclonal" %in% subclonality_counts$Subclonality) {
+    n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
+    if (length(n_subclonal) > 0 && n_subclonal > 0) {
+      annotations <- c(
+        annotations, 
+        annotate("text", x = 0.85, y = -2.65, label = paste0("n subclonal = ", n_subclonal), 
+                 size = 3, color = "black", vjust = -1.5)
+      )
+    }
+  }
+  
+  return(annotations)
+}
+
+# File download function
+create_download_handler <- function(path) {
+  downloadHandler(
+    filename = function() {
+      if (grepl(".txt$", input$selectedFile)) {
+        return(input$selectedFile)
+      } else {
+        return(paste(input$selectedFile, ".txt", sep=""))
+      }
+    },
+    content = function(file) {
+      filePath <- file.path(path, input$selectedFile)
+      if (!file.exists(filePath)) {
+        stop("File not found.")
+      }
+      file.copy(from = filePath, to = file)
+    },
+    contentType = "text/plain"
+  )
+}
+
 # Shiny server logic
 server <- function(input, output, session) {
-
+  
   # Reactive values to track plot readiness for different sections
   plotsReadyCliPP <- reactiveVal(FALSE)
   plotsReadyTCGA <- reactiveVal(FALSE)
@@ -49,8 +110,8 @@ server <- function(input, output, session) {
   
   # Python path based on environment
   if (Sys.info()[['user']] == 'shiny') {
-    # Sys.setenv(RETICULATE_PYTHON = "./python3")
-    Sys.setenv(RETICULATE_PYTHON = "/usr/local/bin/python3")
+    Sys.setenv(RETICULATE_PYTHON = "./python3")
+    #Sys.setenv(RETICULATE_PYTHON = "/usr/local/bin/python3")
   }
   
   # Output directories for analysis results
@@ -385,381 +446,303 @@ server <- function(input, output, session) {
   output$samplesUploaded <- reactive({ samplesUploaded() })
   outputOptions(output, "samplesUploaded", suspendWhenHidden = FALSE)
   
-    # Plot 1
-    output$plot1 <- renderPlotly({
-      req(plotsReadyCliPP())
-      # Initialize the progress bar for Plot 1
-      withProgress(message = 'Generating Plot 1...', value = 0, {
-        # Ensure files are uploaded
-        if (input$submit == 0 || !plotsReadyCliPP()) return()
+  # Plot 1
+  output$plot1 <- renderPlotly({
+    req(plotsReadyCliPP())
+    # Initialize the progress bar for Plot 1
+    withProgress(message = 'Generating Plot 1...', value = 0, {
+      # Ensure files are uploaded
+      if (input$submit == 0 || !plotsReadyCliPP()) return()
+      
+      # Increment progress
+      incProgress(0.1, detail = "Loading data...")
+      
+      selectedSample <- input$selectedSample
+      sampleFiles <- uploadedSamples$samples[[selectedSample]]
+      
+      if (is.null(sampleFiles)) return()
+      
+      snvFile <- sampleFiles$snvFile
+      cnaFile <- sampleFiles$cnaFile
+      purityFile <- sampleFiles$purityFile
+      
+      if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) return()
+      
+      file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
+      if (is.null(file_data)) return()
+      
+      # Increment progress
+      incProgress(0.3, detail = "Processing data...")
+      
+      df_snv <- file_data$df_snv
+      df_cna <- file_data$df_cna
+      purity <- file_data$purity
+      
+      # Read mutation and subclonal structure assignments
+      matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+      matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+      
+      if (length(matching_file1) > 0 && length(matching_file2) > 0) {
+        df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
+        df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
+        
+        df_snvcna <- df_snv %>%
+          mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
+            inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+            if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
+          }))
+        
+        # Calculate the sum of ref_count and alt_count
+        df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
+        
+        # Compute the mean of the sum_counts column
+        mean_rd <- mean(df_snvcna$sum_counts)
+        min_rd <- min(df_snvcna$sum_counts)
+        max_rd <- max(df_snvcna$sum_counts)
+        
+        merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+        merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
+        
+        merged_df$total_cn <- as.numeric(merged_df$total_cn)
+        merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
+        merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
+        merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
+        
+        total_SNVs <- sum(df_subc$num_SNV)
+        
+        recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
+        recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
+        
+        output$smoothingExplanation1 <- renderUI({
+          HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations."))
+        })
+        
+        output$smoothingExplanation2 <- renderUI({
+          HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations."))
+        })
         
         # Increment progress
-        incProgress(0.1, detail = "Loading data...")
+        incProgress(0.6, detail = "Calculating plot parameters...")
         
-        selectedSample <- input$selectedSample
-        sampleFiles <- uploadedSamples$samples[[selectedSample]]
+        # Smoothing slider
+        smoothing_factor1 <- input$smoothingFactor1
         
-        if (is.null(sampleFiles)) return()
+        merged_df <- merged_df %>%
+          mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+                 ReadDepth = sum_counts)
         
-        snvFile <- sampleFiles$snvFile
-        cnaFile <- sampleFiles$cnaFile
-        purityFile <- sampleFiles$purityFile
+        # Rename the count column to 'n'
+        subclonality_counts <- merged_df %>%
+          count(Subclonality) %>%
+          rename(n = n)
         
-        if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) return()
+        # Color aesthetic based on the user input
+        color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
         
-        file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
-        if (is.null(file_data)) return()
+        # Initialize annotations
+        annotations <- create_annotations(subclonality_counts)
         
         # Increment progress
-        incProgress(0.3, detail = "Processing data...")
+        incProgress(0.8, detail = "Rendering plot...")
         
-        df_snv <- file_data$df_snv
-        df_cna <- file_data$df_cna
-        purity <- file_data$purity
+        # Create the plot
+        gg1 <- ggplot(merged_df, aes(x = AF)) +
+          geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
+          geom_point(
+            shape = 142,
+            size = 5,
+            alpha = 0.3,
+            aes(
+              y = -0.75,
+              color = !!sym(color_aesthetic)
+            )
+          ) +
+          xlim(0, 1) +
+          ggtitle(paste(
+            selectedSample,
+            " - Purity =", round(purity, 3),
+            "      ", "Mean read depth =", round(mean_rd),
+            "      ", "Range read depth =", min_rd, "-", max_rd
+          )) +
+          annotations +  
+          ggpubr::theme_pubr() + 
+          xlab("VAF") + ylab("Density") + 
+          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
         
-        # Read mutation and subclonal structure assignments
-        matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
-        matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+        # Increment progress to completion
+        incProgress(1, detail = "Done")
         
-        if (length(matching_file1) > 0 && length(matching_file2) > 0) {
-          df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
-          df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
-          
-          df_snvcna <- df_snv %>%
-            mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
-              inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-              if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
-            }))
-          
-          # Calculate the sum of ref_count and alt_count
-          df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
-          
-          # Compute the mean of the sum_counts column
-          mean_rd <- mean(df_snvcna$sum_counts)
-          min_rd <- min(df_snvcna$sum_counts)
-          max_rd <- max(df_snvcna$sum_counts)
-          
-          merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-          merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
-          
-          merged_df$total_cn <- as.numeric(merged_df$total_cn)
-          merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
-          merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
-          merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
-          
-          total_SNVs <- sum(df_subc$num_SNV)
-          
-          recommended_smoothing_factor <- function(total_mutations) {
-            min_smooth <- 0.2
-            max_smooth <- 0.7
-            min_mut <- 100
-            max_mut <- 10000
-            smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
-            smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
-            return(round(smoothing_factor, 2))
-          }
-          recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
-          recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
-          
-          output$smoothingExplanation1 <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations."))
-          })
-          
-          output$smoothingExplanation2 <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations."))
-          })
-          
-          # Increment progress
-          incProgress(0.6, detail = "Calculating plot parameters...")
-          
-          # Smoothing slider
-          smoothing_factor1 <- input$smoothingFactor1
-          
-          merged_df <- merged_df %>%
-            mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
-                   ReadDepth = sum_counts)
-          
-          # Rename the count column to 'n'
-          subclonality_counts <- merged_df %>%
-            count(Subclonality) %>%
-            rename(n = n)
-          
-          # Color aesthetic based on the user input
-          color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
-          
-          # Initialize annotations
-          annotations <- list()
-          
-          # For Clonal mutations
-          if ("Clonal" %in% subclonality_counts$Subclonality) {
-            n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
-            if (length(n_clonal) > 0 && n_clonal > 0) {
-              annotations <- c(
-                annotations, 
-                annotate(
-                  "text", x = 0.85, y = -1.65, 
-                  label = paste0("n clonal = ", n_clonal), 
-                  size = 3, color = "black", vjust = -1.5
-                )
-              )
-            }
-          }
-          
-          # For Subclonal mutations
-          if ("Subclonal" %in% subclonality_counts$Subclonality) {
-            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
-            if (length(n_subclonal) > 0 && n_subclonal > 0) {
-              annotations <- c(
-                annotations, 
-                annotate(
-                  "text", x = 0.85, y = -2.65, 
-                  label = paste0("n subclonal = ", n_subclonal), 
-                  size = 3, color = "black", vjust = -1.5
-                )
-              )
-            }
-          }
-          
-          # Increment progress
-          incProgress(0.8, detail = "Rendering plot...")
-          
-          # Create the plot
-          gg1 <- ggplot(merged_df, aes(x = AF)) +
-            geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
-            geom_point(
-              shape = 142,
-              size = 5,
-              alpha = 0.3,
-              aes(
-                y = -0.75,
-                color = !!sym(color_aesthetic)
-              )
-            ) +
-            xlim(0, 1) +
-            ggtitle(paste(
-              selectedSample,
-              " - Purity =", round(purity, 3),
-              "      ", "Mean read depth =", round(mean_rd),
-              "      ", "Range read depth =", min_rd, "-", max_rd
-            )) +
-            annotations +  # Add the annotations here
-            ggpubr::theme_pubr() + 
-            xlab("VAF") + ylab("Density") + 
-            theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
-          
-          # Increment progress to completion
-          incProgress(1, detail = "Done")
-          
-          ggplotly(gg1)
-        }
-      })
+        ggplotly(gg1)
+      }
     })
-    
-    # Captions for graph 1 
-    output$caption1 <- renderUI({
-      if (plotsReadyCliPP()) {
-        HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
+  })
+  
+  # Captions for graph 1 
+  output$caption1 <- renderUI({
+    if (plotsReadyCliPP()) {
+      HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
        - <b>Purity</b> reflects the proportion of tumor cells in the sample. For instance, a purity of 0.9 means 90% of the cells are cancerous.<br>
        - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
        - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE). <br>
   </p>")
+    }
+  })
+  
+  # Plot 2
+  output$plot2 <- renderPlotly({
+    req(plotsReadyCliPP())
+    # Initialize the progress bar for Plot 2
+    withProgress(message = 'Generating Plot 2...', value = 0, {
+      if (input$submit == 0 || !plotsReadyCliPP()) return()
+      
+      # Increment progress
+      incProgress(0.1, detail = "Loading data...")
+      
+      selectedSample <- input$selectedSample
+      sampleFiles <- uploadedSamples$samples[[selectedSample]]
+      
+      if (is.null(sampleFiles)) return()
+      
+      snvFile <- sampleFiles$snvFile
+      cnaFile <- sampleFiles$cnaFile
+      purityFile <- sampleFiles$purityFile
+      
+      if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) return()
+      
+      file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
+      if (is.null(file_data)) return()
+      
+      # Increment progress
+      incProgress(0.3, detail = "Processing data...")
+      
+      df_snv <- file_data$df_snv
+      df_cna <- file_data$df_cna
+      purity <- file_data$purity
+      
+      # Read mutation and subclonal structure assignments
+      matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+      matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+      
+      if (length(matching_file1) > 0 && length(matching_file2) > 0) {
+        df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
+        df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
+        
+        df_snvcna <- df_snv %>%
+          mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
+            inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+            if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
+          }))
+        
+        # Calculate the sum of ref_count and alt_count
+        df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
+        
+        # Compute the mean of the sum_counts column
+        mean_rd <- mean(df_snvcna$sum_counts)
+        min_rd <- min(df_snvcna$sum_counts)
+        max_rd <- max(df_snvcna$sum_counts)
+        
+        merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+        merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
+        
+        merged_df$total_cn <- as.numeric(merged_df$total_cn)
+        merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
+        merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
+        merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
+        
+        total_SNVs <- sum(df_subc$num_SNV)
+        
+        recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
+        recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
+        
+        output$smoothingExplanation1 <- renderUI({
+          HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations."))
+        })
+        
+        output$smoothingExplanation2 <- renderUI({
+          HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations."))
+        })
+        
+        # Increment progress
+        incProgress(0.6, detail = "Calculating plot parameters...")
+        
+        # Smoothing slider
+        smoothing_factor2 <- input$smoothingFactor2
+        
+        merged_df <- merged_df %>%
+          mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+                 ReadDepth = sum_counts)
+        
+        # Rename the count column to 'n'
+        subclonality_counts <- merged_df %>%
+          count(Subclonality) %>%
+          rename(n = n)
+        
+        # Ensures no NA or NULL values in columns used for plotting
+        merged_df <- merged_df %>%
+          filter(!is.na(CP_unpenalized), !is.na(Subclonality), !is.na(ReadDepth))
+        
+        # Determine the color aesthetic based on the user input
+        color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
+        
+        # Initialize annotations
+        annotations <- create_annotations(subclonality_counts)
+        
+        # Increment progress
+        incProgress(0.8, detail = "Rendering plot...")
+        
+        # Create plot
+        gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
+          geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
+          geom_point(
+            # Lines
+            shape = 142,
+            # Size
+            size = 5,
+            # Transparency
+            alpha = 0.3,
+            aes(
+              # Fixed y-position
+              y = -0.75,
+              # Dynamic color
+              color = !!sym(color_aesthetic)
+            )
+          ) +
+          xlim(0, 1.5) +
+          ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
+          annotations +  
+          ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
+          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+          geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
+        
+        # Increment progress to completion
+        incProgress(1, detail = "Done")
+        
+        ggplotly(gg2)
       }
     })
-    
-    # Plot 2
-    output$plot2 <- renderPlotly({
-      req(plotsReadyCliPP())
-      # Initialize the progress bar for Plot 2
-      withProgress(message = 'Generating Plot 2...', value = 0, {
-        if (input$submit == 0 || !plotsReadyCliPP()) return()
-        
-        # Increment progress
-        incProgress(0.1, detail = "Loading data...")
-        
-        selectedSample <- input$selectedSample
-        sampleFiles <- uploadedSamples$samples[[selectedSample]]
-        
-        if (is.null(sampleFiles)) return()
-        
-        snvFile <- sampleFiles$snvFile
-        cnaFile <- sampleFiles$cnaFile
-        purityFile <- sampleFiles$purityFile
-        
-        if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) return()
-        
-        file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
-        if (is.null(file_data)) return()
-        
-        # Increment progress
-        incProgress(0.3, detail = "Processing data...")
-        
-        df_snv <- file_data$df_snv
-        df_cna <- file_data$df_cna
-        purity <- file_data$purity
-        
-        # Read mutation and subclonal structure assignments
-        matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
-        matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
-        
-        if (length(matching_file1) > 0 && length(matching_file2) > 0) {
-          df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
-          df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
-          
-          df_snvcna <- df_snv %>%
-            mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
-              inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-              if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
-            }))
-          
-          # Calculate the sum of ref_count and alt_count
-          df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
-          
-          # Compute the mean of the sum_counts column
-          mean_rd <- mean(df_snvcna$sum_counts)
-          min_rd <- min(df_snvcna$sum_counts)
-          max_rd <- max(df_snvcna$sum_counts)
-          
-          merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-          merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
-          
-          merged_df$total_cn <- as.numeric(merged_df$total_cn)
-          merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
-          merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
-          merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
-          
-          total_SNVs <- sum(df_subc$num_SNV)
-          
-          recommended_smoothing_factor <- function(total_mutations) {
-            min_smooth <- 0.2
-            max_smooth <- 0.7
-            min_mut <- 100
-            max_mut <- 10000
-            smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
-            smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
-            return(round(smoothing_factor, 2))
-          }
-          recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
-          recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
-          
-          output$smoothingExplanation1 <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth1, " based on ", total_SNVs, " mutations."))
-          })
-          
-          output$smoothingExplanation2 <- renderUI({
-            HTML(paste0("The smoothing factor should be set to ", recommended_smooth2, " based on ", total_SNVs, " mutations."))
-          })
-          
-          # Increment progress
-          incProgress(0.6, detail = "Calculating plot parameters...")
-          
-          # Smoothing slider
-          smoothing_factor2 <- input$smoothingFactor2
-          
-          merged_df <- merged_df %>%
-            mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
-                   ReadDepth = sum_counts)
-          
-          # Rename the count column to 'n'
-          subclonality_counts <- merged_df %>%
-            count(Subclonality) %>%
-            rename(n = n)
-          
-          # Ensures no NA or NULL values in columns used for plotting
-          merged_df <- merged_df %>%
-            filter(!is.na(CP_unpenalized), !is.na(Subclonality), !is.na(ReadDepth))
-          
-          # Determine the color aesthetic based on the user input
-          color_aesthetic <- if (input$colorBy == "clonality") "Subclonality" else "ReadDepth"
-          
-          # Initialize annotations
-          annotations <- list()
-          
-          # For Clonal mutations
-          if ("Clonal" %in% subclonality_counts$Subclonality) {
-            n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
-            if (length(n_clonal) > 0 && n_clonal > 0) {
-              annotations <- c(
-                annotations, 
-                annotate(
-                  "text", x = 0.85, y = -1.65, 
-                  label = paste0("n clonal = ", n_clonal), 
-                  size = 3, color = "black", vjust = -1.5
-                )
-              )
-            }
-          }
-          
-          # For Subclonal mutations
-          if ("Subclonal" %in% subclonality_counts$Subclonality) {
-            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
-            if (length(n_subclonal) > 0 && n_subclonal > 0) {
-              annotations <- c(
-                annotations, 
-                annotate(
-                  "text", x = 0.85, y = -2.65, 
-                  label = paste0("n subclonal = ", n_subclonal), 
-                  size = 3, color = "black", vjust = -1.5
-                )
-              )
-            }
-          }
-          
-          # Increment progress
-          incProgress(0.8, detail = "Rendering plot...")
-          
-          # Create plot
-          gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
-            geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
-            geom_point(
-              # Lines
-              shape = 142,
-              # Size
-              size = 5,
-              # Transparency
-              alpha = 0.3,
-              aes(
-                # Fixed y-position
-                y = -0.75,
-                # Dynamic color
-                color = !!sym(color_aesthetic)
-              )
-            ) +
-            xlim(0, 1.5) +
-            ggtitle(paste(selectedSample, " - Estimated mutation-specific CP")) +
-            annotations +  # Add annotations here
-            ggpubr::theme_pubr() + xlab("Estimated mutation-specific CP") + ylab("Density") +
-            theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
-            geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
-          
-          # Increment progress to completion
-          incProgress(1, detail = "Done")
-          
-          ggplotly(gg2)
-        }
-      })
-    })
-    
-    # Captions for graph 2 
-    output$caption2 <- renderUI({
-      if (plotsReadyCliPP()) {
-        HTML("<p> - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
+  })
+  
+  # Captions for graph 2 
+  output$caption2 <- renderUI({
+    if (plotsReadyCliPP()) {
+      HTML("<p> - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
        - Annotations on the x-axis indicate whether mutations are <b>clonal</b> (present in all tumor cells) or <b>subclonal</b> (found in a subset).<br>
        - Counts of clonal and subclonal mutations are indicated as <b>n clonal</b> and <b>n subclonal</b> respectively.<br>
   </p>")
-      }
-    })
-    
-    # Output file does not appear until after graphs are generated
-    output$plotOutputArea <- renderUI({
-      if (plotsReadyCliPP()) {
-        fluidPage(
-          h4("Output:"),
-          textOutput("result"),
-          selectInput("selectedFile", "Choose a file to download:", choices = c()),
-          downloadButton("downloadResult", "Download Result")
-        )
-      }
-    })
+    }
+  })
+  
+  # Output file does not appear until after graphs are generated
+  output$plotOutputArea <- renderUI({
+    if (plotsReadyCliPP()) {
+      fluidPage(
+        h4("Output:"),
+        textOutput("result"),
+        selectInput("selectedFile", "Choose a file to download:", choices = c()),
+        downloadButton("downloadResult", "Download Result")
+      )
+    }
+  })
   
   # Set up handlers for TCGA and PCAWG sections with helper functions for each
   createSectionHandlers <- function(prefix) {
@@ -922,15 +905,6 @@ server <- function(input, output, session) {
           
           total_SNVs <- sum(df_subc$num_SNV)
           
-          recommended_smoothing_factor <- function(total_mutations) {
-            min_smooth <- 0.2
-            max_smooth <- 0.7
-            min_mut <- 100
-            max_mut <- 10000
-            smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
-            smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
-            return(round(smoothing_factor, 2))
-          }
           recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
@@ -958,37 +932,7 @@ server <- function(input, output, session) {
           color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
           
           # Initialize annotations
-          annotations <- list()
-          
-          # For Clonal mutations
-          if ("Clonal" %in% subclonality_counts$Subclonality) {
-            n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
-            if (length(n_clonal) > 0 && n_clonal > 0) {
-              annotations <- c(
-                annotations, 
-                annotate(
-                  "text", x = 0.85, y = -1.65, 
-                  label = paste0("n clonal = ", n_clonal), 
-                  size = 3, color = "black", vjust = -1.5
-                )
-              )
-            }
-          }
-          
-          # For Subclonal mutations
-          if ("Subclonal" %in% subclonality_counts$Subclonality) {
-            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
-            if (length(n_subclonal) > 0 && n_subclonal > 0) {
-              annotations <- c(
-                annotations, 
-                annotate(
-                  "text", x = 0.85, y = -2.65, 
-                  label = paste0("n subclonal = ", n_subclonal), 
-                  size = 3, color = "black", vjust = -1.5
-                )
-              )
-            }
-          }
+          annotations <- create_annotations(subclonality_counts)
           
           gg1 <- ggplot(merged_df, aes(x = AF)) +
             geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
@@ -1078,15 +1022,6 @@ server <- function(input, output, session) {
           
           total_SNVs <- sum(df_subc$num_SNV)
           
-          recommended_smoothing_factor <- function(total_mutations) {
-            min_smooth <- 0.2
-            max_smooth <- 0.7
-            min_mut <- 100
-            max_mut <- 10000
-            smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
-            smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
-            return(round(smoothing_factor, 2))
-          }
           recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
           recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
           
@@ -1114,37 +1049,7 @@ server <- function(input, output, session) {
           color_aesthetic <- if (input[[paste0("colorBy", prefix)]] == "clonality") "Subclonality" else "ReadDepth"
           
           # Initialize annotations
-          annotations <- list()
-          
-          # For Clonal mutations
-          if ("Clonal" %in% subclonality_counts$Subclonality) {
-            n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
-            if (length(n_clonal) > 0 && n_clonal > 0) {
-              annotations <- c(
-                annotations, 
-                annotate(
-                  "text", x = 0.85, y = -1.65, 
-                  label = paste0("n clonal = ", n_clonal), 
-                  size = 3, color = "black", vjust = -1.5
-                )
-              )
-            }
-          }
-          
-          # For Subclonal mutations
-          if ("Subclonal" %in% subclonality_counts$Subclonality) {
-            n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
-            if (length(n_subclonal) > 0 && n_subclonal > 0) {
-              annotations <- c(
-                annotations, 
-                annotate(
-                  "text", x = 0.85, y = -2.65, 
-                  label = paste0("n subclonal = ", n_subclonal), 
-                  size = 3, color = "black", vjust = -1.5
-                )
-              )
-            }
-          }
+          annotations <- create_annotations(subclonality_counts)
           
           gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
             geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
@@ -1463,7 +1368,7 @@ server <- function(input, output, session) {
       })
     }
   })
-
+  
   output$driverMutationPlots <- renderUI({
     if (!is.null(input$cancer_type_driver)) {
       tagList(
@@ -1748,7 +1653,7 @@ server <- function(input, output, session) {
       shinyjs::hide("downloadDriverMutation")
     }
   })
-  # Observer to initially hide smoothing controls
+  # Add observer to initially hide smoothing controls
   observe({
     if (is.null(input$driverMutationTable_rows_selected)) {
       shinyjs::hide("smoothingFactor1_driver")
