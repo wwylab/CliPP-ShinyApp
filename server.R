@@ -13,7 +13,7 @@ library(tidyr)
 #Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
 
 # Data source directory
-global_TCGA_PCAWG <- file.path(getwd(), "dataSource")
+global_TCGA_PCAWG <- "dataSource"
 
 # Sample data from PCAWG and TCGA datasets
 sample_PCAWG <- read.csv(file.path(global_TCGA_PCAWG, "CliPP_PCAWG.tsv"), sep='\t')
@@ -93,6 +93,42 @@ create_download_handler <- function(path) {
     },
     contentType = "text/plain"
   )
+}
+
+# Backup CliPP in case mutation files do not exist
+prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
+  # Check if mutation assignments already exist
+  matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+  matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+  
+  if (length(matching_file1) == 0 || length(matching_file2) == 0) {
+    
+    snvFile <- file.path(sampleDir, "sample.snv.txt")
+    cnaFile <- file.path(sampleDir, "sample.cna.txt")
+    purityFile <- file.path(sampleDir, "sample.purity.txt")
+    
+    # Construct and run CliPP command
+    command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
+                       shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile))
+    
+    result <- system(command, intern = TRUE)
+
+    # Move results to sample directory
+    resultFiles <- list.files("forCliPP/CliPP/sample_id/final_result/Best_lambda/", 
+                              pattern = "\\.txt$", full.names = TRUE)
+    file.copy(resultFiles, sampleDir)
+  }
+  
+  # Check again for mutation assignment files
+  matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+  matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+  
+  if (length(matching_file1) == 0 || length(matching_file2) == 0) {
+    showNotification("Failed to generate mutation assignments", type = "error")
+    return(FALSE)
+  }
+  
+  return(TRUE)
 }
 
 # Shiny server logic
@@ -849,12 +885,14 @@ server <- function(input, output, session) {
       
       # Plot 1
       output[[paste0("plot1", prefix)]] <- renderPlotly({
-        # Ensure files are uploaded
-        if (input[[paste0("submit", prefix)]] == 0 || !plotsReadyPrefix()) return()
-        
-        #selectedSample <- input[[paste0("selectedSample", prefix)]]
         selectedSample <- input[[paste0("sample_name_", prefix)]]
+
         sampleDir <- file.path(global_TCGA_PCAWG, prefix, selectedSample)
+
+        # Prepare data and run CliPP if needed
+        if (!prepareAndRunCliPP(sampleDir, prefix, selectedSample)) {
+          return()
+        }
         
         if (is.null(selectedSample) || selectedSample == "") return()
         
@@ -1453,6 +1491,12 @@ server <- function(input, output, session) {
       prefix <- if (selected_sample %in% sample_TCGA$samplename) "TCGA" else "PCAWG"
       sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
       
+      # Prepare data and run CliPP if needed
+      if (!prepareAndRunCliPP(sampleDir, prefix, selected_sample)) {
+        showNotification("Failed to prepare data for plotting", type = "error")
+        return()
+      }
+      
       # Read the necessary files
       snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
       cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
@@ -1467,11 +1511,9 @@ server <- function(input, output, session) {
       df_cna <- file_data$df_cna
       purity <- file_data$purity
       
-      resultPath <- sampleDir
-      
       # Read mutation and subclonal structure assignments
-      matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
-      matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+      matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+      matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
       
       if (length(matching_file1) > 0 && length(matching_file2) > 0) {
         df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
