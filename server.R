@@ -1,0 +1,1874 @@
+server <- function(input, output, session) {
+  # Initialize reactive values
+  plots_ready_clipp <- reactiveVal(FALSE)
+  plots_ready_TCGA <- reactiveVal(FALSE)
+  plots_ready_PCAWG <- reactiveVal(FALSE)
+  
+  samples_uploaded <- reactiveVal(FALSE)
+  uploaded_samples <- reactiveValues(samples = list())
+  
+  # Debug logging
+  cat("Server function starting\n")
+  
+  # Null coalescing operator for safe default values
+  `%||%` <- function(x, y) if (is.null(x)) y else x
+  
+  # Reactive values for sample data
+  tcga_data <- reactive({
+    sample_TCGA
+  })
+  
+  pcawg_data <- reactive({
+    sample_PCAWG
+  })
+  
+  # Add reactive values for driver data
+  driver_data <- reactive({
+    req(input$cancer_type_driver)
+    selected_cancer_type <- input$cancer_type_driver
+    
+    if (is.null(selected_cancer_type) || selected_cancer_type == "") {
+      return(NULL)
+    }
+    
+    driver_mutations <- driver_mutation_data[driver_mutation_data$cancer == selected_cancer_type, ]
+    
+    if (nrow(driver_mutations) == 0) {
+      return(NULL)
+    }
+    
+    return(driver_mutations)
+  })
+  
+  # Add a reactive for consolidated data
+  driver_data_consolidated <- reactive({
+    req(input$cancer_type_driver)
+    selected_cancer_type <- input$cancer_type_driver
+    
+    if (is.null(selected_cancer_type) || selected_cancer_type == "") {
+      return(NULL)
+    }
+    
+    # Get all mutations for this cancer type
+    driver_mutations <- driver_mutation_data[driver_mutation_data$cancer == selected_cancer_type, ]
+    
+    if (nrow(driver_mutations) == 0) {
+      return(NULL)
+    }
+    
+    # Get unique samples
+    unique_samples <- unique(driver_mutations$sample)
+    result <- data.frame(
+      sample = character(),
+      genes = character(),
+      proteins = character(),
+      consequences = character(),
+      Subclonality = character(),
+      VAF_range = character(),
+      CP_range = character(),
+      mutation_count = integer(),
+      stringsAsFactors = FALSE
+    )
+    
+    # Process each sample separately
+    for (sample_name in unique_samples) {
+      sample_rows <- driver_mutations[driver_mutations$sample == sample_name, ]
+      
+      # Collect unique genes, proteins, consequences, and subclonality statuses
+      unique_genes <- paste(unique(sample_rows$gene), collapse = ", ")
+      unique_proteins <- paste(unique(sample_rows$protein), collapse = ", ")
+      unique_consequences <- paste(unique(sample_rows$consequence), collapse = ", ")
+      
+      # Determine subclonality status for the sample
+      unique_subclonality <- unique(sample_rows$Subclonality)
+      if (length(unique_subclonality) > 1) {
+        subclonality_status <- "Clonal, Subclonal"
+      } else {
+        subclonality_status <- unique_subclonality[1]
+      }
+      
+      # Calculate VAF and CP ranges
+      vaf_values <- sample_rows$VAF
+      cp_values <- sample_rows$CP_unpenalized
+      vaf_range <- paste(sprintf("%.3f", range(vaf_values)), collapse = "-")
+      cp_range <- paste(sprintf("%.3f", range(cp_values)), collapse = "-")
+      
+      # Count mutations
+      mutation_count <- nrow(sample_rows)
+      
+      # Add to result
+      result <- rbind(result, data.frame(
+        sample = sample_name,
+        genes = unique_genes,
+        proteins = unique_proteins,
+        consequences = unique_consequences,
+        Subclonality = subclonality_status,
+        VAF_range = vaf_range,
+        CP_range = cp_range,
+        mutation_count = mutation_count,
+        stringsAsFactors = FALSE
+      ))
+    }
+    
+    return(result)
+  })
+  
+  # UI elements for driver mutation section
+  output$cancer_type_ui_driver <- renderUI({
+    selectInput("cancer_type_driver", "Select Cancer Type:", choices = unique(driver_mutation_data$cancer))
+  })
+  
+  output$gene_name_ui_driver <- renderUI({
+    selectInput("gene_name_driver", "Select Gene:", choices = NULL)
+  })
+  
+  # With these direct UI and server components:
+  # Render the driver mutation table
+  output$driverMutationTable <- DT::renderDataTable({
+    req(input$cancer_type_driver)
+    
+    # Check if view_mode is available
+    view_mode <- ifelse(is.null(input$view_mode), "individual", input$view_mode)
+    
+    # Handle consolidated or individual view
+    if (view_mode == "consolidated") {
+      # Get consolidated data from reactive
+      consolidated_data <- driver_data_consolidated()
+      
+      if (is.null(consolidated_data) || nrow(consolidated_data) == 0) {
+        return(NULL)
+      }
+      
+      # Render the table
+      DT::datatable(
+        consolidated_data,
+        selection = 'single',
+        options = list(
+          pageLength = 10,
+          searchHighlight = TRUE,
+          autoWidth = FALSE
+        ),
+        rownames = FALSE
+      ) %>%
+        DT::formatStyle(
+          'Subclonality',
+          backgroundColor = DT::styleEqual(
+            c("Clonal", "Subclonal", "Clonal, Subclonal"), 
+            c('#C9EDEF', '#FED9D7', '#E6E6FA')
+          ),
+          color = 'black'
+        )
+    } else {
+      # Individual mutation view - get data from reactive
+      driver_mutations <- driver_data()
+      
+      if (is.null(driver_mutations) || nrow(driver_mutations) == 0) {
+        return(NULL)
+      }
+      
+      # Select specific columns for display
+      display_columns <- c("gene", "sample", "protein", "consequence", "Subclonality", "VAF", "CP_unpenalized")
+      display_data <- driver_mutations[, display_columns]
+      
+      # Render the table
+      DT::datatable(
+        display_data,
+        selection = 'single',
+        options = list(
+          pageLength = 10,
+          searchHighlight = TRUE,
+          autoWidth = FALSE
+        ),
+        rownames = FALSE
+      ) %>%
+        DT::formatStyle(
+          'Subclonality',
+          backgroundColor = DT::styleEqual(
+            c("Clonal", "Subclonal"), 
+            c('#C9EDEF', '#FED9D7')
+          ),
+          color = 'black'
+        )
+    }
+  })
+  
+  # Modify the process_driver_sample function to handle missing files better
+  process_driver_sample <- function(selected_sample, mutations_data) {
+    # Find the corresponding sample in TCGA or PCAWG
+    tryCatch({
+      # Check if sample exists in TCGA or PCAWG
+      if (any(selected_sample %in% sample_TCGA$samplename)) {
+        prefix <- "TCGA"
+      } else if (any(selected_sample %in% sample_PCAWG$samplename)) {
+        prefix <- "PCAWG"
+      } else {
+        showNotification(paste("Sample", selected_sample, "not found in TCGA or PCAWG datasets."), type = "error")
+        return()
+      }
+      
+      sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
+      
+      # Check if directory exists
+      if (!dir.exists(sampleDir)) {
+        showNotification(paste("Sample directory not found:", sampleDir), type = "error")
+        return()
+      }
+      
+      # Read sample files
+      snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
+      cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
+      purityFile <- list.files(sampleDir, pattern = "*.purity.txt", full.names = TRUE)
+      
+      if (length(snvFile) == 0 || length(cnaFile) == 0 || length(purityFile) == 0) {
+        showNotification("Required sample files not found.", type = "error")
+        return()
+      }
+      
+      # Validate and read basic files
+      file_data <- read_and_validate_files(snvFile[1], cnaFile[1], purityFile[1])
+      if (is.null(file_data)) {
+        showNotification("Error reading sample files.", type = "error")
+        return() 
+      }
+      
+      df_snv <- file_data$df_snv
+      df_cna <- file_data$df_cna
+      purity <- file_data$purity
+      
+      # Look for mutation assignments, but don't fail if not found
+      matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+      matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+      
+      if (length(matching_file1) == 0 || length(matching_file2) == 0) {
+        # Create a basic plot without mutation assignments
+        # This shows just the driver mutations without the full mutation density
+        cat("Mutation assignment files not found. Creating simplified plot.\n")
+        
+        # Create a simplified VAF plot with just driver mutations
+        output$driverPlot1 <- renderPlotly({
+          # Create a basic plot
+          gg1 <- ggplot() +
+            xlim(0, 1) +
+            ggtitle(paste(selected_sample, " - Purity =", round(purity, 3),
+                          " | Driver Mutations Only (No Background)")) +
+            ggpubr::theme_pubr() +
+            xlab("VAF") + ylab("Density") +
+            theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+          
+          # Add the driver mutations
+          if (nrow(mutations_data) > 0) {
+            for (i in 1:nrow(mutations_data)) {
+              mutation <- mutations_data[i,]
+              gg1 <- gg1 + 
+                geom_vline(
+                  xintercept = mutation$VAF,
+                  linetype = "dashed",
+                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                ) +
+                annotate(
+                  "text",
+                  x = mutation$VAF,
+                  y = 0.5 - (i * 0.05),
+                  label = paste0(mutation$gene, " (", mutation$protein, ")"),
+                  size = 3,
+                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                  angle = 45,
+                  hjust = 0
+                )
+            }
+          }
+          
+          ggplotly(gg1)
+        })
+        
+        # Create a simplified CP plot with just driver mutations
+        output$driverPlot2 <- renderPlotly({
+          gg2 <- ggplot() +
+            xlim(0, 1.5) +
+            ggtitle(paste0("CP Distribution - ", selected_sample, " (Driver Mutations Only)")) +
+            ggpubr::theme_pubr() +
+            xlab("Cellular Prevalence (CP)") + ylab("Density") +
+            theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+          
+          # Add the driver mutations
+          if (nrow(mutations_data) > 0) {
+            for (i in 1:nrow(mutations_data)) {
+              mutation <- mutations_data[i,]
+              gg2 <- gg2 + 
+                geom_vline(
+                  xintercept = mutation$CP_unpenalized,
+                  linetype = "dashed",
+                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                ) +
+                annotate(
+                  "text",
+                  x = mutation$CP_unpenalized,
+                  y = 0.5 - (i * 0.05),
+                  label = paste0(mutation$gene, " (", mutation$protein, ")"),
+                  size = 3,
+                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                  angle = 45,
+                  hjust = 0
+                )
+            }
+          }
+          
+          ggplotly(gg2)
+        })
+        
+        # Show simplified captions
+        output$driverCaption1 <- renderUI({
+          HTML("<p>
+        - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
+        - <b>Colored vertical lines</b> show the VAF of each driver mutation in this sample.<br>
+        - Note: Full mutation distribution not available for this sample.
+      </p>")
+        })
+        
+        output$driverCaption2 <- renderUI({
+          HTML("<p>
+        - <b>Cellular Prevalence (CP)</b> is the fraction of all cells from the sample carrying a particular SNV.<br>
+        - <b>Colored vertical lines</b> show the CP of each driver mutation in this sample.<br>
+        - Note: Full mutation distribution not available for this sample.
+      </p>")
+        })
+        
+        return()
+      }
+      
+      # If we get here, we have the mutation assignments, so proceed with normal visualization
+      df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
+      df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
+      
+      # Process the mutation data
+      df_snvcna <- df_snv %>%
+        mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
+          inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+          if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
+        }))
+      
+      # Calculate read depth metrics
+      df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
+      mean_rd <- mean(df_snvcna$sum_counts)
+      min_rd <- min(df_snvcna$sum_counts)
+      max_rd <- max(df_snvcna$sum_counts)
+      
+      # Merge with assigned mutations
+      merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+      merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
+      
+      # Calculate mutation metrics
+      merged_df$total_cn <- as.numeric(merged_df$total_cn)
+      merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
+      merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / 
+        (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
+      merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
+      
+      # Add clonality classification based on cluster_index
+      merged_df <- merged_df %>%
+        mutate(
+          Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+          ReadDepth = sum_counts
+        )
+      
+      # Calculate subclonality counts
+      subclonality_counts <- merged_df %>%
+        count(Subclonality) %>%
+        rename(n = n)
+      
+      # Create VAF plot with driver mutations highlighted
+      output$driverPlot1 <- renderPlotly({
+        gg1 <- ggplot(merged_df, aes(x = AF)) +
+          geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
+          geom_point(
+            shape = 142, size = 5, alpha = 0.3,
+            aes(y = -0.75, color = Subclonality)
+          ) +
+          xlim(0, 1) +
+          ggtitle(paste(selected_sample, " - Purity =", round(purity, 3),
+                        " | Mean read depth =", round(mean_rd),
+                        " | Range =", min_rd, "-", max_rd)) +
+          ggpubr::theme_pubr() +
+          xlab("VAF") + ylab("Density") +
+          scale_color_manual(values = c("#87CEEB", "#FFA07A")) +
+          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+        
+        # Add annotations for total counts
+        if ("Clonal" %in% subclonality_counts$Subclonality) {
+          n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
+          gg1 <- gg1 + annotate(
+            "text", x = 0.85, y = -1.65,
+            label = paste0("n clonal = ", n_clonal),
+            size = 3, color = "black", vjust = -1.5
+          )
+        }
+        
+        if ("Subclonal" %in% subclonality_counts$Subclonality) {
+          n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
+          gg1 <- gg1 + annotate(
+            "text", x = 0.85, y = -2.65,
+            label = paste0("n subclonal = ", n_subclonal),
+            size = 3, color = "black", vjust = -1.5
+          )
+        }
+        
+        # Highlight driver mutations
+        if (nrow(mutations_data) > 0) {
+          for (i in 1:nrow(mutations_data)) {
+            mutation <- mutations_data[i,]
+            gg1 <- gg1 + 
+              geom_vline(
+                xintercept = mutation$VAF,
+                linetype = "dashed",
+                color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+              ) +
+              annotate(
+                "text",
+                x = mutation$VAF,
+                y = -1.25 - (i * 0.3),
+                label = paste0(mutation$gene, " (", mutation$protein, ")"),
+                size = 3,
+                color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                angle = 45,
+                hjust = 0
+              )
+          }
+        }
+        
+        ggplotly(gg1)
+      })
+      
+      # Create CP plot with driver mutations highlighted
+      output$driverPlot2 <- renderPlotly({
+        gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
+          geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
+          geom_point(
+            shape = 142, size = 5, alpha = 0.3,
+            aes(y = -0.75, color = Subclonality)
+          ) +
+          xlim(0, 1.5) +
+          ggtitle(paste0("CP Distribution - ", selected_sample)) +
+          ggpubr::theme_pubr() +
+          xlab("Cellular Prevalence (CP)") + ylab("Density") +
+          scale_color_manual(values = c("#87CEEB", "#FFA07A")) +
+          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+          geom_segment(
+            data = df_subc, 
+            aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), 
+            lty = "dashed"
+          )
+        
+        # Highlight driver mutations
+        if (nrow(mutations_data) > 0) {
+          for (i in 1:nrow(mutations_data)) {
+            mutation <- mutations_data[i,]
+            gg2 <- gg2 + 
+              geom_vline(
+                xintercept = mutation$CP_unpenalized,
+                linetype = "dashed",
+                color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+              ) +
+              annotate(
+                "text",
+                x = mutation$CP_unpenalized,
+                y = -1.25 - (i * 0.3),
+                label = paste0(mutation$gene, " (", mutation$protein, ")"),
+                size = 3,
+                color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                angle = 45,
+                hjust = 0
+              )
+          }
+        }
+        
+        ggplotly(gg2)
+      })
+      
+      # Show explanatory captions
+      output$driverCaption1 <- renderUI({
+        HTML("<p>
+    - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
+    - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
+    - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE).<br>
+    - <b>Colored vertical lines</b> show the VAF of each driver mutation in this sample.
+  </p>")
+      })
+      
+      output$driverCaption2 <- renderUI({
+        HTML("<p>
+    - <b>Cellular Prevalence (CP)</b> is the fraction of all cells (both tumor and normal) from the sample carrying a particular SNV.<br>
+    - <b>Vertical dashed lines</b> indicate subclonal clusters identified in the tumor sample.<br>
+    - <b>Colored vertical lines</b> show the CP of each driver mutation in this sample.
+  </p>")
+      })
+    }, error = function(e) {
+      # Catch any error in the process and show a generic error plot
+      cat("Error processing sample:", e$message, "\n")
+      showNotification(paste("Error processing sample:", e$message), type = "error")
+      
+      # Create simple error plots
+      output$driverPlot1 <- renderPlotly({
+        plotly::plot_ly() %>% 
+          plotly::add_annotations(
+            text = paste("Error processing sample:", e$message),
+            showarrow = FALSE
+          )
+      })
+      
+      output$driverPlot2 <- renderPlotly({
+        plotly::plot_ly() %>% 
+          plotly::add_annotations(
+            text = paste("Error processing sample:", e$message),
+            showarrow = FALSE
+          )
+      })
+    })
+  }
+  
+  # Modified row selection handler to skip samples with missing files
+  observeEvent(input$driverMutationTable_rows_selected, {
+    row_selected <- input$driverMutationTable_rows_selected
+    
+    # Safely exit if no row is selected
+    if (is.null(row_selected)) {
+      shinyjs::hide("smoothingFactor1_driver")
+      shinyjs::hide("smoothingFactor2_driver")
+      shinyjs::hide("smoothingExplanation1_driver")
+      shinyjs::hide("smoothingExplanation2_driver")
+      return()
+    }
+    
+    # Show smoothing controls
+    shinyjs::show("smoothingFactor1_driver")
+    shinyjs::show("smoothingFactor2_driver")
+    shinyjs::show("smoothingExplanation1_driver")
+    shinyjs::show("smoothingExplanation2_driver")
+    
+    # Directly access the cancer type from the driver reactive
+    tryCatch({
+      # Get the cancer type directly from the UI selection
+      selected_cancer_type <- input$cancer_type_driver
+      
+      if (is.null(selected_cancer_type) || selected_cancer_type == "") {
+        showNotification("Please select a cancer type first", type = "warning")
+        return()
+      }
+      
+      # Get the view mode - default to individual if not available
+      view_mode <- ifelse(is.null(input$view_mode), "individual", input$view_mode)
+      
+      # Handle consolidated view
+      if (view_mode == "consolidated") {
+        # Get consolidated data
+        consolidated_data <- driver_data_consolidated()
+        
+        # Validate the selected row
+        if (is.null(consolidated_data) || nrow(consolidated_data) == 0 || row_selected > nrow(consolidated_data)) {
+          showNotification("Invalid row selection", type = "error")
+          return()
+        }
+        
+        # Get the selected sample
+        selected_sample <- consolidated_data$sample[row_selected]
+        
+        # Get all mutations for this sample
+        all_sample_mutations <- driver_mutation_data[
+          driver_mutation_data$cancer == selected_cancer_type & 
+            driver_mutation_data$sample == selected_sample, 
+        ]
+        
+        # Check if sample exists in TCGA or PCAWG
+        if (selected_sample %in% sample_TCGA$samplename) {
+          prefix <- "TCGA"
+        } else if (selected_sample %in% sample_PCAWG$samplename) {
+          prefix <- "PCAWG"
+        } else {
+          showNotification(paste("Sample", selected_sample, "not found in datasets."), type = "error")
+          return()
+        }
+        
+        sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
+        
+        # Check for mutation assignment files - if missing, skip this sample
+        matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+        matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+        
+        if (length(matching_file1) == 0 || length(matching_file2) == 0) {
+          showNotification(paste("Mutation assignment files missing for", selected_sample), type = "warning")
+          return()
+        }
+        
+        # Process the sample
+        if (nrow(all_sample_mutations) > 0) {
+          process_driver_sample(selected_sample, all_sample_mutations)
+        }
+      } else {
+        # Individual mutation view - get all driver mutations for the selected cancer
+        individual_data <- driver_data()
+        
+        # Validate the selected row
+        if (is.null(individual_data) || nrow(individual_data) == 0 || row_selected > nrow(individual_data)) {
+          showNotification("Invalid row selection", type = "error") 
+          return()
+        }
+        
+        # Get the selected row's sample
+        selected_mutation <- individual_data[row_selected, ]
+        selected_sample <- selected_mutation$sample
+        
+        # Check if sample exists in TCGA or PCAWG
+        if (selected_sample %in% sample_TCGA$samplename) {
+          prefix <- "TCGA"
+        } else if (selected_sample %in% sample_PCAWG$samplename) {
+          prefix <- "PCAWG"
+        } else {
+          showNotification(paste("Sample", selected_sample, "not found in datasets."), type = "error")
+          return()
+        }
+        
+        sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
+        
+        # Check for mutation assignment files - if missing, skip this sample
+        matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+        matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+        
+        if (length(matching_file1) == 0 || length(matching_file2) == 0) {
+          showNotification(paste("Mutation assignment files missing for", selected_sample), type = "warning")
+          return()
+        }
+        
+        # Get all mutations for this sample
+        all_sample_mutations <- driver_mutation_data[
+          driver_mutation_data$cancer == selected_cancer_type & 
+            driver_mutation_data$sample == selected_sample, 
+        ]
+        
+        # Process the sample
+        if (nrow(all_sample_mutations) > 0) {
+          process_driver_sample(selected_sample, all_sample_mutations)
+        } else {
+          showNotification("No mutations found for the selected sample.", type = "warning")
+        }
+      }
+    }, error = function(e) {
+      showNotification(paste("Error:", e$message), type = "error")
+      cat("Error in row selection:", e$message, "\n")
+    })
+  })
+  
+  observeEvent(input$cancer_type_driver, {
+    shinyjs::hide("smoothingControls")
+    
+    selected_cancer_type <- input$cancer_type_driver
+    
+    # Get sample for this cancer type (same as TCGA/PCAWG section)
+    selected_sample <- sample_TCGA$samplename[sample_TCGA$cancer_type == selected_cancer_type][1]
+    if (is.null(selected_sample) || selected_sample == "") {
+      selected_sample <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == selected_cancer_type][1]
+    }
+    
+    if (is.null(selected_sample) || selected_sample == "") {
+      showNotification("No sample found for selected cancer type.", type = "error")
+      return()
+    }
+    
+    # Determine if this is a TCGA or PCAWG sample
+    prefix <- if (selected_sample %in% sample_TCGA$samplename) "TCGA" else "PCAWG"
+    sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
+    
+    # Read files exactly like in TCGA/PCAWG section
+    snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
+    cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
+    purityFile <- list.files(sampleDir, pattern = "*.purity.txt", full.names = TRUE)
+    
+    if (length(snvFile) == 0 || length(cnaFile) == 0 || length(purityFile) == 0) {
+      showNotification("Required files not found.", type = "error")
+      return()
+    }
+    
+    file_data <- read_and_validate_files(snvFile[1], cnaFile[1], purityFile[1])
+    if (is.null(file_data)) return()
+    
+    df_snv <- file_data$df_snv
+    df_cna <- file_data$df_cna
+    purity <- file_data$purity
+    
+    resultPath <- sampleDir
+    
+    # Read mutation assignments (same as TCGA/PCAWG)
+    matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+    matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+    
+    if (length(matching_file1) > 0 && length(matching_file2) > 0) {
+      df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
+      df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
+      
+      # Process all mutations (same as TCGA/PCAWG)
+      df_snvcna <- df_snv %>%
+        mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
+          inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+          if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
+        }))
+      
+      df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
+      mean_rd <- mean(df_snvcna$sum_counts)
+      min_rd <- min(df_snvcna$sum_counts)
+      max_rd <- max(df_snvcna$sum_counts)
+      
+      merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+      merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
+      
+      merged_df$total_cn <- as.numeric(merged_df$total_cn)
+      merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
+      merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
+      merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
+      
+      processed_mutations <- merged_df %>%
+        mutate(
+          Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+          Subclonality = factor(Subclonality, levels = c("Clonal", "Subclonal")),
+          ReadDepth = sum_counts
+        )
+      
+      total_SNVs <- sum(df_subc$num_SNV)
+      
+      # Calculate counts
+      subclonality_counts <- processed_mutations %>%
+        count(Subclonality) %>%
+        rename(n = n)
+      
+      # Get driver mutations separately (only for table)
+      driver_mutations <- driver_mutation_data %>% 
+        filter(cancer == selected_cancer_type)
+      
+      # Initial plots (using ALL mutations)
+      output$driverPlot1 <- renderPlotly({
+        gg1 <- ggplot(processed_mutations, aes(x = AF)) +
+          geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
+          geom_point(
+            shape = 142,
+            size = 5,
+            alpha = 0.3,
+            aes(
+              y = -0.75,
+              color = Subclonality
+            )
+          ) +
+          xlim(0, 1) +
+          ggtitle(paste(
+            selected_cancer_type,
+            " - Mean read depth =", round(mean_rd),
+            "      ", "Range read depth =", min_rd, "-", max_rd
+          )) +
+          ggpubr::theme_pubr() +
+          xlab("VAF") + ylab("Density") +
+          scale_color_manual(values = c("#87CEEB", "#FFA07A")) +
+          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+        
+        # Add mutation counts  
+        if ("Clonal" %in% subclonality_counts$Subclonality) {
+          n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
+          gg1 <- gg1 + annotate(
+            "text", x = 0.85, y = -1.65,
+            label = paste0("n clonal = ", n_clonal),
+            size = 3, color = "black", vjust = -1.5
+          )
+        }
+        
+        if ("Subclonal" %in% subclonality_counts$Subclonality) {
+          n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
+          gg1 <- gg1 + annotate(
+            "text", x = 0.85, y = -2.65,
+            label = paste0("n subclonal = ", n_subclonal),
+            size = 3, color = "black", vjust = -1.5
+          )
+        }
+        
+        ggplotly(gg1)
+      })
+      
+      output$driverPlot2 <- renderPlotly({
+        gg2 <- ggplot(processed_mutations, aes(x = CP_unpenalized)) +
+          geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
+          geom_point(
+            shape = 142,
+            size = 5,
+            alpha = 0.3,
+            aes(
+              y = -0.75,
+              color = Subclonality
+            )
+          ) +
+          xlim(0, 1.5) +
+          ggtitle(paste("CP Distribution -", selected_cancer_type)) +
+          ggpubr::theme_pubr() +
+          xlab("CP") + ylab("Density") +
+          scale_color_manual(values = c("#87CEEB", "#FFA07A")) +
+          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+          geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
+        
+        ggplotly(gg2)
+      })
+    }
+  })
+  
+  observe({
+    selected_data <- driver_data()
+    if (!is.null(selected_data)) {
+      shinyjs::show("downloadDriverMutation")
+    } else {
+      shinyjs::hide("downloadDriverMutation")
+    }
+  })
+  
+  observeEvent(input$gene_name_driver, {
+    selected_gene_name <- input$gene_name_driver
+    sample_names <- unique(driver_mutation_data$sample[driver_mutation_data$gene == selected_gene_name])
+    updateSelectInput(session, "sample_name_driver", choices = sample_names)
+  })
+  
+  # Generate driver mutation data table and configure file download for driver mutation data
+  observeEvent(input$submitDriver, {
+    selected_sample <- input$sample_name_driver
+    selected_cancer_type <- input$cancer_type_driver  
+    
+    if (is.null(selected_sample) || selected_sample == "") {
+      showNotification("Please select a valid sample.", type = "error")
+      return()
+    }
+    
+    selected_data <- driver_mutation_data %>% filter(sample == selected_sample)
+    
+    if (nrow(selected_data) == 0) {
+      showNotification("No data available for the selected sample.", type = "error")
+      return()
+    }
+    
+    selected_data <- selected_data %>%
+      mutate(cancer = selected_cancer_type)
+    
+    output$driverMutationTable <- DT::renderDataTable({
+      DT::datatable(selected_data %>% select(gene, protein, consequence, cancer, Subclonality, VAF, CP_unpenalized),
+                    options = list(pageLength = 10)) %>%
+        DT::formatStyle(
+          'Subclonality',
+          backgroundColor = DT::styleEqual(c("Clonal", "Subclonal"), c('#C9EDEF', '#FED9D7')),
+          color = DT::styleEqual(c("Clonal", "Subclonal"), c('black', 'black'))
+        )
+    })
+    shinyjs::show("downloadDriverMutation")
+  })
+  
+  # Update the downloadDriverMutation handler
+  output$downloadDriverMutation <- downloadHandler(
+    filename = function() {
+      paste("Driver_Mutation_Data-", input$cancer_type_driver, "-",
+            ifelse(!is.null(input$view_mode) && input$view_mode == "consolidated", "Consolidated-", "Individual-"),
+            Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      selected_cancer_type <- input$cancer_type_driver
+      if (!is.null(selected_cancer_type)) {
+        # Determine the view mode
+        view_mode <- ifelse(!is.null(input$view_mode), input$view_mode, "individual")
+        
+        if (view_mode == "consolidated") {
+          # Use the consolidated data for download
+          selected_data <- driver_data_consolidated()
+        } else {
+          # Use original data for individual view
+          selected_data <- driver_data()
+        }
+        
+        if (!is.null(selected_data) && nrow(selected_data) > 0) {
+          write.table(selected_data, file, 
+                      sep = "\t", 
+                      row.names = FALSE, 
+                      quote = FALSE)
+        } else {
+          writeLines("No data available", file)
+        }
+      }
+    },
+    contentType = "text/plain"
+  )
+  
+  # Add observer to initially hide smoothing controls
+  observe({
+    if (is.null(input$driverMutationTable_rows_selected)) {
+      shinyjs::hide("smoothingFactor1_driver")
+      shinyjs::hide("smoothingFactor2_driver")
+      shinyjs::hide("smoothingExplanation1_driver")
+      shinyjs::hide("smoothingExplanation2_driver")
+    }
+  })
+  
+  # Display UI elements for specific sections
+  output$driverMutationPlots <- renderUI({
+    if (!is.null(input$cancer_type_driver)) {
+      tagList(
+        tabsetPanel(
+          tabPanel("Plots",
+                   # Add smoothing explanations above the plots
+                   uiOutput("smoothingExplanation1_driver"),
+                   plotlyOutput("driverPlot1"),
+                   uiOutput("driverCaption1"),
+                   
+                   uiOutput("smoothingExplanation2_driver"),
+                   plotlyOutput("driverPlot2"),
+                   uiOutput("driverCaption2")
+          ),
+          tabPanel("Data Table",
+                   DT::DTOutput("driverMutationTable"),
+                   shinyjs::hidden(downloadButton("downloadDriverMutation", "Download Data")),
+                   tags$h4(tags$b(tags$span("Reference:"))),
+                   p("Martínez-Jiménez, Francisco, et al. 'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20.10 (2020): 555-572.")
+          )
+        )
+      )
+    }
+  })
+  
+  # Dynamic file upload inputs based on selected number of samples
+  observeEvent(input$setSamples, {
+    numSamples <- input$numSamples
+    output$dynamicFileInputs <- renderUI({
+      lapply(1:numSamples, function(i) {
+        tagList(
+          h4(paste("Sample", i)),
+          textInput(paste0("sampleName", i), "Sample Name:", value = paste0("Sample", i)),
+          if (input$uploadMode == "all_at_once") {
+            fileInput(paste0("fileInput", i),
+                      "Upload all three required files (snv.txt, cna.txt, purity.txt):",
+                      multiple = TRUE, 
+                      accept = c(".txt"))
+          } else {
+            tagList(
+              fileInput(paste0("snvFile", i), "SNV file:", multiple = FALSE, accept = c(".txt")),
+              fileInput(paste0("cnaFile", i), "CNA file:", multiple = FALSE, accept = c(".txt")),
+              fileInput(paste0("purityFile", i), "Purity file:", multiple = FALSE, accept = c(".txt")),
+              br()
+            )
+          }
+        )
+      })
+    })
+    shinyjs::show("uploadSamples")
+    shinyjs::hide("setSamples")
+    shinyjs::disable("numSamples")
+  })
+  
+  # Store uploaded files
+  observeEvent(input$uploadSamples, {
+    numSamples <- input$numSamples
+    samples <- store_uploaded_files(input, numSamples, input$uploadMode)
+    uploaded_samples$samples <- samples
+    samples_uploaded(TRUE)
+    
+    updateSelectInput(session, "selectedSample",
+                      choices = names(samples))
+    
+    showNotification("Samples uploaded successfully.", type = "message")
+    shinyjs::hide("uploadSamples")
+    shinyjs::show("selectedSample")
+    shinyjs::show("submit")
+    shinyjs::show("colorBy")
+  })
+  
+  # Clear current session data
+  observeEvent(input$clear, {
+    uploaded_samples$samples <- list()
+    samples_uploaded(FALSE)
+    updateNumericInput(session, "numSamples", value = 1)
+    shinyjs::enable("numSamples")
+    shinyjs::reset("dynamicFileInputs")
+    
+    # Hide elements
+    elements_to_hide <- c(
+      "selectedSample", "submit", "colorBy", "clear",
+      "plot1", "plot2", "caption1", "caption2",
+      "smoothingFactor1", "smoothingFactor2",
+      "smoothingExplanation1", "smoothingExplanation2"
+    )
+    
+    for (element in elements_to_hide) {
+      shinyjs::hide(element)
+    }
+    
+    shinyjs::show("setSamples")
+    shinyjs::show("uploadSamples")
+    
+    # Clear plots and outputs
+    output$plot1 <- renderPlotly({ NULL })
+    output$plot2 <- renderPlotly({ NULL })
+    output$caption1 <- renderUI({ NULL })
+    output$caption2 <- renderUI({ NULL })
+    output$plotOutputArea <- renderUI({ NULL })
+    
+    plots_ready_clipp(FALSE)
+    updateSelectInput(session, "selectedFile", choices = NULL)
+  })
+  
+  # Process uploaded samples
+  observeEvent(input$submit, {
+    withProgress(message = 'Processing data...', value = 0, {
+      plots_ready_clipp(FALSE)
+      
+      selectedSample <- input$selectedSample
+      sampleFiles <- uploaded_samples$samples[[selectedSample]]
+      
+      if (is.null(sampleFiles)) {
+        showNotification("Please select a sample to analyze.", type = "error")
+        return()
+      }
+      
+      # Process files
+      process_result <- process_sample_files(sampleFiles, selectedSample)
+      
+      if (!process_result$success) {
+        showNotification(process_result$message, type = "error")
+        return()
+      }
+      
+      # Update UI elements
+      shinyjs::show("clear")
+      shinyjs::show("plotOutputArea")
+      shinyjs::show("plot1")
+      shinyjs::show("plot2")
+      shinyjs::show("caption1")
+      shinyjs::show("caption2")
+      shinyjs::show("controls-area")
+      
+      # Mark plots as ready
+      plots_ready_clipp(TRUE)
+      
+      shinyjs::show("smoothingFactor1")
+      shinyjs::show("smoothingFactor2")
+      shinyjs::show("smoothingExplanation1")
+      shinyjs::show("smoothingExplanation2")
+      shinyjs::show(selector = ".controls-area")
+    })
+  })
+  
+  # Main plot outputs for uploaded samples
+  output$plot1 <- renderPlotly({
+    req(plots_ready_clipp())
+    
+    selected_sample <- input$selectedSample
+    current_analysis <- get_current_analysis(uploaded_samples$samples[[selected_sample]])
+    
+    if (is.null(current_analysis)) return(NULL)
+    
+    create_vaf_plot(
+      merged_df = current_analysis$merged_data,
+      sample_name = selected_sample,
+      purity = current_analysis$purity,
+      read_depth = current_analysis$read_depth,
+      smoothing_factor = input$smoothingFactor1,
+      color_by = input$colorBy,
+      subclonality_counts = current_analysis$subclonality_counts
+    )
+  })
+  
+  output$plot2 <- renderPlotly({
+    req(plots_ready_clipp())
+    
+    selected_sample <- input$selectedSample
+    current_analysis <- get_current_analysis(uploaded_samples$samples[[selected_sample]])
+    
+    if (is.null(current_analysis)) return(NULL)
+    
+    create_cp_plot(
+      merged_df = current_analysis$merged_data,
+      sample_name = selected_sample,
+      smoothing_factor = input$smoothingFactor2,
+      color_by = input$colorBy,
+      subclonality_counts = current_analysis$subclonality_counts,
+      df_subc = current_analysis$subclonal_structure
+    )
+  })
+  
+  # Plot captions
+  output$caption1 <- renderUI({
+    req(plots_ready_clipp())
+    get_vaf_plot_caption()
+  })
+  
+  output$caption2 <- renderUI({
+    req(plots_ready_clipp())
+    get_cp_plot_caption()
+  })
+  
+  # Results download section
+  output$plotOutputArea <- renderUI({
+    req(plots_ready_clipp())
+    
+    fluidPage(
+      h4("Output:"),
+      textOutput("result"),
+      selectInput("selectedFile", "Choose a file to download:", choices = c()),
+      downloadButton("downloadResult", "Download Result")
+    )
+  })
+  
+  # UI for TCGA cancer type selector
+  output$cancer_type_ui_TCGA <- renderUI({
+    selectInput("cancer_type_TCGA", "Select Cancer Type:",
+                choices = sort(unique(sample_TCGA$cancer_type)))
+  })
+  
+  # UI for TCGA sample selector
+  output$sample_name_ui_TCGA <- renderUI({
+    req(input$cancer_type_TCGA)
+    filtered_samples <- sample_TCGA$samplename[sample_TCGA$cancer_type == input$cancer_type_TCGA]
+    selectInput("sample_name_TCGA", "Select Sample Name:",
+                choices = sort(filtered_samples))
+  })
+  
+  # UI for PCAWG cancer type selector
+  output$cancer_type_ui_PCAWG <- renderUI({
+    selectInput("cancer_type_PCAWG", "Select Cancer Type:",
+                choices = sort(unique(sample_PCAWG$cancer_type)))
+  })
+  
+  # UI for PCAWG sample selector
+  output$sample_name_ui_PCAWG <- renderUI({
+    req(input$cancer_type_PCAWG)
+    filtered_samples <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == input$cancer_type_PCAWG]
+    selectInput("sample_name_PCAWG", "Select Sample Name:",
+                choices = sort(filtered_samples))
+  })
+  
+  # TCGA Submit button handler
+  observeEvent(input$submitTCGA, {
+    cat("TCGA Submit button clicked\n")
+    plots_ready_TCGA(FALSE)
+    
+    req(input$cancer_type_TCGA, input$sample_name_TCGA)
+    cat("Processing TCGA sample:", input$sample_name_TCGA, "\n")
+    
+    # Get sample directory
+    sample_dir <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
+    
+    # Run CliPP analysis
+    success <- prepareAndRunCliPP(sample_dir, "TCGA", input$sample_name_TCGA)
+    
+    if (!success) {
+      showNotification("Failed to process sample", type = "error")
+      return()
+    }
+    
+    # Read and validate files
+    file_data <- read_tcga_files(sample_dir)
+    
+    if (is.null(file_data)) {
+      showNotification("Error reading sample files", type = "error")
+      return()
+    }
+    
+    # Process data
+    analysis_result <- process_tcga_data_internal(file_data)
+    
+    if (is.null(analysis_result)) {
+      showNotification("Error processing data", type = "error")
+      return()
+    }
+    
+    # Store the analysis result for later use
+    tcga_analysis(analysis_result)
+    
+    # Show controls and enable download
+    shinyjs::show("colorByTCGA")
+    shinyjs::show("clearTCGA")
+    shinyjs::show("plot1TCGA")
+    shinyjs::show("plot2TCGA")
+    shinyjs::show("caption1TCGA")
+    shinyjs::show("caption2TCGA")
+    
+    # Mark plots as ready
+    plots_ready_TCGA(TRUE)
+    shinyjs::show("smoothingFactor1")
+    shinyjs::show("smoothingFactor2")
+    shinyjs::show("smoothingExplanation1")
+    shinyjs::show("smoothingExplanation2")
+    shinyjs::show(selector = ".controls-area")
+    
+    # Create download UI
+    output$downloadUI_TCGA <- renderUI({
+      result_files <- list.files(sample_dir, pattern = "\\.txt$")
+      if (length(result_files) > 0) {
+        tagList(
+          selectInput("selectedFileTCGA", "Choose a file to download:", choices = result_files),
+          downloadButton("downloadResultTCGA", "Download Result")
+        )
+      }
+    })
+    
+    # Show download section
+    shinyjs::show("downloadUI_TCGA")
+  })
+  
+  # PCAWG Submit button handler
+  observeEvent(input$submitPCAWG, {
+    cat("PCAWG Submit button clicked\n")
+    plots_ready_PCAWG(FALSE)
+    
+    req(input$cancer_type_PCAWG, input$sample_name_PCAWG)
+    cat("Processing PCAWG sample:", input$sample_name_PCAWG, "\n")
+    
+    # Get sample directory
+    sample_dir <- file.path(global_TCGA_PCAWG, "PCAWG", input$sample_name_PCAWG)
+    cat("Looking for files in directory:", sample_dir, "\n")
+    
+    # Check if directory exists
+    if (!dir.exists(sample_dir)) {
+      cat("ERROR: Directory does not exist:", sample_dir, "\n")
+      showNotification("Sample directory not found", type = "error")
+      return()
+    }
+    
+    # Check for file existence
+    snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
+    cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
+    purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
+    
+    cat("Found files:", 
+        "\nSNV:", ifelse(length(snv_file) > 0, snv_file, "NOT FOUND"),
+        "\nCNA:", ifelse(length(cna_file) > 0, cna_file, "NOT FOUND"),
+        "\nPurity:", ifelse(length(purity_file) > 0, purity_file, "NOT FOUND"), "\n")
+    
+    # Check SNV count
+    if (length(snv_file) > 0) {
+      tryCatch({
+        snv_count <- count_snvs(snv_file[1])
+        cat("SNV count:", snv_count, "\n")
+        if (snv_count > 20000) {
+          cat("ERROR: SNV count exceeds limit (", snv_count, " > 20000)\n")
+          showNotification(
+            paste("This sample has", snv_count, "SNVs, exceeding the 20,000 limit."),
+            type = "error"
+          )
+          return()
+        }
+      }, error = function(e) {
+        cat("ERROR reading SNV file:", e$message, "\n")
+      })
+    }
+    
+    # Run CliPP analysis
+    cat("Attempting to run CliPP analysis...\n")
+    success <- prepareAndRunCliPP(sample_dir, "PCAWG", input$sample_name_PCAWG)
+    cat("CliPP analysis result:", ifelse(success, "SUCCESS", "FAILED"), "\n")
+    
+    if (!success) {
+      showNotification("Failed to process sample", type = "error")
+      return()
+    }
+    
+    # Read and validate files
+    file_data <- read_pcawg_files(sample_dir)
+    
+    if (is.null(file_data)) {
+      showNotification("Error reading sample files", type = "error")
+      return()
+    }
+    
+    # Process data
+    analysis_result <- process_pcawg_data_internal(file_data)
+    
+    if (is.null(analysis_result)) {
+      showNotification("Error processing data", type = "error")
+      return()
+    }
+    
+    # Store the analysis result for later use
+    pcawg_analysis(analysis_result)
+    
+    # Show controls and enable download
+    shinyjs::show("colorByPCAWG")
+    shinyjs::show("clearPCAWG")
+    shinyjs::show("plot1PCAWG")
+    shinyjs::show("plot2PCAWG")
+    shinyjs::show("caption1PCAWG")
+    shinyjs::show("caption2PCAWG")
+    
+    # Mark plots as ready
+    plots_ready_PCAWG(TRUE)
+    shinyjs::show("smoothingFactor1")
+    shinyjs::show("smoothingFactor2")
+    shinyjs::show("smoothingExplanation1")
+    shinyjs::show("smoothingExplanation2")
+    shinyjs::show(selector = ".controls-area")
+    
+    # Create download UI
+    output$downloadUI_PCAWG <- renderUI({
+      result_files <- list.files(sample_dir, pattern = "\\.txt$")
+      if (length(result_files) > 0) {
+        tagList(
+          selectInput("selectedFilePCAWG", "Choose a file to download:", choices = result_files),
+          downloadButton("downloadResultPCAWG", "Download Result")
+        )
+      }
+    })
+    
+    # Show download section
+    shinyjs::show("downloadUI_PCAWG")
+  })
+  
+  # Clear TCGA data
+  observeEvent(input$clearTCGA, {
+    updateSelectInput(session, "cancer_type_TCGA", selected = character(0))
+    updateSelectInput(session, "sample_name_TCGA", selected = character(0))
+    
+    elements_to_hide <- c(
+      "plot1TCGA", "plot2TCGA",
+      "caption1TCGA", "caption2TCGA",
+      "smoothingFactor1_TCGA", "smoothingFactor2_TCGA",
+      "smoothingExplanation1_TCGA", "smoothingExplanation2_TCGA",
+      "colorByTCGA", "clearTCGA",
+      "downloadUI_TCGA"
+    )
+    
+    for (element in elements_to_hide) {
+      shinyjs::hide(element)
+    }
+    
+    output$plot1TCGA <- renderPlotly({ NULL })
+    output$plot2TCGA <- renderPlotly({ NULL })
+    output$caption1TCGA <- renderUI({ NULL })
+    output$caption2TCGA <- renderUI({ NULL })
+    
+    plots_ready_TCGA(FALSE)
+  })
+  
+  # Clear PCAWG data
+  observeEvent(input$clearPCAWG, {
+    updateSelectInput(session, "cancer_type_PCAWG", selected = character(0))
+    updateSelectInput(session, "sample_name_PCAWG", selected = character(0))
+    
+    elements_to_hide <- c(
+      "plot1PCAWG", "plot2PCAWG",
+      "caption1PCAWG", "caption2PCAWG",
+      "smoothingFactor1_PCAWG", "smoothingFactor2_PCAWG",
+      "smoothingExplanation1_PCAWG", "smoothingExplanation2_PCAWG",
+      "colorByPCAWG", "clearPCAWG",
+      "downloadUI_PCAWG"
+    )
+    
+    for (element in elements_to_hide) {
+      shinyjs::hide(element)
+    }
+    
+    output$plot1PCAWG <- renderPlotly({ NULL })
+    output$plot2PCAWG <- renderPlotly({ NULL })
+    output$caption1PCAWG <- renderUI({ NULL })
+    output$caption2PCAWG <- renderUI({ NULL })
+    
+    plots_ready_PCAWG(FALSE)
+  })
+  
+  # Storage for analysis results
+  tcga_analysis <- reactiveVal(NULL)
+  pcawg_analysis <- reactiveVal(NULL)
+  
+  # TCGA Plot renderers
+  output$plot1TCGA <- renderPlotly({
+    req(plots_ready_TCGA(), tcga_analysis())
+    
+    cat("Rendering TCGA VAF plot\n")
+    
+    analysis <- tcga_analysis()
+    
+    tryCatch({
+      create_vaf_plot(
+        merged_df = analysis$merged_data,
+        sample_name = input$sample_name_TCGA,
+        purity = analysis$purity,
+        read_depth = list(
+          mean = analysis$read_depth,
+          min = min(analysis$merged_data$sum_counts),
+          max = max(analysis$merged_data$sum_counts)
+        ),
+        smoothing_factor = input$smoothingFactor1_TCGA %||% 0.5,
+        color_by = input$colorByTCGA %||% "clonality",
+        subclonality_counts = analysis$subclonality_counts
+      )
+    }, error = function(e) {
+      cat("Error in TCGA VAF plot:", e$message, "\n")
+      plotly::plot_ly() %>% plotly::add_annotations(
+        text = paste("Error:", e$message),
+        showarrow = FALSE
+      )
+    })
+  })
+  
+  output$plot2TCGA <- renderPlotly({
+    req(plots_ready_TCGA(), tcga_analysis())
+    
+    cat("Rendering TCGA CP plot\n")
+    
+    analysis <- tcga_analysis()
+    
+    tryCatch({
+      create_cp_plot(
+        merged_df = analysis$merged_data,
+        sample_name = input$sample_name_TCGA,
+        smoothing_factor = input$smoothingFactor2_TCGA %||% 0.5,
+        color_by = input$colorByTCGA %||% "clonality",
+        subclonality_counts = analysis$subclonality_counts,
+        df_subc = analysis$subclonal_structure
+      )
+    }, error = function(e) {
+      cat("Error in TCGA CP plot:", e$message, "\n")
+      plotly::plot_ly() %>% plotly::add_annotations(
+        text = paste("Error:", e$message),
+        showarrow = FALSE
+      )
+    })
+  })
+  # TCGA captions and explanations
+  output$caption1TCGA <- renderUI({
+    req(plots_ready_TCGA())
+    get_vaf_plot_caption()
+  })
+  
+  output$caption2TCGA <- renderUI({
+    req(plots_ready_TCGA())
+    get_cp_plot_caption()
+  })
+  
+  output$smoothingExplanation1_TCGA <- renderUI({
+    req(tcga_analysis())
+    recommended <- recommended_smoothing_factor(tcga_analysis()$total_mutations)
+    HTML(paste0("Recommended smoothing factor: ", recommended))
+  })
+  
+  output$smoothingExplanation2_TCGA <- renderUI({
+    req(tcga_analysis())
+    recommended <- recommended_smoothing_factor(tcga_analysis()$total_mutations)
+    HTML(paste0("Recommended smoothing factor: ", recommended))
+  })
+  
+  # PCAWG Plot renderers
+  output$plot1PCAWG <- renderPlotly({
+    req(plots_ready_PCAWG(), pcawg_analysis())
+    
+    cat("Rendering PCAWG VAF plot\n")
+    
+    analysis <- pcawg_analysis()
+    
+    tryCatch({
+      create_vaf_plot(
+        merged_df = analysis$merged_data,
+        sample_name = input$sample_name_PCAWG,
+        purity = analysis$purity,
+        read_depth = list(
+          mean = analysis$read_depth,
+          min = min(analysis$merged_data$sum_counts),
+          max = max(analysis$merged_data$sum_counts)
+        ),
+        smoothing_factor = input$smoothingFactor1_PCAWG %||% 0.5,
+        color_by = input$colorByPCAWG %||% "clonality",
+        subclonality_counts = analysis$subclonality_counts
+      )
+    }, error = function(e) {
+      cat("Error in PCAWG VAF plot:", e$message, "\n")
+      plotly::plot_ly() %>% plotly::add_annotations(
+        text = paste("Error:", e$message),
+        showarrow = FALSE
+      )
+    })
+  })
+  
+  output$plot2PCAWG <- renderPlotly({
+    req(plots_ready_PCAWG(), pcawg_analysis())
+    
+    cat("Rendering PCAWG CP plot\n")
+    
+    analysis <- pcawg_analysis()
+    
+    tryCatch({
+      create_cp_plot(
+        merged_df = analysis$merged_data,
+        sample_name = input$sample_name_PCAWG,
+        smoothing_factor = input$smoothingFactor2_PCAWG %||% 0.5,
+        color_by = input$colorByPCAWG %||% "clonality",
+        subclonality_counts = analysis$subclonality_counts,
+        df_subc = analysis$subclonal_structure
+      )
+    }, error = function(e) {
+      cat("Error in PCAWG CP plot:", e$message, "\n")
+      plotly::plot_ly() %>% plotly::add_annotations(
+        text = paste("Error:", e$message),
+        showarrow = FALSE
+      )
+    })
+  })
+  
+  # PCAWG captions and explanations
+  output$caption1PCAWG <- renderUI({
+    req(plots_ready_PCAWG())
+    get_vaf_plot_caption()
+  })
+  
+  output$caption2PCAWG <- renderUI({
+    req(plots_ready_PCAWG())
+    get_cp_plot_caption()
+  })
+  
+  output$smoothingExplanation1_PCAWG <- renderUI({
+    req(pcawg_analysis())
+    recommended <- recommended_smoothing_factor(pcawg_analysis()$total_mutations)
+    HTML(paste0("Recommended smoothing factor: ", recommended))
+  })
+  
+  output$smoothingExplanation2_PCAWG <- renderUI({
+    req(pcawg_analysis())
+    recommended <- recommended_smoothing_factor(pcawg_analysis()$total_mutations)
+    HTML(paste0("Recommended smoothing factor: ", recommended))
+  })
+  
+  # Download handlers
+  output$downloadResultTCGA <- downloadHandler(
+    filename = function() {
+      selected_file <- input$selectedFileTCGA
+      if (grepl(".txt$", selected_file)) {
+        selected_file
+      } else {
+        paste0(selected_file, ".txt")
+      }
+    },
+    content = function(file) {
+      req(input$sample_name_TCGA)
+      result_path <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
+      file_path <- file.path(result_path, input$selectedFileTCGA)
+      
+      if (!file.exists(file_path)) {
+        stop("File not found")
+      }
+      
+      file.copy(from = file_path, to = file)
+    },
+    contentType = "text/plain"
+  )
+  
+  output$downloadResultPCAWG <- downloadHandler(
+    filename = function() {
+      selected_file <- input$selectedFilePCAWG
+      if (grepl(".txt$", selected_file)) {
+        selected_file
+      } else {
+        paste0(selected_file, ".txt")
+      }
+    },
+    content = function(file) {
+      req(input$sample_name_PCAWG)
+      result_path <- file.path(global_TCGA_PCAWG, "PCAWG", input$sample_name_PCAWG)
+      file_path <- file.path(result_path, input$selectedFilePCAWG)
+      
+      if (!file.exists(file_path)) {
+        stop("File not found")
+      }
+      
+      file.copy(from = file_path, to = file)
+    },
+    contentType = "text/plain"
+  )
+  
+  output$downloadResult <- downloadHandler(
+    filename = function() {
+      selected_file <- input$selectedFile
+      if (grepl(".txt$", selected_file)) {
+        selected_file
+      } else {
+        paste0(selected_file, ".txt")
+      }
+    },
+    content = function(file) {
+      selected_sample <- input$selectedSample
+      result_path <- file.path("forCliPP/CliPP/sample_id/final_result/Best_lambda")
+      file_path <- file.path(result_path, input$selectedFile)
+      
+      if (!file.exists(file_path)) {
+        stop("File not found")
+      }
+      
+      file.copy(from = file_path, to = file)
+    },
+    contentType = "text/plain"
+  )
+  
+  # Handle navigation changes
+  observeEvent(input$`navbar-container`, {
+    # Hide smoothing controls for all sections
+    smoothing_elements <- c(
+      "smoothingFactor1", "smoothingFactor2",
+      "smoothingFactor1_TCGA", "smoothingFactor2_TCGA",
+      "smoothingFactor1_PCAWG", "smoothingFactor2_PCAWG",
+      "smoothingFactor1_driver", "smoothingFactor2_driver",
+      "smoothingExplanation1", "smoothingExplanation2",
+      "smoothingExplanation1_TCGA", "smoothingExplanation2_TCGA",
+      "smoothingExplanation1_PCAWG", "smoothingExplanation2_PCAWG",
+      "smoothingExplanation1_driver", "smoothingExplanation2_driver"
+    )
+    
+    for (element in smoothing_elements) {
+      shinyjs::hide(element)
+    }
+  })
+  
+  # HELPER FUNCTIONS
+  
+  # Function to count SNVs in a file
+  count_snvs <- function(file_path) {
+    if (!file.exists(file_path)) return(0)
+    df <- read.table(file_path, header = TRUE)
+    nrow(df)
+  }
+  
+  # Helper function to read TCGA files
+  read_tcga_files <- function(sample_dir) {
+    snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
+    cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
+    purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
+    
+    if (length(snv_file) == 0 || length(cna_file) == 0 || length(purity_file) == 0) {
+      return(NULL)
+    }
+    
+    validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data
+  }
+  
+  # Helper function to read PCAWG files
+  read_pcawg_files <- function(sample_dir) {
+    snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
+    cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
+    purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
+    
+    if (length(snv_file) == 0 || length(cna_file) == 0 || length(purity_file) == 0) {
+      return(NULL)
+    }
+    
+    validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data
+  }
+  
+  # Process TCGA data for plotting
+  process_tcga_data_internal <- function(file_data) {
+    if (is.null(file_data)) return(NULL)
+    
+    df_snv <- file_data$df_snv
+    df_cna <- file_data$df_cna
+    purity <- file_data$purity
+    
+    tryCatch({
+      # Look for existing result files
+      result_path <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
+      matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+      matching_file2 <- list.files(result_path, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+      
+      if (length(matching_file1) == 0 || length(matching_file2) == 0) {
+        cat("Required mutation assignment files not found\n")
+        return(NULL)
+      }
+      
+      # Read the necessary files
+      df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
+      df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
+      
+      # Process the data using the functions from your old server.R
+      df_snvcna <- df_snv %>%
+        mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
+          inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+          if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
+        }))
+      
+      # Calculate read depth
+      df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
+      mean_rd <- mean(df_snvcna$sum_counts)
+      min_rd <- min(df_snvcna$sum_counts)
+      max_rd <- max(df_snvcna$sum_counts)
+      
+      # Merge the data
+      merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+      merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
+      
+      # Calculate parameters
+      merged_df$total_cn <- as.numeric(merged_df$total_cn)
+      merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
+      merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
+      merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
+      
+      # Calculate subclonality
+      merged_df <- merged_df %>%
+        mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+               ReadDepth = sum_counts)
+      
+      # Create subclonality counts
+      subclonality_counts <- merged_df %>%
+        count(Subclonality) %>%
+        rename(n = n)
+      
+      # Total mutations count for smoothing recommendations
+      total_SNVs <- sum(df_subc$num_SNV)
+      
+      # Return analysis result
+      return(list(
+        merged_data = merged_df,
+        purity = purity,
+        read_depth = mean_rd,
+        subclonality_counts = subclonality_counts,
+        subclonal_structure = df_subc,
+        total_mutations = total_SNVs
+      ))
+    }, error = function(e) {
+      cat("Error processing TCGA data:", e$message, "\n")
+      return(NULL)
+    })
+  }
+  
+  # Process PCAWG data for plotting
+  process_pcawg_data_internal <- function(file_data) {
+    if (is.null(file_data)) return(NULL)
+    
+    df_snv <- file_data$df_snv
+    df_cna <- file_data$df_cna
+    purity <- file_data$purity
+    
+    tryCatch({
+      # Look for existing result files
+      result_path <- file.path(global_TCGA_PCAWG, "PCAWG", input$sample_name_PCAWG)
+      matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+      matching_file2 <- list.files(result_path, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+      
+      if (length(matching_file1) == 0 || length(matching_file2) == 0) {
+        cat("Required mutation assignment files not found\n")
+        return(NULL)
+      }
+      
+      # Read the necessary files
+      df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
+      df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
+      
+      # Process the data using the functions from your old server.R
+      df_snvcna <- df_snv %>%
+        mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
+          inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+          if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
+        }))
+      
+      # Calculate read depth
+      df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
+      mean_rd <- mean(df_snvcna$sum_counts)
+      min_rd <- min(df_snvcna$sum_counts)
+      max_rd <- max(df_snvcna$sum_counts)
+      
+      # Merge the data
+      merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+      merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
+      
+      # Calculate parameters
+      merged_df$total_cn <- as.numeric(merged_df$total_cn)
+      merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
+      merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
+      merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
+      
+      # Calculate subclonality
+      merged_df <- merged_df %>%
+        mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+               ReadDepth = sum_counts)
+      
+      # Create subclonality counts
+      subclonality_counts <- merged_df %>%
+        count(Subclonality) %>%
+        rename(n = n)
+      
+      # Total mutations count for smoothing recommendations
+      total_SNVs <- sum(df_subc$num_SNV)
+      
+      # Return analysis result
+      return(list(
+        merged_data = merged_df,
+        purity = purity,
+        read_depth = mean_rd,
+        subclonality_counts = subclonality_counts,
+        subclonal_structure = df_subc,
+        total_mutations = total_SNVs
+      ))
+    }, error = function(e) {
+      cat("Error processing PCAWG data:", e$message, "\n")
+      return(NULL)
+    })
+  }
+  
+  # Function to consolidate driver mutations by sample
+  consolidate_driver_mutations <- function(driver_data, cancer_type) {
+    # Make sure we're working with a data frame and valid inputs
+    if (!is.data.frame(driver_data) || !is.character(cancer_type)) {
+      warning("Invalid inputs to consolidate_driver_mutations")
+      return(NULL)
+    }
+    
+    # Filter by cancer type using base R
+    filtered_data <- driver_data[driver_data$cancer == cancer_type, ]
+    
+    if (nrow(filtered_data) == 0) {
+      return(NULL)
+    }
+    
+    # Get unique samples
+    unique_samples <- unique(filtered_data$sample)
+    result <- data.frame(
+      sample = character(),
+      genes = character(),
+      proteins = character(),
+      consequences = character(),
+      Subclonality = character(),
+      VAF_range = character(),
+      CP_range = character(),
+      mutation_count = integer(),
+      stringsAsFactors = FALSE
+    )
+    
+    # Process each sample separately to avoid dplyr issues
+    for (sample_name in unique_samples) {
+      sample_rows <- filtered_data[filtered_data$sample == sample_name, ]
+      
+      # Collect unique genes, proteins, consequences, and subclonality statuses
+      unique_genes <- paste(unique(sample_rows$gene), collapse = ", ")
+      unique_proteins <- paste(unique(sample_rows$protein), collapse = ", ")
+      unique_consequences <- paste(unique(sample_rows$consequence), collapse = ", ")
+      
+      # Determine subclonality status for the sample
+      unique_subclonality <- unique(sample_rows$Subclonality)
+      if (length(unique_subclonality) > 1) {
+        subclonality_status <- "Clonal, Subclonal"
+      } else {
+        subclonality_status <- unique_subclonality[1]
+      }
+      
+      # Calculate VAF and CP ranges
+      vaf_values <- sample_rows$VAF
+      cp_values <- sample_rows$CP_unpenalized
+      vaf_range <- paste(sprintf("%.3f", range(vaf_values)), collapse = "-")
+      cp_range <- paste(sprintf("%.3f", range(cp_values)), collapse = "-")
+      
+      # Count mutations
+      mutation_count <- nrow(sample_rows)
+      
+      # Add to result
+      result <- rbind(result, data.frame(
+        sample = sample_name,
+        genes = unique_genes,
+        proteins = unique_proteins,
+        consequences = unique_consequences,
+        Subclonality = subclonality_status,
+        VAF_range = vaf_range,
+        CP_range = cp_range,
+        mutation_count = mutation_count,
+        stringsAsFactors = FALSE
+      ))
+    }
+    
+    return(result)
+  }
+}
