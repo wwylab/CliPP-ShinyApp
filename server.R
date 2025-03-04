@@ -1,5 +1,4 @@
 server <- function(input, output, session) {
-  # Initialize reactive values
   plots_ready_clipp <- reactiveVal(FALSE)
   plots_ready_TCGA <- reactiveVal(FALSE)
   plots_ready_PCAWG <- reactiveVal(FALSE)
@@ -7,13 +6,8 @@ server <- function(input, output, session) {
   samples_uploaded <- reactiveVal(FALSE)
   uploaded_samples <- reactiveValues(samples = list())
   
-  # Debug logging
-  cat("Server function starting\n")
-  
-  # Null coalescing operator for safe default values
   `%||%` <- function(x, y) if (is.null(x)) y else x
   
-  # Reactive values for sample data
   tcga_data <- reactive({
     sample_TCGA
   })
@@ -49,14 +43,12 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
-    # Get all mutations for this cancer type
     driver_mutations <- driver_mutation_data[driver_mutation_data$cancer == selected_cancer_type, ]
     
     if (nrow(driver_mutations) == 0) {
       return(NULL)
     }
     
-    # Get unique samples
     unique_samples <- unique(driver_mutations$sample)
     result <- data.frame(
       sample = character(),
@@ -70,16 +62,13 @@ server <- function(input, output, session) {
       stringsAsFactors = FALSE
     )
     
-    # Process each sample separately
     for (sample_name in unique_samples) {
       sample_rows <- driver_mutations[driver_mutations$sample == sample_name, ]
       
-      # Collect unique genes, proteins, consequences, and subclonality statuses
       unique_genes <- paste(unique(sample_rows$gene), collapse = ", ")
       unique_proteins <- paste(unique(sample_rows$protein), collapse = ", ")
       unique_consequences <- paste(unique(sample_rows$consequence), collapse = ", ")
       
-      # Determine subclonality status for the sample
       unique_subclonality <- unique(sample_rows$Subclonality)
       if (length(unique_subclonality) > 1) {
         subclonality_status <- "Clonal, Subclonal"
@@ -87,16 +76,13 @@ server <- function(input, output, session) {
         subclonality_status <- unique_subclonality[1]
       }
       
-      # Calculate VAF and CP ranges
       vaf_values <- sample_rows$VAF
       cp_values <- sample_rows$CP_unpenalized
       vaf_range <- paste(sprintf("%.3f", range(vaf_values)), collapse = "-")
       cp_range <- paste(sprintf("%.3f", range(cp_values)), collapse = "-")
       
-      # Count mutations
       mutation_count <- nrow(sample_rows)
       
-      # Add to result
       result <- rbind(result, data.frame(
         sample = sample_name,
         genes = unique_genes,
@@ -122,24 +108,19 @@ server <- function(input, output, session) {
     selectInput("gene_name_driver", "Select Gene:", choices = NULL)
   })
   
-  # With these direct UI and server components:
   # Render the driver mutation table
   output$driverMutationTable <- DT::renderDataTable({
     req(input$cancer_type_driver)
     
-    # Check if view_mode is available
     view_mode <- ifelse(is.null(input$view_mode), "individual", input$view_mode)
     
-    # Handle consolidated or individual view
     if (view_mode == "consolidated") {
-      # Get consolidated data from reactive
       consolidated_data <- driver_data_consolidated()
       
       if (is.null(consolidated_data) || nrow(consolidated_data) == 0) {
         return(NULL)
       }
       
-      # Render the table
       DT::datatable(
         consolidated_data,
         selection = 'single',
@@ -159,18 +140,15 @@ server <- function(input, output, session) {
           color = 'black'
         )
     } else {
-      # Individual mutation view - get data from reactive
       driver_mutations <- driver_data()
       
       if (is.null(driver_mutations) || nrow(driver_mutations) == 0) {
         return(NULL)
       }
       
-      # Select specific columns for display
       display_columns <- c("gene", "sample", "protein", "consequence", "Subclonality", "VAF", "CP_unpenalized")
       display_data <- driver_mutations[, display_columns]
       
-      # Render the table
       DT::datatable(
         display_data,
         selection = 'single',
@@ -192,11 +170,9 @@ server <- function(input, output, session) {
     }
   })
   
-  # Modify the process_driver_sample function to handle missing files better
+  # Handle all files to prepare for processing
   process_driver_sample <- function(selected_sample, mutations_data) {
-    # Find the corresponding sample in TCGA or PCAWG
     tryCatch({
-      # Check if sample exists in TCGA or PCAWG
       if (any(selected_sample %in% sample_TCGA$samplename)) {
         prefix <- "TCGA"
       } else if (any(selected_sample %in% sample_PCAWG$samplename)) {
@@ -208,13 +184,11 @@ server <- function(input, output, session) {
       
       sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
       
-      # Check if directory exists
       if (!dir.exists(sampleDir)) {
         showNotification(paste("Sample directory not found:", sampleDir), type = "error")
         return()
       }
       
-      # Read sample files
       snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
       cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
       purityFile <- list.files(sampleDir, pattern = "*.purity.txt", full.names = TRUE)
@@ -224,7 +198,6 @@ server <- function(input, output, session) {
         return()
       }
       
-      # Validate and read basic files
       file_data <- read_and_validate_files(snvFile[1], cnaFile[1], purityFile[1])
       if (is.null(file_data)) {
         showNotification("Error reading sample files.", type = "error")
@@ -235,13 +208,10 @@ server <- function(input, output, session) {
       df_cna <- file_data$df_cna
       purity <- file_data$purity
       
-      # Look for mutation assignments, but don't fail if not found
       matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
       matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
       
       if (length(matching_file1) == 0 || length(matching_file2) == 0) {
-        # Create a basic plot without mutation assignments
-        # This shows just the driver mutations without the full mutation density
         cat("Mutation assignment files not found. Creating simplified plot.\n")
         
         # Create a simplified VAF plot with just driver mutations
@@ -263,7 +233,7 @@ server <- function(input, output, session) {
                 geom_vline(
                   xintercept = mutation$VAF,
                   linetype = "dashed",
-                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple")
                 ) +
                 annotate(
                   "text",
@@ -271,7 +241,7 @@ server <- function(input, output, session) {
                   y = 0.5 - (i * 0.05),
                   label = paste0(mutation$gene, " (", mutation$protein, ")"),
                   size = 3,
-                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple"),
                   angle = 45,
                   hjust = 0
                 )
@@ -298,7 +268,7 @@ server <- function(input, output, session) {
                 geom_vline(
                   xintercept = mutation$CP_unpenalized,
                   linetype = "dashed",
-                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple")
                 ) +
                 annotate(
                   "text",
@@ -306,7 +276,7 @@ server <- function(input, output, session) {
                   y = 0.5 - (i * 0.05),
                   label = paste0(mutation$gene, " (", mutation$protein, ")"),
                   size = 3,
-                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple"),
                   angle = 45,
                   hjust = 0
                 )
@@ -420,7 +390,7 @@ server <- function(input, output, session) {
               geom_vline(
                 xintercept = mutation$VAF,
                 linetype = "dashed",
-                color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple")
               ) +
               annotate(
                 "text",
@@ -428,7 +398,7 @@ server <- function(input, output, session) {
                 y = -1.25 - (i * 0.3),
                 label = paste0(mutation$gene, " (", mutation$protein, ")"),
                 size = 3,
-                color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple"),
                 angle = 45,
                 hjust = 0
               )
@@ -466,7 +436,7 @@ server <- function(input, output, session) {
               geom_vline(
                 xintercept = mutation$CP_unpenalized,
                 linetype = "dashed",
-                color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple")
               ) +
               annotate(
                 "text",
@@ -474,7 +444,7 @@ server <- function(input, output, session) {
                 y = -1.25 - (i * 0.3),
                 label = paste0(mutation$gene, " (", mutation$protein, ")"),
                 size = 3,
-                color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple"),
                 angle = 45,
                 hjust = 0
               )
@@ -529,7 +499,6 @@ server <- function(input, output, session) {
   observeEvent(input$driverMutationTable_rows_selected, {
     row_selected <- input$driverMutationTable_rows_selected
     
-    # Safely exit if no row is selected
     if (is.null(row_selected)) {
       shinyjs::hide("smoothingFactor1_driver")
       shinyjs::hide("smoothingFactor2_driver")
@@ -538,7 +507,6 @@ server <- function(input, output, session) {
       return()
     }
     
-    # Show smoothing controls
     shinyjs::show("smoothingFactor1_driver")
     shinyjs::show("smoothingFactor2_driver")
     shinyjs::show("smoothingExplanation1_driver")
@@ -546,7 +514,6 @@ server <- function(input, output, session) {
     
     # Directly access the cancer type from the driver reactive
     tryCatch({
-      # Get the cancer type directly from the UI selection
       selected_cancer_type <- input$cancer_type_driver
       
       if (is.null(selected_cancer_type) || selected_cancer_type == "") {
@@ -554,30 +521,23 @@ server <- function(input, output, session) {
         return()
       }
       
-      # Get the view mode - default to individual if not available
       view_mode <- ifelse(is.null(input$view_mode), "individual", input$view_mode)
       
-      # Handle consolidated view
       if (view_mode == "consolidated") {
-        # Get consolidated data
         consolidated_data <- driver_data_consolidated()
         
-        # Validate the selected row
         if (is.null(consolidated_data) || nrow(consolidated_data) == 0 || row_selected > nrow(consolidated_data)) {
           showNotification("Invalid row selection", type = "error")
           return()
         }
         
-        # Get the selected sample
         selected_sample <- consolidated_data$sample[row_selected]
         
-        # Get all mutations for this sample
         all_sample_mutations <- driver_mutation_data[
           driver_mutation_data$cancer == selected_cancer_type & 
             driver_mutation_data$sample == selected_sample, 
         ]
         
-        # Check if sample exists in TCGA or PCAWG
         if (selected_sample %in% sample_TCGA$samplename) {
           prefix <- "TCGA"
         } else if (selected_sample %in% sample_PCAWG$samplename) {
@@ -589,7 +549,6 @@ server <- function(input, output, session) {
         
         sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
         
-        # Check for mutation assignment files - if missing, skip this sample
         matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
         matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
         
@@ -598,25 +557,20 @@ server <- function(input, output, session) {
           return()
         }
         
-        # Process the sample
         if (nrow(all_sample_mutations) > 0) {
           process_driver_sample(selected_sample, all_sample_mutations)
         }
       } else {
-        # Individual mutation view - get all driver mutations for the selected cancer
         individual_data <- driver_data()
         
-        # Validate the selected row
         if (is.null(individual_data) || nrow(individual_data) == 0 || row_selected > nrow(individual_data)) {
           showNotification("Invalid row selection", type = "error") 
           return()
         }
         
-        # Get the selected row's sample
         selected_mutation <- individual_data[row_selected, ]
         selected_sample <- selected_mutation$sample
         
-        # Check if sample exists in TCGA or PCAWG
         if (selected_sample %in% sample_TCGA$samplename) {
           prefix <- "TCGA"
         } else if (selected_sample %in% sample_PCAWG$samplename) {
@@ -628,7 +582,6 @@ server <- function(input, output, session) {
         
         sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
         
-        # Check for mutation assignment files - if missing, skip this sample
         matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
         matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
         
@@ -637,13 +590,11 @@ server <- function(input, output, session) {
           return()
         }
         
-        # Get all mutations for this sample
         all_sample_mutations <- driver_mutation_data[
           driver_mutation_data$cancer == selected_cancer_type & 
             driver_mutation_data$sample == selected_sample, 
         ]
         
-        # Process the sample
         if (nrow(all_sample_mutations) > 0) {
           process_driver_sample(selected_sample, all_sample_mutations)
         } else {
@@ -661,7 +612,6 @@ server <- function(input, output, session) {
     
     selected_cancer_type <- input$cancer_type_driver
     
-    # Get sample for this cancer type (same as TCGA/PCAWG section)
     selected_sample <- sample_TCGA$samplename[sample_TCGA$cancer_type == selected_cancer_type][1]
     if (is.null(selected_sample) || selected_sample == "") {
       selected_sample <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == selected_cancer_type][1]
@@ -672,11 +622,9 @@ server <- function(input, output, session) {
       return()
     }
     
-    # Determine if this is a TCGA or PCAWG sample
     prefix <- if (selected_sample %in% sample_TCGA$samplename) "TCGA" else "PCAWG"
     sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
     
-    # Read files exactly like in TCGA/PCAWG section
     snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
     cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
     purityFile <- list.files(sampleDir, pattern = "*.purity.txt", full.names = TRUE)
@@ -695,7 +643,6 @@ server <- function(input, output, session) {
     
     resultPath <- sampleDir
     
-    # Read mutation assignments (same as TCGA/PCAWG)
     matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
     matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
     
@@ -703,7 +650,6 @@ server <- function(input, output, session) {
       df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
       df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
       
-      # Process all mutations (same as TCGA/PCAWG)
       df_snvcna <- df_snv %>%
         mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
           inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
@@ -732,12 +678,10 @@ server <- function(input, output, session) {
       
       total_SNVs <- sum(df_subc$num_SNV)
       
-      # Calculate counts
       subclonality_counts <- processed_mutations %>%
         count(Subclonality) %>%
         rename(n = n)
       
-      # Get driver mutations separately (only for table)
       driver_mutations <- driver_mutation_data %>% 
         filter(cancer == selected_cancer_type)
       
@@ -765,7 +709,6 @@ server <- function(input, output, session) {
           scale_color_manual(values = c("#87CEEB", "#FFA07A")) +
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
         
-        # Add mutation counts  
         if ("Clonal" %in% subclonality_counts$Subclonality) {
           n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
           gg1 <- gg1 + annotate(
@@ -869,14 +812,11 @@ server <- function(input, output, session) {
     content = function(file) {
       selected_cancer_type <- input$cancer_type_driver
       if (!is.null(selected_cancer_type)) {
-        # Determine the view mode
         view_mode <- ifelse(!is.null(input$view_mode), input$view_mode, "individual")
         
         if (view_mode == "consolidated") {
-          # Use the consolidated data for download
           selected_data <- driver_data_consolidated()
         } else {
-          # Use original data for individual view
           selected_data <- driver_data()
         }
         
@@ -909,7 +849,6 @@ server <- function(input, output, session) {
       tagList(
         tabsetPanel(
           tabPanel("Plots",
-                   # Add smoothing explanations above the plots
                    uiOutput("smoothingExplanation1_driver"),
                    plotlyOutput("driverPlot1"),
                    uiOutput("driverCaption1"),
@@ -983,7 +922,6 @@ server <- function(input, output, session) {
     shinyjs::enable("numSamples")
     shinyjs::reset("dynamicFileInputs")
     
-    # Hide elements
     elements_to_hide <- c(
       "selectedSample", "submit", "colorBy", "clear",
       "plot1", "plot2", "caption1", "caption2",
@@ -998,7 +936,6 @@ server <- function(input, output, session) {
     shinyjs::show("setSamples")
     shinyjs::show("uploadSamples")
     
-    # Clear plots and outputs
     output$plot1 <- renderPlotly({ NULL })
     output$plot2 <- renderPlotly({ NULL })
     output$caption1 <- renderUI({ NULL })
@@ -1022,7 +959,6 @@ server <- function(input, output, session) {
         return()
       }
       
-      # Process files
       process_result <- process_sample_files(sampleFiles, selectedSample)
       
       if (!process_result$success) {
@@ -1030,7 +966,6 @@ server <- function(input, output, session) {
         return()
       }
       
-      # Update UI elements
       shinyjs::show("clear")
       shinyjs::show("plotOutputArea")
       shinyjs::show("plot1")
@@ -1039,7 +974,6 @@ server <- function(input, output, session) {
       shinyjs::show("caption2")
       shinyjs::show("controls-area")
       
-      # Mark plots as ready
       plots_ready_clipp(TRUE)
       
       shinyjs::show("smoothingFactor1")
@@ -1141,16 +1075,13 @@ server <- function(input, output, session) {
   
   # TCGA Submit button handler
   observeEvent(input$submitTCGA, {
-    cat("TCGA Submit button clicked\n")
     plots_ready_TCGA(FALSE)
     
     req(input$cancer_type_TCGA, input$sample_name_TCGA)
     cat("Processing TCGA sample:", input$sample_name_TCGA, "\n")
     
-    # Get sample directory
     sample_dir <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
     
-    # Run CliPP analysis
     success <- prepareAndRunCliPP(sample_dir, "TCGA", input$sample_name_TCGA)
     
     if (!success) {
@@ -1158,7 +1089,6 @@ server <- function(input, output, session) {
       return()
     }
     
-    # Read and validate files
     file_data <- read_tcga_files(sample_dir)
     
     if (is.null(file_data)) {
@@ -1166,7 +1096,6 @@ server <- function(input, output, session) {
       return()
     }
     
-    # Process data
     analysis_result <- process_tcga_data_internal(file_data)
     
     if (is.null(analysis_result)) {
@@ -1174,10 +1103,8 @@ server <- function(input, output, session) {
       return()
     }
     
-    # Store the analysis result for later use
     tcga_analysis(analysis_result)
     
-    # Show controls and enable download
     shinyjs::show("colorByTCGA")
     shinyjs::show("clearTCGA")
     shinyjs::show("plot1TCGA")
@@ -1185,7 +1112,6 @@ server <- function(input, output, session) {
     shinyjs::show("caption1TCGA")
     shinyjs::show("caption2TCGA")
     
-    # Mark plots as ready
     plots_ready_TCGA(TRUE)
     shinyjs::show("smoothingFactor1")
     shinyjs::show("smoothingFactor2")
@@ -1204,7 +1130,6 @@ server <- function(input, output, session) {
       }
     })
     
-    # Show download section
     shinyjs::show("downloadUI_TCGA")
   })
   
@@ -1216,28 +1141,19 @@ server <- function(input, output, session) {
     req(input$cancer_type_PCAWG, input$sample_name_PCAWG)
     cat("Processing PCAWG sample:", input$sample_name_PCAWG, "\n")
     
-    # Get sample directory
     sample_dir <- file.path(global_TCGA_PCAWG, "PCAWG", input$sample_name_PCAWG)
     cat("Looking for files in directory:", sample_dir, "\n")
     
-    # Check if directory exists
     if (!dir.exists(sample_dir)) {
       cat("ERROR: Directory does not exist:", sample_dir, "\n")
       showNotification("Sample directory not found", type = "error")
       return()
     }
     
-    # Check for file existence
     snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
     cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
     purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
     
-    cat("Found files:", 
-        "\nSNV:", ifelse(length(snv_file) > 0, snv_file, "NOT FOUND"),
-        "\nCNA:", ifelse(length(cna_file) > 0, cna_file, "NOT FOUND"),
-        "\nPurity:", ifelse(length(purity_file) > 0, purity_file, "NOT FOUND"), "\n")
-    
-    # Check SNV count
     if (length(snv_file) > 0) {
       tryCatch({
         snv_count <- count_snvs(snv_file[1])
@@ -1256,16 +1172,13 @@ server <- function(input, output, session) {
     }
     
     # Run CliPP analysis
-    cat("Attempting to run CliPP analysis...\n")
     success <- prepareAndRunCliPP(sample_dir, "PCAWG", input$sample_name_PCAWG)
-    cat("CliPP analysis result:", ifelse(success, "SUCCESS", "FAILED"), "\n")
-    
+
     if (!success) {
       showNotification("Failed to process sample", type = "error")
       return()
     }
     
-    # Read and validate files
     file_data <- read_pcawg_files(sample_dir)
     
     if (is.null(file_data)) {
@@ -1273,7 +1186,6 @@ server <- function(input, output, session) {
       return()
     }
     
-    # Process data
     analysis_result <- process_pcawg_data_internal(file_data)
     
     if (is.null(analysis_result)) {
@@ -1281,10 +1193,8 @@ server <- function(input, output, session) {
       return()
     }
     
-    # Store the analysis result for later use
     pcawg_analysis(analysis_result)
     
-    # Show controls and enable download
     shinyjs::show("colorByPCAWG")
     shinyjs::show("clearPCAWG")
     shinyjs::show("plot1PCAWG")
@@ -1292,7 +1202,6 @@ server <- function(input, output, session) {
     shinyjs::show("caption1PCAWG")
     shinyjs::show("caption2PCAWG")
     
-    # Mark plots as ready
     plots_ready_PCAWG(TRUE)
     shinyjs::show("smoothingFactor1")
     shinyjs::show("smoothingFactor2")
@@ -1311,7 +1220,6 @@ server <- function(input, output, session) {
       }
     })
     
-    # Show download section
     shinyjs::show("downloadUI_PCAWG")
   })
   
@@ -1367,15 +1275,12 @@ server <- function(input, output, session) {
     plots_ready_PCAWG(FALSE)
   })
   
-  # Storage for analysis results
   tcga_analysis <- reactiveVal(NULL)
   pcawg_analysis <- reactiveVal(NULL)
   
   # TCGA Plot renderers
   output$plot1TCGA <- renderPlotly({
     req(plots_ready_TCGA(), tcga_analysis())
-    
-    cat("Rendering TCGA VAF plot\n")
     
     analysis <- tcga_analysis()
     
@@ -1404,8 +1309,6 @@ server <- function(input, output, session) {
   
   output$plot2TCGA <- renderPlotly({
     req(plots_ready_TCGA(), tcga_analysis())
-    
-    cat("Rendering TCGA CP plot\n")
     
     analysis <- tcga_analysis()
     
@@ -1453,8 +1356,6 @@ server <- function(input, output, session) {
   output$plot1PCAWG <- renderPlotly({
     req(plots_ready_PCAWG(), pcawg_analysis())
     
-    cat("Rendering PCAWG VAF plot\n")
-    
     analysis <- pcawg_analysis()
     
     tryCatch({
@@ -1482,8 +1383,6 @@ server <- function(input, output, session) {
   
   output$plot2PCAWG <- renderPlotly({
     req(plots_ready_PCAWG(), pcawg_analysis())
-    
-    cat("Rendering PCAWG CP plot\n")
     
     analysis <- pcawg_analysis()
     
@@ -1600,7 +1499,6 @@ server <- function(input, output, session) {
   
   # Handle navigation changes
   observeEvent(input$`navbar-container`, {
-    # Hide smoothing controls for all sections
     smoothing_elements <- c(
       "smoothingFactor1", "smoothingFactor2",
       "smoothingFactor1_TCGA", "smoothingFactor2_TCGA",
@@ -1661,57 +1559,42 @@ server <- function(input, output, session) {
     purity <- file_data$purity
     
     tryCatch({
-      # Look for existing result files
       result_path <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
       matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
       matching_file2 <- list.files(result_path, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
       
-      if (length(matching_file1) == 0 || length(matching_file2) == 0) {
-        cat("Required mutation assignment files not found\n")
-        return(NULL)
-      }
-      
-      # Read the necessary files
       df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
       df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
       
-      # Process the data using the functions from your old server.R
       df_snvcna <- df_snv %>%
         mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
           inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
           if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
         }))
       
-      # Calculate read depth
       df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
       mean_rd <- mean(df_snvcna$sum_counts)
       min_rd <- min(df_snvcna$sum_counts)
       max_rd <- max(df_snvcna$sum_counts)
       
-      # Merge the data
       merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
       merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
       
-      # Calculate parameters
       merged_df$total_cn <- as.numeric(merged_df$total_cn)
       merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
       merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
       merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
       
-      # Calculate subclonality
       merged_df <- merged_df %>%
         mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                ReadDepth = sum_counts)
       
-      # Create subclonality counts
       subclonality_counts <- merged_df %>%
         count(Subclonality) %>%
         rename(n = n)
       
-      # Total mutations count for smoothing recommendations
       total_SNVs <- sum(df_subc$num_SNV)
       
-      # Return analysis result
       return(list(
         merged_data = merged_df,
         purity = purity,
@@ -1735,57 +1618,42 @@ server <- function(input, output, session) {
     purity <- file_data$purity
     
     tryCatch({
-      # Look for existing result files
       result_path <- file.path(global_TCGA_PCAWG, "PCAWG", input$sample_name_PCAWG)
       matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
       matching_file2 <- list.files(result_path, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
       
-      if (length(matching_file1) == 0 || length(matching_file2) == 0) {
-        cat("Required mutation assignment files not found\n")
-        return(NULL)
-      }
-      
-      # Read the necessary files
       df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
       df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
       
-      # Process the data using the functions from your old server.R
       df_snvcna <- df_snv %>%
         mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
           inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
           if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
         }))
       
-      # Calculate read depth
       df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
       mean_rd <- mean(df_snvcna$sum_counts)
       min_rd <- min(df_snvcna$sum_counts)
       max_rd <- max(df_snvcna$sum_counts)
       
-      # Merge the data
       merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
       merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
       
-      # Calculate parameters
       merged_df$total_cn <- as.numeric(merged_df$total_cn)
       merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
       merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
       merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
       
-      # Calculate subclonality
       merged_df <- merged_df %>%
         mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
                ReadDepth = sum_counts)
       
-      # Create subclonality counts
       subclonality_counts <- merged_df %>%
         count(Subclonality) %>%
         rename(n = n)
       
-      # Total mutations count for smoothing recommendations
       total_SNVs <- sum(df_subc$num_SNV)
       
-      # Return analysis result
       return(list(
         merged_data = merged_df,
         purity = purity,
@@ -1802,20 +1670,13 @@ server <- function(input, output, session) {
   
   # Function to consolidate driver mutations by sample
   consolidate_driver_mutations <- function(driver_data, cancer_type) {
-    # Make sure we're working with a data frame and valid inputs
-    if (!is.data.frame(driver_data) || !is.character(cancer_type)) {
-      warning("Invalid inputs to consolidate_driver_mutations")
-      return(NULL)
-    }
     
-    # Filter by cancer type using base R
     filtered_data <- driver_data[driver_data$cancer == cancer_type, ]
     
     if (nrow(filtered_data) == 0) {
       return(NULL)
     }
     
-    # Get unique samples
     unique_samples <- unique(filtered_data$sample)
     result <- data.frame(
       sample = character(),
@@ -1829,16 +1690,13 @@ server <- function(input, output, session) {
       stringsAsFactors = FALSE
     )
     
-    # Process each sample separately to avoid dplyr issues
     for (sample_name in unique_samples) {
       sample_rows <- filtered_data[filtered_data$sample == sample_name, ]
       
-      # Collect unique genes, proteins, consequences, and subclonality statuses
       unique_genes <- paste(unique(sample_rows$gene), collapse = ", ")
       unique_proteins <- paste(unique(sample_rows$protein), collapse = ", ")
       unique_consequences <- paste(unique(sample_rows$consequence), collapse = ", ")
       
-      # Determine subclonality status for the sample
       unique_subclonality <- unique(sample_rows$Subclonality)
       if (length(unique_subclonality) > 1) {
         subclonality_status <- "Clonal, Subclonal"
@@ -1846,16 +1704,13 @@ server <- function(input, output, session) {
         subclonality_status <- unique_subclonality[1]
       }
       
-      # Calculate VAF and CP ranges
       vaf_values <- sample_rows$VAF
       cp_values <- sample_rows$CP_unpenalized
       vaf_range <- paste(sprintf("%.3f", range(vaf_values)), collapse = "-")
       cp_range <- paste(sprintf("%.3f", range(cp_values)), collapse = "-")
       
-      # Count mutations
       mutation_count <- nrow(sample_rows)
       
-      # Add to result
       result <- rbind(result, data.frame(
         sample = sample_name,
         genes = unique_genes,
