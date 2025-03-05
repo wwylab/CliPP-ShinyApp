@@ -28,11 +28,10 @@ create_plot_container <- function(plot_output_id, smoothing_id, explanation_id, 
 
 # UI for the Shiny application
 ui <- fluidPage(
-  # shinyjs for additional JavaScript functionality
   tags$head(includeHTML("google-analytics.html")),
   shinyjs::useShinyjs(),
   
-  # Add custom JavaScript for additional button handling
+  # Custom JavaScript for additional button handling
   tags$head(
     tags$script(HTML("
       $(document).on('click', '#Submit', function() {
@@ -137,7 +136,6 @@ ui <- fluidPage(
                       tags$div(
                         tags$h4(tags$b("Upload Files")),
                         sidebarLayout(
-                          # Sidebar for file upload and input controls
                           sidebarPanel(
                             tags$div(
                               p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
@@ -170,13 +168,10 @@ ui <- fluidPage(
                           
                           # Main panel to display plots and analysis output
                           mainPanel(
-                            # First plot container
                             create_plot_container("plot1", "smoothingFactor1", "smoothingExplanation1", "caption1"),
                             
-                            # Second plot container
                             create_plot_container("plot2", "smoothingFactor2", "smoothingExplanation2", "caption2"),
                             
-                            # Plot output area and progress bar
                             uiOutput("plotOutputArea"),
                             hidden(div(id = "plotReadyTextCliPP")),
                             shinyjs::hidden(
@@ -196,7 +191,6 @@ ui <- fluidPage(
              tabPanel("CliPP Data Resources",
                       tags$div(
                         tabsetPanel(
-                          # Subsection for TCGA data selection and analysis
                           tabPanel("TCGA",
                                    tags$div(
                                      tags$h4(tags$b("TCGA Select")),
@@ -204,7 +198,6 @@ ui <- fluidPage(
                                        sidebarPanel(
                                          uiOutput("cancer_type_ui_TCGA"),
                                          uiOutput("sample_name_ui_TCGA"),
-                                         # Use both IDs to ensure we can catch the event 
                                          actionButton("submitTCGA", "Submit", class = "btn-primary"),
                                          hidden(actionButton("clearTCGA", "Clear", class = "btn-danger")),
                                          hidden(selectInput("colorByTCGA", "Color points by:",
@@ -212,7 +205,6 @@ ui <- fluidPage(
                                                             selected = "clonality"))
                                        ),
                                        mainPanel(
-                                         # First TCGA plot container
                                          create_plot_container(
                                            paste0("plot1TCGA"),
                                            paste0("smoothingFactor1_TCGA"),
@@ -220,7 +212,6 @@ ui <- fluidPage(
                                            paste0("caption1TCGA")
                                          ),
                                          
-                                         # Second TCGA plot container
                                          create_plot_container(
                                            paste0("plot2TCGA"),
                                            paste0("smoothingFactor2_TCGA"),
@@ -245,14 +236,12 @@ ui <- fluidPage(
                                          uiOutput("cancer_type_ui_PCAWG"),
                                          uiOutput("sample_name_ui_PCAWG"),
                                          hidden(actionButton("clearPCAWG", "Clear", class = "btn-danger")),
-                                         # Use both IDs to ensure we can catch the event
                                          actionButton("submitPCAWG", "Submit", class = "btn-primary"),
                                          hidden(selectInput("colorByPCAWG", "Color points by:",
                                                             choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
                                                             selected = "clonality"))
                                        ),
                                        mainPanel(
-                                         # First PCAWG plot container
                                          create_plot_container(
                                            paste0("plot1PCAWG"),
                                            paste0("smoothingFactor1_PCAWG"),
@@ -260,7 +249,6 @@ ui <- fluidPage(
                                            paste0("caption1PCAWG")
                                          ),
                                          
-                                         # Second PCAWG plot container
                                          create_plot_container(
                                            paste0("plot2PCAWG"),
                                            paste0("smoothingFactor2_PCAWG"),
@@ -279,14 +267,11 @@ ui <- fluidPage(
                       )
              ),
              
-             # Page 5: Driver Mutation analysis tool - using the module UI
-             # Add this to the UI section for the Driver Mutation tab in ui.R
-             # Driver Mutation Tab for ui.R
+             # Page 5: Driver Mutation analysis tool 
              tabPanel("Driver Mutation",
                       sidebarLayout(
                         sidebarPanel(
                           uiOutput("cancer_type_ui_driver"),
-                          # Add view mode selector
                           radioButtons("view_mode", "View Mode:",
                                        choices = list(
                                          "Consolidated by Sample" = "consolidated",
@@ -299,11 +284,9 @@ ui <- fluidPage(
                           uiOutput("selectedMutationInfo"),
                           downloadButton("downloadDriverMutation", "Download Data"),
                           
-                          # Reference citation
                           tags$h4(tags$b(tags$span("Reference:"))),
                           p("Martínez-Jiménez, Francisco, et al. 'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20.10 (2020): 555-572."),
                           
-                          # Plots
                           div(class = "plot-container",
                               div(class = "plot-area",
                                   plotlyOutput("driverPlot1") 
