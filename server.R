@@ -276,7 +276,7 @@ server <- function(input, output, session) {
                 geom_vline(
                   xintercept = mutation$VAF,
                   linetype = "dashed",
-                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "#FF6347")
                 ) +
                 annotate(
                   "text",
@@ -284,7 +284,7 @@ server <- function(input, output, session) {
                   y = 0.5 - (i * 0.05),
                   label = paste0(mutation$gene, " (", mutation$protein, ")"),
                   size = 3,
-                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "#FF6347"),
                   angle = 45,
                   hjust = 0
                 )
@@ -311,7 +311,7 @@ server <- function(input, output, session) {
                   geom_vline(
                     xintercept = mutation$CP_unpenalized,
                     linetype = "dashed",
-                    color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                    color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "#FF6347")
                   ) +
                   annotate(
                     "text",
@@ -319,7 +319,7 @@ server <- function(input, output, session) {
                     y = 0.5 - (i * 0.05),
                     label = paste0(mutation$gene, " (", mutation$protein, ")"),
                     size = 3,
-                    color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                    color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "#FF6347"),
                     angle = 45,
                     hjust = 0
                   )
