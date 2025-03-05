@@ -133,8 +133,5 @@ tcgaUI <- function(id) {
 tcgaServer <- function(id, sample_data, global_path) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
-    
-    # Simply maintain minimal functionality to not break dependencies
-    cat("TCGA module initialized\n")
   })
 }
