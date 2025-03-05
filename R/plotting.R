@@ -57,12 +57,9 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
                             smoothing_factor, color_by = "clonality",
                             subclonality_counts, driver_mutations = NULL) {
   
-  # Replace the existing factor conversion with this:
   if (is.factor(merged_df$Subclonality)) {
-    # Ensure factor has proper levels
     levels(merged_df$Subclonality) <- c("Clonal", "Subclonal")
   } else {
-    # If not a factor, convert it to one with proper levels
     merged_df$Subclonality <- factor(
       ifelse(
         merged_df$Subclonality == "Clonal" | grepl("Clonal", merged_df$Subclonality),
@@ -72,10 +69,8 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
     )
   }
   
-  # Determine color aesthetic
   color_aesthetic <- if(color_by == "clonality") "Subclonality" else "ReadDepth"
   
-  # Base plot
   plot <- ggplot(merged_df, aes(x = AF)) +
     geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor) +
     geom_point(
@@ -100,7 +95,6 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
     ylab("Density") +
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
   
-  # Add driver mutations if provided
   if (!is.null(driver_mutations)) {
     driver_mutations$Subclonality <- as.character(driver_mutations$Subclonality)
     plot <- plot +
@@ -121,7 +115,6 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
       )
   }
   
-  # Apply color scheme with explicitly named vectors
   if (color_by == "clonality") {
     clonal_color <- "#5cd4d6"
     subclonal_color <- "#FFA07A"
@@ -131,13 +124,10 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
       scale_fill_manual(values = c(clonal_color, subclonal_color), labels = c("Clonal", "Subclonal"))
   }
   
-  # Convert to plotly
   p <- plotly::ggplotly(plot)
   
-  # Fix legend names directly with tryCatch to prevent errors
   tryCatch({
     if (!is.null(p$x$data)) {
-      # Force legend names directly
       for (i in seq_along(p$x$data)) {
         if (!is.null(p$x$data[[i]]$name)) {
           if (grepl("Clonal", p$x$data[[i]]$name, ignore.case = TRUE) && 
@@ -149,9 +139,7 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
         }
       }
       
-      # Clean up legend entries
       legend_names <- sapply(p$x$data, function(x) x$name)
-      # Find first occurrence of each legend name
       first_clonal <- which(legend_names == "Clonal")[1]
       first_subclonal <- which(legend_names == "Subclonal")[1]
       
@@ -187,12 +175,9 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
                            subclonality_counts, df_subc,
                            driver_mutations = NULL) {
   
-  # Create a completely new version with clean factor levels - using vectorized operations
   if (is.factor(merged_df$Subclonality)) {
-    # Ensure factor has proper levels
     levels(merged_df$Subclonality) <- c("Clonal", "Subclonal")
   } else {
-    # If not a factor, convert it to one with proper levels
     merged_df$Subclonality <- factor(
       ifelse(
         merged_df$Subclonality == "Clonal" | grepl("Clonal", merged_df$Subclonality),
@@ -202,10 +187,8 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
     )
   }
   
-  # Determine color aesthetic
   color_aesthetic <- if(color_by == "clonality") "Subclonality" else "ReadDepth"
   
-  # Base plot
   plot <- ggplot(merged_df, aes(x = CP_unpenalized)) +
     geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor) +
     geom_point(
@@ -233,7 +216,6 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
       lty = "dashed"
     )
   
-  # Add driver mutations if provided
   if (!is.null(driver_mutations)) {
     driver_mutations$Subclonality <- as.character(driver_mutations$Subclonality)
     plot <- plot +
@@ -254,7 +236,6 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
       )
   }
   
-  # Apply color scheme with explicitly named vectors
   if (color_by == "clonality") {
     clonal_color <- "#5cd4d6"
     subclonal_color <- "#FFA07A"
@@ -264,13 +245,10 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
       scale_fill_manual(values = c(clonal_color, subclonal_color), labels = c("Clonal", "Subclonal"))
   }
   
-  # Convert to plotly
   p <- plotly::ggplotly(plot)
   
-  # Fix legend names directly with tryCatch to prevent errors
   tryCatch({
     if (!is.null(p$x$data)) {
-      # Force legend names directly
       for (i in seq_along(p$x$data)) {
         if (!is.null(p$x$data[[i]]$name)) {
           if (grepl("Clonal", p$x$data[[i]]$name, ignore.case = TRUE) && 
@@ -282,15 +260,12 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
         }
       }
       
-      # Clean up legend entries
       legend_names <- sapply(p$x$data, function(x) x$name)
-      # Find first occurrence of each legend name
       first_clonal <- which(legend_names == "Clonal")[1]
       first_subclonal <- which(legend_names == "Subclonal")[1]
       
       for (i in seq_along(p$x$data)) {
         if (!is.null(p$x$data[[i]]$showlegend) && p$x$data[[i]]$showlegend) {
-          # Hide duplicates
           if (p$x$data[[i]]$name == "Clonal" && !is.na(first_clonal) && i != first_clonal) {
             p$x$data[[i]]$showlegend <- FALSE
           } else if (p$x$data[[i]]$name == "Subclonal" && !is.na(first_subclonal) && i != first_subclonal) {
