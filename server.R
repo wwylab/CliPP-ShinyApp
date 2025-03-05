@@ -43,13 +43,16 @@ server <- function(input, output, session) {
       return(NULL)
     }
     
-    driver_mutations <- driver_mutation_data[driver_mutation_data$cancer == selected_cancer_type, ]
+    filtered_data <- driver_mutation_data %>% 
+      filter(cancer == selected_cancer_type)
     
-    if (nrow(driver_mutations) == 0) {
+    if (nrow(filtered_data) == 0) {
+      showNotification("No data available for the selected cancer type.", type = "error")
       return(NULL)
     }
     
-    unique_samples <- unique(driver_mutations$sample)
+    # Group data by sample
+    unique_samples <- unique(filtered_data$sample)
     result <- data.frame(
       sample = character(),
       genes = character(),
@@ -63,12 +66,14 @@ server <- function(input, output, session) {
     )
     
     for (sample_name in unique_samples) {
-      sample_rows <- driver_mutations[driver_mutations$sample == sample_name, ]
+      sample_rows <- filtered_data[filtered_data$sample == sample_name, ]
       
+      # Get unique genes and proteins
       unique_genes <- paste(unique(sample_rows$gene), collapse = ", ")
       unique_proteins <- paste(unique(sample_rows$protein), collapse = ", ")
       unique_consequences <- paste(unique(sample_rows$consequence), collapse = ", ")
       
+      # Determine if sample has clonal, subclonal, or both
       unique_subclonality <- unique(sample_rows$Subclonality)
       if (length(unique_subclonality) > 1) {
         subclonality_status <- "Clonal, Subclonal"
@@ -76,10 +81,21 @@ server <- function(input, output, session) {
         subclonality_status <- unique_subclonality[1]
       }
       
+      # Calculate VAF and CP ranges
       vaf_values <- sample_rows$VAF
       cp_values <- sample_rows$CP_unpenalized
-      vaf_range <- paste(sprintf("%.3f", range(vaf_values)), collapse = "-")
-      cp_range <- paste(sprintf("%.3f", range(cp_values)), collapse = "-")
+      
+      vaf_range <- if (all(is.na(vaf_values))) {
+        "NA"
+      } else {
+        paste(sprintf("%.3f", range(vaf_values, na.rm = TRUE)), collapse = "-")
+      }
+      
+      cp_range <- if (all(is.na(cp_values))) {
+        "NA"
+      } else {
+        paste(sprintf("%.3f", range(cp_values, na.rm = TRUE)), collapse = "-")
+      }
       
       mutation_count <- nrow(sample_rows)
       
@@ -109,16 +125,27 @@ server <- function(input, output, session) {
   })
   
   # Render the driver mutation table
+  # Render the driver mutation table
   output$driverMutationTable <- DT::renderDataTable({
-    req(input$cancer_type_driver)
+    # Explicitly depend on both cancer type and view mode
+    cancer_type <- input$cancer_type_driver
+    view_mode <- input$view_mode %||% "individual"
     
-    view_mode <- ifelse(is.null(input$view_mode), "individual", input$view_mode)
+    if (is.null(cancer_type) || cancer_type == "") {
+      return(DT::datatable(
+        data.frame(message = "Please select a cancer type"),
+        options = list(dom = 't')
+      ))
+    }
     
     if (view_mode == "consolidated") {
       consolidated_data <- driver_data_consolidated()
       
       if (is.null(consolidated_data) || nrow(consolidated_data) == 0) {
-        return(NULL)
+        return(DT::datatable(
+          data.frame(message = "No data available for the selected cancer type"),
+          options = list(dom = 't')
+        ))
       }
       
       DT::datatable(
@@ -143,7 +170,10 @@ server <- function(input, output, session) {
       driver_mutations <- driver_data()
       
       if (is.null(driver_mutations) || nrow(driver_mutations) == 0) {
-        return(NULL)
+        return(DT::datatable(
+          data.frame(message = "No data available for the selected cancer type"),
+          options = list(dom = 't')
+        ))
       }
       
       display_columns <- c("gene", "sample", "protein", "consequence", "Subclonality", "VAF", "CP_unpenalized")
@@ -171,22 +201,31 @@ server <- function(input, output, session) {
   })
   
   # Handle all files to prepare for processing
-  process_driver_sample <- function(selected_sample, mutations_data) {
+  process_driver_sample <- function(selected_sample, mutations_data, individual_mutation = NULL) {
     tryCatch({
+      if (is.null(selected_sample) || length(selected_sample) == 0 || selected_sample == "") {
+        showNotification("Invalid sample name", type = "error")
+        return(FALSE)
+      }
+      
+      if (is.null(mutations_data) || nrow(mutations_data) == 0) {
+        showNotification("No mutations provided for analysis", type = "error") 
+        return(FALSE)
+      }
+      
       if (any(selected_sample %in% sample_TCGA$samplename)) {
         prefix <- "TCGA"
       } else if (any(selected_sample %in% sample_PCAWG$samplename)) {
         prefix <- "PCAWG"
       } else {
         showNotification(paste("Sample", selected_sample, "not found in TCGA or PCAWG datasets."), type = "error")
-        return()
+        return(FALSE)
       }
       
       sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
-      
       if (!dir.exists(sampleDir)) {
         showNotification(paste("Sample directory not found:", sampleDir), type = "error")
-        return()
+        return(FALSE)
       }
       
       snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
@@ -195,13 +234,13 @@ server <- function(input, output, session) {
       
       if (length(snvFile) == 0 || length(cnaFile) == 0 || length(purityFile) == 0) {
         showNotification("Required sample files not found.", type = "error")
-        return()
+        return(FALSE)
       }
       
       file_data <- read_and_validate_files(snvFile[1], cnaFile[1], purityFile[1])
       if (is.null(file_data)) {
         showNotification("Error reading sample files.", type = "error")
-        return() 
+        return(FALSE) 
       }
       
       df_snv <- file_data$df_snv
@@ -214,9 +253,14 @@ server <- function(input, output, session) {
       if (length(matching_file1) == 0 || length(matching_file2) == 0) {
         cat("Mutation assignment files not found. Creating simplified plot.\n")
         
+        plot_data <- if (!is.null(individual_mutation)) {
+          individual_mutation
+        } else {
+          mutations_data
+        }
+        
         # Create a simplified VAF plot with just driver mutations
         output$driverPlot1 <- renderPlotly({
-          # Create a basic plot
           gg1 <- ggplot() +
             xlim(0, 1) +
             ggtitle(paste(selected_sample, " - Purity =", round(purity, 3),
@@ -225,15 +269,14 @@ server <- function(input, output, session) {
             xlab("VAF") + ylab("Density") +
             theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
           
-          # Add the driver mutations
-          if (nrow(mutations_data) > 0) {
-            for (i in 1:nrow(mutations_data)) {
-              mutation <- mutations_data[i,]
+          if (nrow(plot_data) > 0) {
+            for (i in 1:nrow(plot_data)) {
+              mutation <- plot_data[i,]
               gg1 <- gg1 + 
                 geom_vline(
                   xintercept = mutation$VAF,
                   linetype = "dashed",
-                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple")
+                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
                 ) +
                 annotate(
                   "text",
@@ -241,7 +284,7 @@ server <- function(input, output, session) {
                   y = 0.5 - (i * 0.05),
                   label = paste0(mutation$gene, " (", mutation$protein, ")"),
                   size = 3,
-                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple"),
+                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
                   angle = 45,
                   hjust = 0
                 )
@@ -260,26 +303,27 @@ server <- function(input, output, session) {
             xlab("Cellular Prevalence (CP)") + ylab("Density") +
             theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
           
-          # Add the driver mutations
-          if (nrow(mutations_data) > 0) {
-            for (i in 1:nrow(mutations_data)) {
-              mutation <- mutations_data[i,]
-              gg2 <- gg2 + 
-                geom_vline(
-                  xintercept = mutation$CP_unpenalized,
-                  linetype = "dashed",
-                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple")
-                ) +
-                annotate(
-                  "text",
-                  x = mutation$CP_unpenalized,
-                  y = 0.5 - (i * 0.05),
-                  label = paste0(mutation$gene, " (", mutation$protein, ")"),
-                  size = 3,
-                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple"),
-                  angle = 45,
-                  hjust = 0
-                )
+          if (nrow(plot_data) > 0) {
+            for (i in 1:nrow(plot_data)) {
+              mutation <- plot_data[i,]
+              if (!is.na(mutation$CP_unpenalized) && !is.null(mutation$CP_unpenalized)) {
+                gg2 <- gg2 + 
+                  geom_vline(
+                    xintercept = mutation$CP_unpenalized,
+                    linetype = "dashed",
+                    color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                  ) +
+                  annotate(
+                    "text",
+                    x = mutation$CP_unpenalized,
+                    y = 0.5 - (i * 0.05),
+                    label = paste0(mutation$gene, " (", mutation$protein, ")"),
+                    size = 3,
+                    color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                    angle = 45,
+                    hjust = 0
+                  )
+              }
             }
           }
           
@@ -289,70 +333,89 @@ server <- function(input, output, session) {
         # Show simplified captions
         output$driverCaption1 <- renderUI({
           HTML("<p>
-        - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
-        - <b>Colored vertical lines</b> show the VAF of each driver mutation in this sample.<br>
-        - Note: Full mutation distribution not available for this sample.
-      </p>")
+          - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
+          - <b>Colored vertical lines</b> show the VAF of each driver mutation in this sample.<br>
+          - Note: Full mutation distribution not available for this sample.
+        </p>")
         })
         
         output$driverCaption2 <- renderUI({
           HTML("<p>
-        - <b>Cellular Prevalence (CP)</b> is the fraction of all cells from the sample carrying a particular SNV.<br>
-        - <b>Colored vertical lines</b> show the CP of each driver mutation in this sample.<br>
-        - Note: Full mutation distribution not available for this sample.
-      </p>")
+          - <b>Cellular Prevalence (CP)</b> is the fraction of all cells from the sample carrying a particular SNV.<br>
+          - <b>Colored vertical lines</b> show the CP of each driver mutation in this sample.<br>
+          - Note: Full mutation distribution not available for this sample.
+        </p>")
         })
         
-        return()
+        return(TRUE)
       }
       
-      # If we get here, we have the mutation assignments, so proceed with normal visualization
       df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
       df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
       
-      # Process the mutation data
       df_snvcna <- df_snv %>%
         mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
           inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
           if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
         }))
       
-      # Calculate read depth metrics
       df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
       mean_rd <- mean(df_snvcna$sum_counts)
       min_rd <- min(df_snvcna$sum_counts)
       max_rd <- max(df_snvcna$sum_counts)
       
-      # Merge with assigned mutations
       merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
       merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
       
-      # Calculate mutation metrics
       merged_df$total_cn <- as.numeric(merged_df$total_cn)
       merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
       merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / 
         (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
       merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
       
-      # Add clonality classification based on cluster_index
       merged_df <- merged_df %>%
         mutate(
           Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
           ReadDepth = sum_counts
         )
       
-      # Calculate subclonality counts
       subclonality_counts <- merged_df %>%
         count(Subclonality) %>%
         rename(n = n)
       
+      total_SNVs <- sum(df_subc$num_SNV)
+      recommended_smooth <- recommended_smoothing_factor(total_SNVs)
+      
+      output$smoothingExplanation1_driver <- renderUI({
+        HTML(paste0("Recommended smoothing factor: ", recommended_smooth, 
+                    " based on ", total_SNVs, " mutations"))
+      })
+      
+      output$smoothingExplanation2_driver <- renderUI({
+        HTML(paste0("Recommended smoothing factor: ", recommended_smooth, 
+                    " based on ", total_SNVs, " mutations"))
+      })
+      
+      highlight_mutations <- if (!is.null(individual_mutation)) {
+        individual_mutation
+      } else {
+        mutations_data
+      }
+      
       # Create VAF plot with driver mutations highlighted
       output$driverPlot1 <- renderPlotly({
+        smoothing_factor1 <- input$smoothingFactor1_driver %||% 0.45
+        
         gg1 <- ggplot(merged_df, aes(x = AF)) +
-          geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
+          geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor1) +
           geom_point(
-            shape = 142, size = 5, alpha = 0.3,
-            aes(y = -0.75, color = Subclonality)
+            shape = 142,
+            size = 5,
+            alpha = 0.3,
+            aes(
+              y = -0.75,
+              color = Subclonality
+            )
           ) +
           xlim(0, 1) +
           ggtitle(paste(selected_sample, " - Purity =", round(purity, 3),
@@ -360,10 +423,9 @@ server <- function(input, output, session) {
                         " | Range =", min_rd, "-", max_rd)) +
           ggpubr::theme_pubr() +
           xlab("VAF") + ylab("Density") +
-          scale_color_manual(values = c("#87CEEB", "#FFA07A")) +
+          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
         
-        # Add annotations for total counts
         if ("Clonal" %in% subclonality_counts$Subclonality) {
           n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
           gg1 <- gg1 + annotate(
@@ -382,26 +444,27 @@ server <- function(input, output, session) {
           )
         }
         
-        # Highlight driver mutations
-        if (nrow(mutations_data) > 0) {
-          for (i in 1:nrow(mutations_data)) {
-            mutation <- mutations_data[i,]
-            gg1 <- gg1 + 
-              geom_vline(
-                xintercept = mutation$VAF,
-                linetype = "dashed",
-                color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple")
-              ) +
-              annotate(
-                "text",
-                x = mutation$VAF,
-                y = -1.25 - (i * 0.3),
-                label = paste0(mutation$gene, " (", mutation$protein, ")"),
-                size = 3,
-                color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple"),
-                angle = 45,
-                hjust = 0
-              )
+        if (nrow(highlight_mutations) > 0) {
+          for (i in 1:nrow(highlight_mutations)) {
+            mutation <- highlight_mutations[i,]
+            if(!is.na(mutation$VAF)) {
+              gg1 <- gg1 + 
+                geom_vline(
+                  xintercept = mutation$VAF,
+                  linetype = "dashed",
+                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                ) +
+                annotate(
+                  "text",
+                  x = mutation$VAF,
+                  y = -1.25 - (i * 0.3),
+                  label = paste0(mutation$gene, " (", mutation$protein, ")"),
+                  size = 3,
+                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                  angle = 45,
+                  hjust = 0
+                )
+            }
           }
         }
         
@@ -410,8 +473,10 @@ server <- function(input, output, session) {
       
       # Create CP plot with driver mutations highlighted
       output$driverPlot2 <- renderPlotly({
+        smoothing_factor2 <- input$smoothingFactor2_driver %||% 0.45
+        
         gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
-          geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
+          geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor2) +
           geom_point(
             shape = 142, size = 5, alpha = 0.3,
             aes(y = -0.75, color = Subclonality)
@@ -420,7 +485,7 @@ server <- function(input, output, session) {
           ggtitle(paste0("CP Distribution - ", selected_sample)) +
           ggpubr::theme_pubr() +
           xlab("Cellular Prevalence (CP)") + ylab("Density") +
-          scale_color_manual(values = c("#87CEEB", "#FFA07A")) +
+          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
           geom_segment(
             data = df_subc, 
@@ -428,26 +493,27 @@ server <- function(input, output, session) {
             lty = "dashed"
           )
         
-        # Highlight driver mutations
-        if (nrow(mutations_data) > 0) {
-          for (i in 1:nrow(mutations_data)) {
-            mutation <- mutations_data[i,]
-            gg2 <- gg2 + 
-              geom_vline(
-                xintercept = mutation$CP_unpenalized,
-                linetype = "dashed",
-                color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple")
-              ) +
-              annotate(
-                "text",
-                x = mutation$CP_unpenalized,
-                y = -1.25 - (i * 0.3),
-                label = paste0(mutation$gene, " (", mutation$protein, ")"),
-                size = 3,
-                color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "purple"),
-                angle = 45,
-                hjust = 0
-              )
+        if (nrow(highlight_mutations) > 0) {
+          for (i in 1:nrow(highlight_mutations)) {
+            mutation <- highlight_mutations[i,]
+            if(!is.na(mutation$CP_unpenalized)) {
+              gg2 <- gg2 + 
+                geom_vline(
+                  xintercept = mutation$CP_unpenalized,
+                  linetype = "dashed",
+                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                ) +
+                annotate(
+                  "text",
+                  x = mutation$CP_unpenalized,
+                  y = -1.25 - (i * 0.3),
+                  label = paste0(mutation$gene, " (", mutation$protein, ")"),
+                  size = 3,
+                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                  angle = 45,
+                  hjust = 0
+                )
+            }
           }
         }
         
@@ -471,8 +537,10 @@ server <- function(input, output, session) {
     - <b>Colored vertical lines</b> show the CP of each driver mutation in this sample.
   </p>")
       })
+      
+      return(TRUE)
+      
     }, error = function(e) {
-      # Catch any error in the process and show a generic error plot
       cat("Error processing sample:", e$message, "\n")
       showNotification(paste("Error processing sample:", e$message), type = "error")
       
@@ -495,7 +563,7 @@ server <- function(input, output, session) {
     })
   }
   
-  # Modified row selection handler to skip samples with missing files
+  # Modified row selection handler to handle consolidated vs individual views correctly
   observeEvent(input$driverMutationTable_rows_selected, {
     row_selected <- input$driverMutationTable_rows_selected
     
@@ -512,17 +580,15 @@ server <- function(input, output, session) {
     shinyjs::show("smoothingExplanation1_driver")
     shinyjs::show("smoothingExplanation2_driver")
     
-    # Directly access the cancer type from the driver reactive
+    selected_cancer_type <- input$cancer_type_driver
+    if (is.null(selected_cancer_type) || selected_cancer_type == "") {
+      showNotification("Please select a cancer type first", type = "warning")
+      return()
+    }
+    
+    view_mode <- ifelse(is.null(input$view_mode), "individual", input$view_mode)
+    
     tryCatch({
-      selected_cancer_type <- input$cancer_type_driver
-      
-      if (is.null(selected_cancer_type) || selected_cancer_type == "") {
-        showNotification("Please select a cancer type first", type = "warning")
-        return()
-      }
-      
-      view_mode <- ifelse(is.null(input$view_mode), "individual", input$view_mode)
-      
       if (view_mode == "consolidated") {
         consolidated_data <- driver_data_consolidated()
         
@@ -538,28 +604,13 @@ server <- function(input, output, session) {
             driver_mutation_data$sample == selected_sample, 
         ]
         
-        if (selected_sample %in% sample_TCGA$samplename) {
-          prefix <- "TCGA"
-        } else if (selected_sample %in% sample_PCAWG$samplename) {
-          prefix <- "PCAWG"
-        } else {
-          showNotification(paste("Sample", selected_sample, "not found in datasets."), type = "error")
+        if (nrow(all_sample_mutations) == 0) {
+          showNotification("No mutations found for the selected sample", type = "warning")
           return()
         }
         
-        sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
+        process_driver_sample(selected_sample, all_sample_mutations, individual_mutation = NULL)
         
-        matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
-        matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
-        
-        if (length(matching_file1) == 0 || length(matching_file2) == 0) {
-          showNotification(paste("Mutation assignment files missing for", selected_sample), type = "warning")
-          return()
-        }
-        
-        if (nrow(all_sample_mutations) > 0) {
-          process_driver_sample(selected_sample, all_sample_mutations)
-        }
       } else {
         individual_data <- driver_data()
         
@@ -571,35 +622,17 @@ server <- function(input, output, session) {
         selected_mutation <- individual_data[row_selected, ]
         selected_sample <- selected_mutation$sample
         
-        if (selected_sample %in% sample_TCGA$samplename) {
-          prefix <- "TCGA"
-        } else if (selected_sample %in% sample_PCAWG$samplename) {
-          prefix <- "PCAWG"
-        } else {
-          showNotification(paste("Sample", selected_sample, "not found in datasets."), type = "error")
-          return()
-        }
-        
-        sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
-        
-        matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
-        matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
-        
-        if (length(matching_file1) == 0 || length(matching_file2) == 0) {
-          showNotification(paste("Mutation assignment files missing for", selected_sample), type = "warning")
-          return()
-        }
-        
         all_sample_mutations <- driver_mutation_data[
           driver_mutation_data$cancer == selected_cancer_type & 
             driver_mutation_data$sample == selected_sample, 
         ]
         
-        if (nrow(all_sample_mutations) > 0) {
-          process_driver_sample(selected_sample, all_sample_mutations)
-        } else {
+        if (nrow(all_sample_mutations) == 0) {
           showNotification("No mutations found for the selected sample.", type = "warning")
+          return()
         }
+        
+        process_driver_sample(selected_sample, all_sample_mutations, individual_mutation = selected_mutation)
       }
     }, error = function(e) {
       showNotification(paste("Error:", e$message), type = "error")
@@ -610,85 +643,121 @@ server <- function(input, output, session) {
   observeEvent(input$cancer_type_driver, {
     shinyjs::hide("smoothingControls")
     
+    dataTableProxy("driverMutationTable") %>% selectRows(NULL)
+    
+    shinyjs::hide("smoothingFactor1_driver")
+    shinyjs::hide("smoothingFactor2_driver")
+    shinyjs::hide("smoothingExplanation1_driver")
+    shinyjs::hide("smoothingExplanation2_driver")
+    
+    output$driverPlot1 <- renderPlotly({ NULL })
+    output$driverPlot2 <- renderPlotly({ NULL })
+    output$driverCaption1 <- renderUI({ NULL })
+    output$driverCaption2 <- renderUI({ NULL })
+    
     selected_cancer_type <- input$cancer_type_driver
-    
-    selected_sample <- sample_TCGA$samplename[sample_TCGA$cancer_type == selected_cancer_type][1]
-    if (is.null(selected_sample) || selected_sample == "") {
-      selected_sample <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == selected_cancer_type][1]
+    if (is.null(selected_cancer_type) || selected_cancer_type == "") {
+      return() 
     }
     
-    if (is.null(selected_sample) || selected_sample == "") {
-      showNotification("No sample found for selected cancer type.", type = "error")
-      return()
-    }
-    
-    prefix <- if (selected_sample %in% sample_TCGA$samplename) "TCGA" else "PCAWG"
-    sampleDir <- file.path(global_TCGA_PCAWG, prefix, selected_sample)
-    
-    snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
-    cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
-    purityFile <- list.files(sampleDir, pattern = "*.purity.txt", full.names = TRUE)
-    
-    if (length(snvFile) == 0 || length(cnaFile) == 0 || length(purityFile) == 0) {
-      showNotification("Required files not found.", type = "error")
-      return()
-    }
-    
-    file_data <- read_and_validate_files(snvFile[1], cnaFile[1], purityFile[1])
-    if (is.null(file_data)) return()
-    
-    df_snv <- file_data$df_snv
-    df_cna <- file_data$df_cna
-    purity <- file_data$purity
-    
-    resultPath <- sampleDir
-    
-    matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
-    matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
-    
-    if (length(matching_file1) > 0 && length(matching_file2) > 0) {
-      df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
-      df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
-      
-      df_snvcna <- df_snv %>%
-        mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
-          inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-          if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
-        }))
-      
-      df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
-      mean_rd <- mean(df_snvcna$sum_counts)
-      min_rd <- min(df_snvcna$sum_counts)
-      max_rd <- max(df_snvcna$sum_counts)
-      
-      merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-      merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
-      
-      merged_df$total_cn <- as.numeric(merged_df$total_cn)
-      merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
-      merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
-      merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
-      
-      processed_mutations <- merged_df %>%
-        mutate(
-          Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
-          Subclonality = factor(Subclonality, levels = c("Clonal", "Subclonal")),
-          ReadDepth = sum_counts
-        )
-      
-      total_SNVs <- sum(df_subc$num_SNV)
-      
-      subclonality_counts <- processed_mutations %>%
-        count(Subclonality) %>%
-        rename(n = n)
-      
-      driver_mutations <- driver_mutation_data %>% 
+    driver_mutations <- isolate({
+      driver_mutation_data %>% 
         filter(cancer == selected_cancer_type)
+    })
+    
+    if (nrow(driver_mutations) == 0) {
+      showNotification("No driver mutations found for this cancer type", type = "warning")
+      output$driverMutationTable <- DT::renderDataTable({
+        DT::datatable(
+          data.frame(message = "No data available for the selected cancer type"),
+          options = list(dom = 't')
+        )
+      })
+      return()
+    }
+    
+    view_mode <- ifelse(is.null(input$view_mode), "individual", input$view_mode)
+    
+    output$driverMutationTable <- DT::renderDataTable({
+      if (view_mode == "consolidated") {
+        samples <- unique(driver_mutations$sample)
+        consolidated <- data.frame(
+          sample = character(),
+          genes = character(),
+          proteins = character(),
+          Subclonality = character(),
+          mutation_count = integer(),
+          stringsAsFactors = FALSE
+        )
+        
+        for (s in samples) {
+          sample_muts <- driver_mutations[driver_mutations$sample == s,]
+          has_clonal <- any(sample_muts$Subclonality == "Clonal")
+          has_subclonal <- any(sample_muts$Subclonality == "Subclonal")
+          
+          subclonality <- if(has_clonal && has_subclonal) {
+            "Clonal, Subclonal"
+          } else if (has_clonal) {
+            "Clonal"
+          } else {
+            "Subclonal"
+          }
+          
+          consolidated <- rbind(consolidated, data.frame(
+            sample = s,
+            genes = paste(unique(sample_muts$gene), collapse = ", "),
+            proteins = paste(unique(sample_muts$protein), collapse = ", "),
+            Subclonality = subclonality,
+            mutation_count = nrow(sample_muts),
+            stringsAsFactors = FALSE
+          ))
+        }
+        
+        DT::datatable(
+          consolidated,
+          selection = 'single',
+          options = list(
+            pageLength = 10,
+            searchHighlight = TRUE
+          ),
+          rownames = FALSE
+        ) %>%
+          DT::formatStyle(
+            'Subclonality',
+            backgroundColor = DT::styleEqual(
+              c("Clonal", "Subclonal", "Clonal, Subclonal"),
+              c('#C9EDEF', '#FED9D7', '#E6E6FA')
+            ),
+            color = 'black'
+          )
+      } else {
+        display_columns <- c("gene", "sample", "protein", "consequence", "Subclonality", "VAF", "CP_unpenalized")
+        display_data <- driver_mutations[, display_columns]
+        
+        DT::datatable(
+          display_data,
+          selection = 'single',
+          options = list(
+            pageLength = 10,
+            searchHighlight = TRUE
+          ),
+          rownames = FALSE
+        ) %>%
+          DT::formatStyle(
+            'Subclonality',
+            backgroundColor = DT::styleEqual(
+              c("Clonal", "Subclonal"),
+              c('#C9EDEF', '#FED9D7')
+            ),
+            color = 'black'
+          )
+      }
+    })
       
-      # Initial plots (using ALL mutations)
+      # Initial plots using all mutations
       output$driverPlot1 <- renderPlotly({
         gg1 <- ggplot(processed_mutations, aes(x = AF)) +
-          geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
+          geom_density(fill = "gray", alpha = .6, adjust = 0.45) +
           geom_point(
             shape = 142,
             size = 5,
@@ -706,7 +775,7 @@ server <- function(input, output, session) {
           )) +
           ggpubr::theme_pubr() +
           xlab("VAF") + ylab("Density") +
-          scale_color_manual(values = c("#87CEEB", "#FFA07A")) +
+          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
         
         if ("Clonal" %in% subclonality_counts$Subclonality) {
@@ -732,7 +801,7 @@ server <- function(input, output, session) {
       
       output$driverPlot2 <- renderPlotly({
         gg2 <- ggplot(processed_mutations, aes(x = CP_unpenalized)) +
-          geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
+          geom_density(fill = "seagreen", alpha = .6, adjust = 0.45) +
           geom_point(
             shape = 142,
             size = 5,
@@ -746,13 +815,29 @@ server <- function(input, output, session) {
           ggtitle(paste("CP Distribution -", selected_cancer_type)) +
           ggpubr::theme_pubr() +
           xlab("CP") + ylab("Density") +
-          scale_color_manual(values = c("#87CEEB", "#FFA07A")) +
+          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
           theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
           geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
         
         ggplotly(gg2)
       })
-    }
+      
+      # Add explanatory captions
+      output$driverCaption1 <- renderUI({
+        HTML("<p>
+          - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
+          - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
+          - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE).<br>
+        </p>")
+      })
+      
+      output$driverCaption2 <- renderUI({
+        HTML("<p>
+          - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and normal) from the sample carrying a particular SNV.<br>
+          - <b>Vertical dashed lines</b> indicate subclonal clusters identified in the tumor sample.<br>
+          - <b>Points are colored</b> according to whether mutations are clonal (present in all tumor cells) or subclonal (found in a subset).<br>
+        </p>")
+      })
   })
   
   observe({
@@ -1726,4 +1811,105 @@ server <- function(input, output, session) {
     
     return(result)
   }
+  
+  observeEvent(input$view_mode, {
+    dataTableProxy("driverMutationTable") %>% selectRows(NULL)
+    
+    shinyjs::hide("smoothingFactor1_driver")
+    shinyjs::hide("smoothingFactor2_driver")
+    shinyjs::hide("smoothingExplanation1_driver")
+    shinyjs::hide("smoothingExplanation2_driver")
+    
+    selected_cancer_type <- input$cancer_type_driver
+    if (is.null(selected_cancer_type) || selected_cancer_type == "") {
+      return()
+    }
+    
+    driver_mutations <- isolate({
+      driver_mutation_data %>% 
+        filter(cancer == selected_cancer_type)
+    })
+    
+    if (nrow(driver_mutations) == 0) {
+      return()
+    }
+    
+    view_mode <- input$view_mode
+    
+    output$driverMutationTable <- DT::renderDataTable({
+      if (view_mode == "consolidated") {
+        samples <- unique(driver_mutations$sample)
+        consolidated <- data.frame(
+          sample = character(),
+          genes = character(),
+          proteins = character(),
+          Subclonality = character(),
+          mutation_count = integer(),
+          stringsAsFactors = FALSE
+        )
+        
+        for (s in samples) {
+          sample_muts <- driver_mutations[driver_mutations$sample == s,]
+          has_clonal <- any(sample_muts$Subclonality == "Clonal")
+          has_subclonal <- any(sample_muts$Subclonality == "Subclonal")
+          
+          subclonality <- if(has_clonal && has_subclonal) {
+            "Clonal, Subclonal"
+          } else if (has_clonal) {
+            "Clonal"
+          } else {
+            "Subclonal"
+          }
+          
+          consolidated <- rbind(consolidated, data.frame(
+            sample = s,
+            genes = paste(unique(sample_muts$gene), collapse = ", "),
+            proteins = paste(unique(sample_muts$protein), collapse = ", "),
+            Subclonality = subclonality,
+            mutation_count = nrow(sample_muts),
+            stringsAsFactors = FALSE
+          ))
+        }
+        
+        DT::datatable(
+          consolidated,
+          selection = 'single',
+          options = list(
+            pageLength = 10,
+            searchHighlight = TRUE
+          ),
+          rownames = FALSE
+        ) %>%
+          DT::formatStyle(
+            'Subclonality',
+            backgroundColor = DT::styleEqual(
+              c("Clonal", "Subclonal", "Clonal, Subclonal"),
+              c('#C9EDEF', '#FED9D7', '#E6E6FA')
+            ),
+            color = 'black'
+          )
+      } else {
+        display_columns <- c("gene", "sample", "protein", "consequence", "Subclonality", "VAF", "CP_unpenalized")
+        display_data <- driver_mutations[, display_columns]
+        
+        DT::datatable(
+          display_data,
+          selection = 'single',
+          options = list(
+            pageLength = 10,
+            searchHighlight = TRUE
+          ),
+          rownames = FALSE
+        ) %>%
+          DT::formatStyle(
+            'Subclonality',
+            backgroundColor = DT::styleEqual(
+              c("Clonal", "Subclonal"),
+              c('#C9EDEF', '#FED9D7')
+            ),
+            color = 'black'
+          )
+      }
+    })
+  })
 }
