@@ -276,7 +276,7 @@ server <- function(input, output, session) {
                 geom_vline(
                   xintercept = mutation$VAF,
                   linetype = "dashed",
-                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "#FF6347")
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "pink")
                 ) +
                 annotate(
                   "text",
@@ -284,7 +284,7 @@ server <- function(input, output, session) {
                   y = 0.5 - (i * 0.05),
                   label = paste0(mutation$gene, " (", mutation$protein, ")"),
                   size = 3,
-                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "#FF6347"),
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "pink"),
                   angle = 45,
                   hjust = 0
                 )
@@ -311,7 +311,7 @@ server <- function(input, output, session) {
                   geom_vline(
                     xintercept = mutation$CP_unpenalized,
                     linetype = "dashed",
-                    color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "#FF6347")
+                    color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "pink")
                   ) +
                   annotate(
                     "text",
@@ -319,7 +319,7 @@ server <- function(input, output, session) {
                     y = 0.5 - (i * 0.05),
                     label = paste0(mutation$gene, " (", mutation$protein, ")"),
                     size = 3,
-                    color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "#FF6347"),
+                    color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "pink"),
                     angle = 45,
                     hjust = 0
                   )
@@ -452,7 +452,7 @@ server <- function(input, output, session) {
                 geom_vline(
                   xintercept = mutation$VAF,
                   linetype = "dashed",
-                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "pink")
                 ) +
                 annotate(
                   "text",
@@ -460,7 +460,7 @@ server <- function(input, output, session) {
                   y = -1.25 - (i * 0.3),
                   label = paste0(mutation$gene, " (", mutation$protein, ")"),
                   size = 3,
-                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "pink"),
                   angle = 45,
                   hjust = 0
                 )
@@ -501,7 +501,7 @@ server <- function(input, output, session) {
                 geom_vline(
                   xintercept = mutation$CP_unpenalized,
                   linetype = "dashed",
-                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347")
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "pink")
                 ) +
                 annotate(
                   "text",
@@ -509,7 +509,7 @@ server <- function(input, output, session) {
                   y = -1.25 - (i * 0.3),
                   label = paste0(mutation$gene, " (", mutation$protein, ")"),
                   size = 3,
-                  color = ifelse(mutation$Subclonality == "Clonal", "#1E90FF", "#FF6347"),
+                  color = ifelse(mutation$Subclonality == "Clonal", "seagreen", "pink"),
                   angle = 45,
                   hjust = 0
                 )
@@ -643,23 +643,30 @@ server <- function(input, output, session) {
   observeEvent(input$cancer_type_driver, {
     shinyjs::hide("smoothingControls")
     
+    # When the cancer type changes, we need to start fresh
+    # Clear any existing table selection to prevent stale data
     dataTableProxy("driverMutationTable") %>% selectRows(NULL)
     
+    # Hide plots and explanations when changing cancer type
     shinyjs::hide("smoothingFactor1_driver")
     shinyjs::hide("smoothingFactor2_driver")
     shinyjs::hide("smoothingExplanation1_driver")
     shinyjs::hide("smoothingExplanation2_driver")
     
+    # Clear existing plots
     output$driverPlot1 <- renderPlotly({ NULL })
     output$driverPlot2 <- renderPlotly({ NULL })
     output$driverCaption1 <- renderUI({ NULL })
     output$driverCaption2 <- renderUI({ NULL })
     
+    # Make sure we have a valid cancer type selection
     selected_cancer_type <- input$cancer_type_driver
     if (is.null(selected_cancer_type) || selected_cancer_type == "") {
-      return() 
+      return() # Exit early if no valid selection
     }
     
+    # This ensures the driver mutation table gets refreshed with the new cancer type
+    # Use isolate to avoid circular reactivity
     driver_mutations <- isolate({
       driver_mutation_data %>% 
         filter(cancer == selected_cancer_type)
@@ -667,6 +674,7 @@ server <- function(input, output, session) {
     
     if (nrow(driver_mutations) == 0) {
       showNotification("No driver mutations found for this cancer type", type = "warning")
+      # Make sure to render an empty table to clear previous data
       output$driverMutationTable <- DT::renderDataTable({
         DT::datatable(
           data.frame(message = "No data available for the selected cancer type"),
@@ -676,10 +684,12 @@ server <- function(input, output, session) {
       return()
     }
     
+    # Explicitly update the driver mutation table to reflect the new cancer type selection
     view_mode <- ifelse(is.null(input$view_mode), "individual", input$view_mode)
     
     output$driverMutationTable <- DT::renderDataTable({
       if (view_mode == "consolidated") {
+        # Create a consolidated view of mutations by sample
         samples <- unique(driver_mutations$sample)
         consolidated <- data.frame(
           sample = character(),
@@ -731,6 +741,7 @@ server <- function(input, output, session) {
             color = 'black'
           )
       } else {
+        # Show individual mutations
         display_columns <- c("gene", "sample", "protein", "consequence", "Subclonality", "VAF", "CP_unpenalized")
         display_data <- driver_mutations[, display_columns]
         
@@ -753,91 +764,23 @@ server <- function(input, output, session) {
           )
       }
     })
-      
-      # Initial plots using all mutations
-      output$driverPlot1 <- renderPlotly({
-        gg1 <- ggplot(processed_mutations, aes(x = AF)) +
-          geom_density(fill = "gray", alpha = .6, adjust = 0.45) +
-          geom_point(
-            shape = 142,
-            size = 5,
-            alpha = 0.3,
-            aes(
-              y = -0.75,
-              color = Subclonality
-            )
-          ) +
-          xlim(0, 1) +
-          ggtitle(paste(
-            selected_cancer_type,
-            " - Mean read depth =", round(mean_rd),
-            "      ", "Range read depth =", min_rd, "-", max_rd
-          )) +
-          ggpubr::theme_pubr() +
-          xlab("VAF") + ylab("Density") +
-          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
-          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
-        
-        if ("Clonal" %in% subclonality_counts$Subclonality) {
-          n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
-          gg1 <- gg1 + annotate(
-            "text", x = 0.85, y = -1.65,
-            label = paste0("n clonal = ", n_clonal),
-            size = 3, color = "black", vjust = -1.5
-          )
-        }
-        
-        if ("Subclonal" %in% subclonality_counts$Subclonality) {
-          n_subclonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Subclonal"]
-          gg1 <- gg1 + annotate(
-            "text", x = 0.85, y = -2.65,
-            label = paste0("n subclonal = ", n_subclonal),
-            size = 3, color = "black", vjust = -1.5
-          )
-        }
-        
-        ggplotly(gg1)
-      })
-      
-      output$driverPlot2 <- renderPlotly({
-        gg2 <- ggplot(processed_mutations, aes(x = CP_unpenalized)) +
-          geom_density(fill = "seagreen", alpha = .6, adjust = 0.45) +
-          geom_point(
-            shape = 142,
-            size = 5,
-            alpha = 0.3,
-            aes(
-              y = -0.75,
-              color = Subclonality
-            )
-          ) +
-          xlim(0, 1.5) +
-          ggtitle(paste("CP Distribution -", selected_cancer_type)) +
-          ggpubr::theme_pubr() +
-          xlab("CP") + ylab("Density") +
-          scale_color_manual(values = c("Clonal" = "#87CEEB", "Subclonal" = "#FFA07A")) +
-          theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
-          geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
-        
-        ggplotly(gg2)
-      })
-      
-      # Add explanatory captions
-      output$driverCaption1 <- renderUI({
-        HTML("<p>
-          - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
-          - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
-          - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE).<br>
-        </p>")
-      })
-      
-      output$driverCaption2 <- renderUI({
-        HTML("<p>
-          - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and normal) from the sample carrying a particular SNV.<br>
-          - <b>Vertical dashed lines</b> indicate subclonal clusters identified in the tumor sample.<br>
-          - <b>Points are colored</b> according to whether mutations are clonal (present in all tumor cells) or subclonal (found in a subset).<br>
-        </p>")
-      })
+    
+    # Add explanatory captions - these don't depend on data
+    output$driverCaption1 <- renderUI({
+      HTML("<p>
+      - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
+      - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
+      - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE).<br>
+    </p>")
+    })
+    
+    output$driverCaption2 <- renderUI({
+      HTML("<p>
+      - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and normal) from the sample carrying a particular SNV.<br>
+      - <b>Vertical dashed lines</b> indicate subclonal clusters identified in the tumor sample.<br>
+      - <b>Points are colored</b> according to whether mutations are clonal (present in all tumor cells) or subclonal (found in a subset).<br>
+    </p>")
+    })
   })
   
   observe({
