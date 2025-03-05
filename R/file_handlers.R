@@ -1,4 +1,6 @@
 library(shiny)
+library(dplyr)
+library(purrr)
 
 #' Create a download handler for result files
 #' @param prefix Prefix for the file identifier (e.g., "TCGA", "PCAWG")
@@ -31,13 +33,11 @@ create_download_handler <- function(prefix, result_path) {
 #' @param selectedSample Selected sample name
 #' @return Boolean indicating success
 prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
-  # Check if directory exists
   if (!dir.exists(sampleDir)) {
     showNotification(paste("Sample directory not found:", sampleDir), type = "error")
     return(FALSE)
   }
   
-  # Check if mutation assignments already exist
   matching_file1 <- list.files(sampleDir, 
                                pattern = "mutation_assignments_lam.*\\.txt", 
                                full.names = TRUE)
@@ -46,14 +46,11 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
                                full.names = TRUE)
   
   if (length(matching_file1) == 0 || length(matching_file2) == 0) {
-    # Set up input files
     snvFile <- file.path(sampleDir, paste0(selectedSample, ".snv.txt"))
     cnaFile <- file.path(sampleDir, paste0(selectedSample, ".cna.txt"))
     purityFile <- file.path(sampleDir, paste0(selectedSample, ".purity.txt"))
     
-    # Check if files exist
     if (!file.exists(snvFile) || !file.exists(cnaFile) || !file.exists(purityFile)) {
-      # Try alternative file naming pattern
       snvFile <- file.path(sampleDir, "sample.snv.txt")
       cnaFile <- file.path(sampleDir, "sample.cna.txt")
       purityFile <- file.path(sampleDir, "sample.purity.txt")
@@ -64,7 +61,6 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
       }
     }
     
-    # Ensure CliPP directories exist
     clipp_dir <- "./forCliPP/CliPP"
     output_dir <- file.path(clipp_dir, "sample_id", "final_result", "Best_lambda")
     
@@ -73,12 +69,10 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
       return(FALSE)
     }
     
-    # Create output directory if it doesn't exist
     if (!dir.exists(output_dir)) {
       dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
     }
     
-    # Construct and run CliPP command
     command <- sprintf("/usr/local/bin/python3 %s/run_clipp_main.py %s %s %s",
                        shQuote(clipp_dir), shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile))
     
@@ -92,7 +86,6 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
     
     if (!result) return(FALSE)
     
-    # Check if results were generated
     resultFiles <- list.files(output_dir,
                               pattern = "\\.txt$", 
                               full.names = TRUE)
@@ -102,18 +95,15 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
       return(FALSE)
     }
     
-    # Create target directory if it doesn't exist
     if (!dir.exists(sampleDir)) {
       dir.create(sampleDir, recursive = TRUE, showWarnings = FALSE)
     }
     
-    # Move results to sample directory one file at a time
     for (file in resultFiles) {
       file.copy(file, sampleDir, overwrite = TRUE)
     }
   }
   
-  # Verify results
   matching_file1 <- list.files(sampleDir, 
                                pattern = "mutation_assignments_lam.*\\.txt", 
                                full.names = TRUE)
@@ -143,7 +133,6 @@ validate_and_read_files <- function(snvFile, cnaFile, purityFile) {
     ))
   }
   
-  # Read files
   df_snv <- tryCatch(
     read.table(snvFile, header = TRUE),
     error = function(e) NULL
@@ -159,7 +148,6 @@ validate_and_read_files <- function(snvFile, cnaFile, purityFile) {
     error = function(e) NULL
   )
   
-  # Validate SNV data columns
   required_cols <- c("chromosome_index", "position", "ref_count", "alt_count")
   if (!all(required_cols %in% colnames(df_snv))) {
     missing_cols <- required_cols[!required_cols %in% colnames(df_snv)]
@@ -279,7 +267,6 @@ setup_directories <- function(base_dir, required_dirs) {
 #' @param sampleName Name of the sample being processed
 #' @return List containing processing success status, message, and data if successful
 process_sample_files <- function(sampleFiles, sampleName) {
-  # Validate input files
   if (is.null(sampleFiles$snvFile) || is.null(sampleFiles$cnaFile) || is.null(sampleFiles$purityFile)) {
     return(list(
       success = FALSE,
@@ -287,7 +274,6 @@ process_sample_files <- function(sampleFiles, sampleName) {
     ))
   }
   
-  # Check if files exist
   if (!file.exists(sampleFiles$snvFile) || !file.exists(sampleFiles$cnaFile) || !file.exists(sampleFiles$purityFile)) {
     return(list(
       success = FALSE,
@@ -295,7 +281,6 @@ process_sample_files <- function(sampleFiles, sampleName) {
     ))
   }
   
-  # Read and validate files
   file_data <- read_and_validate_files(sampleFiles$snvFile, sampleFiles$cnaFile, sampleFiles$purityFile)
   
   if (is.null(file_data)) {
@@ -309,7 +294,6 @@ process_sample_files <- function(sampleFiles, sampleName) {
   df_cna <- file_data$df_cna
   purity <- file_data$purity
   
-  # Create/ensure the directory exists
   directoryPath <- "forCliPP/CliPP/sample_id/"
   if (!dir.exists(directoryPath)) {
     dir.create(directoryPath, recursive = TRUE, showWarnings = TRUE)
@@ -317,13 +301,11 @@ process_sample_files <- function(sampleFiles, sampleName) {
     system(paste("rm -rf", shQuote(paste0(directoryPath, "*"))), intern = TRUE)
   }
   
-  # Create subdirectories
   finalResultPath <- file.path(directoryPath, "final_result", "Best_lambda")
   if (!dir.exists(finalResultPath)) {
     dir.create(finalResultPath, recursive = TRUE, showWarnings = TRUE)
   }
   
-  # Run CliPP analysis
   command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
                      shQuote(sampleFiles$snvFile), shQuote(sampleFiles$cnaFile), shQuote(sampleFiles$purityFile))
   
@@ -344,15 +326,12 @@ process_sample_files <- function(sampleFiles, sampleName) {
     ))
   }
   
-  # Path to result files
   resultPath <- "forCliPP/CliPP/sample_id/final_result/Best_lambda"
   
-  # Check if result files were created
   matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
   matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
   
   if (length(matching_file1) == 0 || length(matching_file2) == 0) {
-    # Try to handle case where CliPP creates files in a different location
     altResultPath <- "forCliPP/CliPP/final_result/Best_lambda"
     if (dir.exists(altResultPath)) {
       matching_file1 <- list.files(altResultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
@@ -371,13 +350,8 @@ process_sample_files <- function(sampleFiles, sampleName) {
     }
   }
   
-  # Read mutation and subclonal structure assignments
   df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
   df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
-  
-  # Process SNV and CNA data using dplyr
-  library(dplyr)
-  library(purrr)
   
   df_snvcna <- df_snv %>%
     mutate(total_cn = pmap_chr(list(position, chromosome_index), function(x, y) {
@@ -385,44 +359,35 @@ process_sample_files <- function(sampleFiles, sampleName) {
       if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
     }))
   
-  # Calculate read depth metrics
   df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
   mean_rd <- mean(df_snvcna$sum_counts)
   min_rd <- min(df_snvcna$sum_counts)
   max_rd <- max(df_snvcna$sum_counts)
   
-  # Merge with assigned mutations
   merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
   merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
   
-  # Calculate mutation metrics
   merged_df$total_cn <- as.numeric(merged_df$total_cn)
   merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
   merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / 
     (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
   merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
   
-  # Add clonality classification based on cluster_index
-  # REVERTED: Removed the explicit factor conversion
   merged_df <- merged_df %>%
     mutate(
       Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
       ReadDepth = sum_counts
     )
   
-  # Calculate subclonality counts
   subclonality_counts <- merged_df %>%
     count(Subclonality) %>%
     rename(n = n)
   
-  # Compute total mutations count
   total_SNVs <- sum(df_subc$num_SNV)
   
-  # Calculate recommended smoothing factor
   recommended_smooth1 <- recommended_smoothing_factor(total_SNVs)
   recommended_smooth2 <- recommended_smoothing_factor(total_SNVs)
   
-  # Update available result files for download
   result_files <- list.files(resultPath, pattern = "\\.txt$")
   if (exists("session") && is.function(updateSelectInput)) {
     updateSelectInput(session, "selectedFile", choices = result_files)
@@ -433,7 +398,6 @@ process_sample_files <- function(sampleFiles, sampleName) {
     levels = c("Clonal", "Subclonal")
   )
   
-  # Return success with processed data
   return(list(
     success = TRUE,
     message = "Sample processed successfully.",
@@ -459,18 +423,15 @@ process_sample_files <- function(sampleFiles, sampleName) {
 get_current_analysis <- function(sampleFiles) {
   if (is.null(sampleFiles)) return(NULL)
   
-  # Get sample name
   sample_name <- names(sampleFiles)[1]
   if (is.null(sample_name)) sample_name <- "Sample"
   
-  # Process the sample files
   process_result <- process_sample_files(sampleFiles, sample_name)
   
   if (!process_result$success) {
     return(NULL)
   }
   
-  # Return the processed data
   return(process_result$data)
 }
 
