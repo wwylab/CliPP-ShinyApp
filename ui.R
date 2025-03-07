@@ -4,47 +4,12 @@ library(shinyjs)
 library(shinyWidgets)
 library(DT)
 
-# Function to write UI plot elements
-create_plot_container <- function(plot_output_id, smoothing_id, explanation_id, caption_id) {
-  div(class = "plot-container",
-      div(class = "plot-area",
-          plotlyOutput(plot_output_id)
-      ),
-      hidden(
-        div(class = "controls-area",
-            sliderInput(smoothing_id, "Smoothing Factor:",
-                        min = 0.2, max = 0.7, value = 0.45, width = "100%"
-            ),
-            div(class = "recommended-smoothing",
-                uiOutput(explanation_id)
-            )
-        )
-      ),
-      div(class = "caption-area",
-          uiOutput(caption_id)
-      )
-  )
-}
-
 # UI for the Shiny application
 ui <- fluidPage(
   tags$head(includeHTML("google-analytics.html")),
   shinyjs::useShinyjs(),
   
-  # Custom JavaScript for additional button handling
-  tags$head(
-    tags$script(HTML("
-      $(document).on('click', '#Submit', function() {
-        Shiny.setInputValue('tcga-submit', Math.random());
-      });
-      
-      $(document).on('click', '#Submit_PCAWG', function() {
-        Shiny.setInputValue('pcawg-submit', Math.random());
-      });
-    "))
-  ),
-  
-  # CSS for styling a progress bar overlay
+  # CSS for styling
   tags$head(
     tags$style(HTML("
       #progress {
@@ -58,13 +23,13 @@ ui <- fluidPage(
       .plot-container {
         position: relative;
         width: 100%;
-        margin-bottom: 20px;
+        margin-bottom: 40px;
       }
       .plot-with-controls {
         display: flex;
         flex-direction: column;
         gap: 10px;
-        margin-bottom: 10px;
+        margin-bottom: 20px;
       }
       .plot-area {
         width: 100%;
@@ -94,7 +59,7 @@ ui <- fluidPage(
   ),
   
   # Title and attribution for research purposes
-  titlePanel("CliPP-on-Web: Clonal structure identification through penalizing pairwise differences"),
+  titlePanel("CliPP-on-Web: Scalable Subclonal Reconstruction for Cancer Research"),
   div(p("Copyright ", HTML("&copy;"), " 2025 The University of Texas MD Anderson Cancer Center. All rights reserved.")),
   
   # Multi-page navigation structure
@@ -103,17 +68,21 @@ ui <- fluidPage(
              tabPanel("About",
                       tags$div(
                         tags$h4(tags$b(tags$span("Description"))),
-                        p("Intra-tumor heterogeneity is an important driver of tumor evolution and therapy response. Advances in precision cancer treatment will require understanding of
-                        mutation clonality and subclonal architecture. Currently the slow computational speed of subclonal reconstruction hinders large cohort studies. To overcome this
-                        bottleneck, we developed Clonal structure identification through Pairwise Penalization, or CliPP, which clusters subclonal mutations using a regularized likelihood
-                        model. CliPP reliably processed whole-genome and whole-exome sequencing data from over 12,000 tumor samples within 24 hours, thus enabling large-scale downstream
-                        association analyses between subclonal structures and clinical outcomes. Through a pan-cancer investigation of 7,827 tumors from 32 cancer types, we found that high
-                        subclonal mutational load (sML), a measure of latency time in tumor evolution, was significantly associated with better patient outcomes in 16 cancer types with low to
-                        moderate tumor mutation burden (TMB). In a cohort of prostate cancer patients participating in an immunotherapy clinical trial, high sML was indicative of favorable
-                        response to immune checkpoint blockade. This comprehensive study using CliPP underscores sML as a key feature of cancer. sML may be essential for linking mutation
-                        dynamics with immunotherapy response in the large population of non-high TMB cancers. Also see our paper:",
+                        p("CliPP-on-Web: Scalable Subclonal Reconstruction for Cancer Research Advancing Tumor Evolution Studies with Efficient Analysis"),
+                        p("CliPP (Clonal structure identification through Pairwise Penalization) is an advanced computational framework for identifying clonal and subclonal mutations using a regularized likelihood model. Designed for researchers investigating tumor heterogeneity, CliPP-on-Web provides rapid and accurate subclonal reconstruction without requiring programming expertise."),
+                        p(tags$b("Addressing Computational Challenges in Subclonal Analysis")),
+                        p("Intra-tumor heterogeneity plays a critical role in tumor evolution and therapeutic resistance. However, large-scale subclonal reconstruction has traditionally been constrained by computational limitations. CliPP-on-Web overcomes these challenges by enabling high-throughput, efficient analysis of sequencing data at scale."),
+                        p(tags$b("Efficient, Large-Scale Analysis")),
+                        p("Leveraging an optimized likelihood-based clustering model, CliPP has successfully processed whole-genome and whole-exome sequencing data from over 10,000 tumor samples across TCGA and PCAWG. These datasets are accessible for further exploration in the Data Resources tab."),
+                        p(tags$b("Key Features")),
+                        tags$ul(
+                          tags$li("Analyze Your Own Data: Upload tumor sequencing data and obtain rapid subclonal reconstruction results."),
+                          tags$li("Access Curated Datasets: Explore pre-processed subclonal analyses from PCAWG and TCGA."),
+                          tags$li("Driver Mutation Subclonality: Investigate the clonal architecture of key driver mutations.")
+                        ),
+                        p("For detailed methodology, refer to our BioRxiv preprint: ",
                           a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1",
-                            "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"),"."),
+                            "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"), "."),
                         tags$br(),
                         p(tags$b(tags$span(style = "color: #D22B2B;", "For issues with the app, please contact:"))),
                         p("Aaron Wu - ", a(href = "mailto:aw80@rice.edu", "aw80@rice.edu")),
@@ -168,10 +137,49 @@ ui <- fluidPage(
                           
                           # Main panel to display plots and analysis output
                           mainPanel(
-                            create_plot_container("plot1", "smoothingFactor1", "smoothingExplanation1", "caption1"),
+                            # First plot - VAF plot
+                            div(class = "plot-container",
+                                div(class = "plot-area",
+                                    plotlyOutput("plot1")
+                                ),
+                                # Using conditionalPanel for smoothing controls
+                                conditionalPanel(
+                                  condition = "output.plotsReadyCliPP == true",
+                                  div(class = "controls-area",
+                                      sliderInput("smoothingFactor1", "Smoothing Factor:",
+                                                  min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                      div(class = "recommended-smoothing",
+                                          uiOutput("smoothingExplanation1")
+                                      )
+                                  )
+                                ),
+                                div(class = "caption-area",
+                                    uiOutput("caption1")
+                                )
+                            ),
                             
-                            create_plot_container("plot2", "smoothingFactor2", "smoothingExplanation2", "caption2"),
+                            # Second plot - CP plot
+                            div(class = "plot-container",
+                                div(class = "plot-area",
+                                    plotlyOutput("plot2")
+                                ),
+                                # Using conditionalPanel for smoothing controls
+                                conditionalPanel(
+                                  condition = "output.plotsReadyCliPP == true",
+                                  div(class = "controls-area",
+                                      sliderInput("smoothingFactor2", "Smoothing Factor:",
+                                                  min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                      div(class = "recommended-smoothing",
+                                          uiOutput("smoothingExplanation2")
+                                      )
+                                  )
+                                ),
+                                div(class = "caption-area",
+                                    uiOutput("caption2")
+                                )
+                            ),
                             
+                            # Plot output area and progress bar
                             uiOutput("plotOutputArea"),
                             hidden(div(id = "plotReadyTextCliPP")),
                             shinyjs::hidden(
@@ -190,84 +198,141 @@ ui <- fluidPage(
              # Page 4: CliPP Data Resources with automatic data loading and visualization
              tabPanel("CliPP Data Resources",
                       tags$div(
-                        tabsetPanel(
-                          tabPanel("TCGA",
-                                   tags$div(
-                                     tags$h4(tags$b("TCGA Select")),
-                                     sidebarLayout(
-                                       sidebarPanel(
-                                         uiOutput("cancer_type_ui_TCGA"),
-                                         uiOutput("sample_name_ui_TCGA"),
-                                         actionButton("submitTCGA", "Submit", class = "btn-primary"),
-                                         hidden(actionButton("clearTCGA", "Clear", class = "btn-danger")),
-                                         hidden(selectInput("colorByTCGA", "Color points by:",
-                                                            choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
-                                                            selected = "clonality"))
-                                       ),
-                                       mainPanel(
-                                         create_plot_container(
-                                           paste0("plot1TCGA"),
-                                           paste0("smoothingFactor1_TCGA"),
-                                           paste0("smoothingExplanation1_TCGA"),
-                                           paste0("caption1TCGA")
-                                         ),
-                                         
-                                         create_plot_container(
-                                           paste0("plot2TCGA"),
-                                           paste0("smoothingFactor2_TCGA"),
-                                           paste0("smoothingExplanation2_TCGA"),
-                                           paste0("caption2TCGA")
-                                         ),
-                                         
-                                         hidden(uiOutput("plotOutputAreaTCGA")),
-                                         hidden(div(id = "plotReadyTextTCGA")),
-                                         uiOutput("downloadUI_TCGA")
-                                       )
-                                     )
-                                   )
-                          ),
-                          
-                          # Subsection for PCAWG data selection and analysis
-                          tabPanel("PCAWG",
-                                   tags$div(
-                                     tags$h4(tags$b("PCAWG Select")),
-                                     sidebarLayout(
-                                       sidebarPanel(
-                                         uiOutput("cancer_type_ui_PCAWG"),
-                                         uiOutput("sample_name_ui_PCAWG"),
-                                         hidden(actionButton("clearPCAWG", "Clear", class = "btn-danger")),
-                                         actionButton("submitPCAWG", "Submit", class = "btn-primary"),
-                                         hidden(selectInput("colorByPCAWG", "Color points by:",
-                                                            choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
-                                                            selected = "clonality"))
-                                       ),
-                                       mainPanel(
-                                         create_plot_container(
-                                           paste0("plot1PCAWG"),
-                                           paste0("smoothingFactor1_PCAWG"),
-                                           paste0("smoothingExplanation1_PCAWG"),
-                                           paste0("caption1PCAWG")
-                                         ),
-                                         
-                                         create_plot_container(
-                                           paste0("plot2PCAWG"),
-                                           paste0("smoothingFactor2_PCAWG"),
-                                           paste0("smoothingExplanation2_PCAWG"),
-                                           paste0("caption2PCAWG")
-                                         ),
-                                         
-                                         hidden(uiOutput("plotOutputAreaPCAWG")),
-                                         hidden(div(id = "plotReadyTextPCAWG")),
-                                         uiOutput("downloadUI_PCAWG")
-                                       )
-                                     )
-                                   )
-                          )
+                        tabsetPanel(id = "tabset",
+                                    # Subsection for TCGA data selection and analysis
+                                    tabPanel("TCGA",
+                                             tags$div(
+                                               tags$h4(tags$b("TCGA Select")),
+                                               sidebarLayout(
+                                                 sidebarPanel(
+                                                   uiOutput("cancer_type_ui_TCGA"),
+                                                   uiOutput("sample_name_ui_TCGA"),
+                                                   actionButton("submitTCGA", "Submit", class = "btn-primary"),
+                                                   hidden(actionButton("clearTCGA", "Clear", class = "btn-danger")),
+                                                   hidden(selectInput("colorByTCGA", "Color points by:", 
+                                                                      choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), 
+                                                                      selected = "clonality"))
+                                                 ),
+                                                 mainPanel(
+                                                   # First TCGA plot
+                                                   div(class = "plot-container",
+                                                       div(class = "plot-area",
+                                                           plotlyOutput("plot1TCGA") 
+                                                       ),
+                                                       # Using conditionalPanel for smoothing controls
+                                                       conditionalPanel(
+                                                         condition = "output.plotsReadyTCGA == true",
+                                                         div(class = "controls-area",
+                                                             sliderInput("smoothingFactor1_TCGA", "Smoothing Factor:",
+                                                                         min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                             div(class = "recommended-smoothing",
+                                                                 uiOutput("smoothingExplanation1_TCGA")
+                                                             )
+                                                         )
+                                                       ),
+                                                       div(class = "caption-area",
+                                                           uiOutput("caption1TCGA")
+                                                       )
+                                                   ),
+                                                   
+                                                   # Second TCGA plot
+                                                   div(class = "plot-container",
+                                                       div(class = "plot-area",
+                                                           plotlyOutput("plot2TCGA") 
+                                                       ),
+                                                       # Using conditionalPanel for smoothing controls
+                                                       conditionalPanel(
+                                                         condition = "output.plotsReadyTCGA == true",
+                                                         div(class = "controls-area",
+                                                             sliderInput("smoothingFactor2_TCGA", "Smoothing Factor:",
+                                                                         min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                             div(class = "recommended-smoothing",
+                                                                 uiOutput("smoothingExplanation2_TCGA")
+                                                             )
+                                                         )
+                                                       ),
+                                                       div(class = "caption-area",
+                                                           uiOutput("caption2TCGA")
+                                                       )
+                                                   ),
+                                                   
+                                                   hidden(uiOutput("plotOutputAreaTCGA")),
+                                                   hidden(div(id = "plotReadyTextTCGA")),
+                                                   uiOutput("downloadUI_TCGA")
+                                                 )
+                                               )
+                                             )
+                                    ),
+                                    
+                                    # Subsection for PCAWG data selection and analysis
+                                    tabPanel("PCAWG",
+                                             tags$div(
+                                               tags$h4(tags$b("PCAWG Select")),
+                                               sidebarLayout(
+                                                 sidebarPanel(
+                                                   uiOutput("cancer_type_ui_PCAWG"),
+                                                   uiOutput("sample_name_ui_PCAWG"),
+                                                   actionButton("submitPCAWG", "Submit", class = "btn-primary"),
+                                                   hidden(actionButton("clearPCAWG", "Clear", class = "btn-danger")),
+                                                   hidden(selectInput("colorByPCAWG", "Color points by:", 
+                                                                      choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), 
+                                                                      selected = "clonality"))
+                                                 ),
+                                                 mainPanel(
+                                                   # First PCAWG plot
+                                                   div(class = "plot-container",
+                                                       div(class = "plot-area",
+                                                           plotlyOutput("plot1PCAWG")
+                                                       ),
+                                                       # Using conditionalPanel for smoothing controls
+                                                       conditionalPanel(
+                                                         condition = "output.plotsReadyPCAWG == true",
+                                                         div(class = "controls-area",
+                                                             sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor:",
+                                                                         min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                             div(class = "recommended-smoothing",
+                                                                 uiOutput("smoothingExplanation1_PCAWG")
+                                                             )
+                                                         )
+                                                       ),
+                                                       div(class = "caption-area",
+                                                           uiOutput("caption1PCAWG")
+                                                       )
+                                                   ),
+                                                   
+                                                   # Second PCAWG plot
+                                                   div(class = "plot-container",
+                                                       div(class = "plot-area",
+                                                           plotlyOutput("plot2PCAWG") 
+                                                       ),
+                                                       # Using conditionalPanel for smoothing controls
+                                                       conditionalPanel(
+                                                         condition = "output.plotsReadyPCAWG == true",
+                                                         div(class = "controls-area",
+                                                             sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor:",
+                                                                         min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                             div(class = "recommended-smoothing",
+                                                                 uiOutput("smoothingExplanation2_PCAWG")
+                                                             )
+                                                         )
+                                                       ),
+                                                       div(class = "caption-area",
+                                                           uiOutput("caption2PCAWG")
+                                                       )
+                                                   ),
+                                                   
+                                                   hidden(uiOutput("plotOutputAreaPCAWG")),
+                                                   hidden(div(id = "plotReadyTextPCAWG")),
+                                                   uiOutput("downloadUI_PCAWG")
+                                                 )
+                                               )
+                                             )
+                                    )
                         )
                       )
              ),
              
-             # Page 5: Driver Mutation analysis tool 
+             # Page 5: Driver Mutation analysis tool
              tabPanel("Driver Mutation",
                       sidebarLayout(
                         sidebarPanel(
@@ -283,37 +348,46 @@ ui <- fluidPage(
                           DT::DTOutput("driverMutationTable"),
                           uiOutput("selectedMutationInfo"),
                           downloadButton("downloadDriverMutation", "Download Data"),
-                          
                           tags$h4(tags$b(tags$span("Reference:"))),
                           p("Martínez-Jiménez, Francisco, et al. 'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20.10 (2020): 555-572."),
                           
+                          # Driver plot 1
                           div(class = "plot-container",
                               div(class = "plot-area",
                                   plotlyOutput("driverPlot1") 
                               ),
-                              hidden(div(class = "controls-area",
-                                         sliderInput("smoothingFactor1_driver", "Smoothing Factor:",
-                                                     min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                         div(class = "recommended-smoothing",
-                                             uiOutput("smoothingExplanation1_driver")
-                                         )
-                              )),
+                              # Using conditionalPanel for smoothing controls
+                              conditionalPanel(
+                                condition = "output.driverRowSelected == true",
+                                div(class = "controls-area",
+                                    sliderInput("smoothingFactor1_driver", "Smoothing Factor:",
+                                                min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                    div(class = "recommended-smoothing",
+                                        uiOutput("smoothingExplanation1_driver")
+                                    )
+                                )
+                              ),
                               div(class = "caption-area",
                                   uiOutput("driverCaption1")
                               )
                           ),
                           
+                          # Driver plot 2
                           div(class = "plot-container",
                               div(class = "plot-area",
                                   plotlyOutput("driverPlot2") 
                               ),
-                              hidden(div(class = "controls-area",
-                                         sliderInput("smoothingFactor2_driver", "Smoothing Factor:",
-                                                     min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                         div(class = "recommended-smoothing",
-                                             uiOutput("smoothingExplanation2_driver")
-                                         )
-                              )),
+                              # Using conditionalPanel for smoothing controls
+                              conditionalPanel(
+                                condition = "output.driverRowSelected == true",
+                                div(class = "controls-area",
+                                    sliderInput("smoothingFactor2_driver", "Smoothing Factor:",
+                                                min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                    div(class = "recommended-smoothing",
+                                        uiOutput("smoothingExplanation2_driver")
+                                    )
+                                )
+                              ),
                               div(class = "caption-area",
                                   uiOutput("driverCaption2")
                               )
