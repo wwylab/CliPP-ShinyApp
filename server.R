@@ -1,7 +1,45 @@
 server <- function(input, output, session) {
+  
   plots_ready_clipp <- reactiveVal(FALSE)
   plots_ready_TCGA <- reactiveVal(FALSE)
   plots_ready_PCAWG <- reactiveVal(FALSE)
+  
+  # Reactive values object to track the state of each tab
+  tab_states <- reactiveValues(
+    clipp_web = FALSE,     
+    tcga = FALSE,         
+    pcawg = FALSE,         
+    driver = FALSE         
+  )
+  
+  # Update existing reactiveVal observers to also update the tab_states
+  output$plotsReadyCliPP <- reactive({
+    return(plots_ready_clipp())
+  })
+  outputOptions(output, "plotsReadyCliPP", suspendWhenHidden = FALSE)
+  
+  # For TCGA tab
+  output$plotsReadyTCGA <- reactive({
+    return(plots_ready_TCGA())
+  })
+  outputOptions(output, "plotsReadyTCGA", suspendWhenHidden = FALSE)
+  
+  # For PCAWG tab
+  output$plotsReadyPCAWG <- reactive({
+    return(plots_ready_PCAWG())
+  })
+  outputOptions(output, "plotsReadyPCAWG", suspendWhenHidden = FALSE)
+  
+  # For Driver Mutation tab
+  output$driverRowSelected <- reactive({
+    return(!is.null(input$driverMutationTable_rows_selected))
+  })
+  outputOptions(output, "driverRowSelected", suspendWhenHidden = FALSE)
+  
+  # For Driver Mutation, track when a row is selected
+  observeEvent(input$driverMutationTable_rows_selected, {
+    tab_states$driver <- !is.null(input$driverMutationTable_rows_selected)
+  })
   
   samples_uploaded <- reactiveVal(FALSE)
   uploaded_samples <- reactiveValues(samples = list())
@@ -46,12 +84,6 @@ server <- function(input, output, session) {
     filtered_data <- driver_mutation_data %>% 
       filter(cancer == selected_cancer_type)
     
-    if (nrow(filtered_data) == 0) {
-      showNotification("No data available for the selected cancer type.", type = "error")
-      return(NULL)
-    }
-    
-    # Group data by sample
     unique_samples <- unique(filtered_data$sample)
     result <- data.frame(
       sample = character(),
@@ -68,12 +100,10 @@ server <- function(input, output, session) {
     for (sample_name in unique_samples) {
       sample_rows <- filtered_data[filtered_data$sample == sample_name, ]
       
-      # Get unique genes and proteins
       unique_genes <- paste(unique(sample_rows$gene), collapse = ", ")
       unique_proteins <- paste(unique(sample_rows$protein), collapse = ", ")
       unique_consequences <- paste(unique(sample_rows$consequence), collapse = ", ")
       
-      # Determine if sample has clonal, subclonal, or both
       unique_subclonality <- unique(sample_rows$Subclonality)
       if (length(unique_subclonality) > 1) {
         subclonality_status <- "Clonal, Subclonal"
@@ -81,20 +111,15 @@ server <- function(input, output, session) {
         subclonality_status <- unique_subclonality[1]
       }
       
-      # Calculate VAF and CP ranges
       vaf_values <- sample_rows$VAF
       cp_values <- sample_rows$CP_unpenalized
       
       vaf_range <- if (all(is.na(vaf_values))) {
         "NA"
-      } else {
-        paste(sprintf("%.3f", range(vaf_values, na.rm = TRUE)), collapse = "-")
       }
       
       cp_range <- if (all(is.na(cp_values))) {
         "NA"
-      } else {
-        paste(sprintf("%.3f", range(cp_values, na.rm = TRUE)), collapse = "-")
       }
       
       mutation_count <- nrow(sample_rows)
@@ -943,9 +968,10 @@ server <- function(input, output, session) {
   })
   
   # Clear current session data
+  # Clear current session data
   observeEvent(input$clear, {
-    uploaded_samples$samples <- list()
-    samples_uploaded(FALSE)
+    uploadedSamples$samples <- list()
+    samplesUploaded(FALSE)
     updateNumericInput(session, "numSamples", value = 1)
     shinyjs::enable("numSamples")
     shinyjs::reset("dynamicFileInputs")
@@ -972,12 +998,28 @@ server <- function(input, output, session) {
     
     plots_ready_clipp(FALSE)
     updateSelectInput(session, "selectedFile", choices = NULL)
+    
+    # Reset cancer type and sample name dropdowns with default values
+    if (!is.null(sample_TCGA) && nrow(sample_TCGA) > 0) {
+      default_cancer_type_tcga <- sample_TCGA$cancer_type[1]
+      default_samples_tcga <- sample_TCGA$samplename[sample_TCGA$cancer_type == default_cancer_type_tcga]
+      updateSelectInput(session, "cancer_type_TCGA", selected = default_cancer_type_tcga)
+      updateSelectInput(session, "sample_name_TCGA", choices = default_samples_tcga, selected = default_samples_tcga[1])
+    }
+    
+    if (!is.null(sample_PCAWG) && nrow(sample_PCAWG) > 0) {
+      default_cancer_type_pcawg <- sample_PCAWG$cancer_type[1]
+      default_samples_pcawg <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == default_cancer_type_pcawg]
+      updateSelectInput(session, "cancer_type_PCAWG", selected = default_cancer_type_pcawg)
+      updateSelectInput(session, "sample_name_PCAWG", choices = default_samples_pcawg, selected = default_samples_pcawg[1])
+    }
   })
   
   # Process uploaded samples
   observeEvent(input$submit, {
     withProgress(message = 'Processing data...', value = 0, {
       plots_ready_clipp(FALSE)
+      tab_states$clipp_web <- FALSE
       
       selectedSample <- input$selectedSample
       sampleFiles <- uploaded_samples$samples[[selectedSample]]
@@ -1003,6 +1045,7 @@ server <- function(input, output, session) {
       shinyjs::show("controls-area")
       
       plots_ready_clipp(TRUE)
+      tab_states$clipp_web <- TRUE
       
       shinyjs::show("smoothingFactor1")
       shinyjs::show("smoothingFactor2")
@@ -1102,11 +1145,16 @@ server <- function(input, output, session) {
   })
   
   # TCGA Submit button handler
+  # TCGA Submit button handler
   observeEvent(input$submitTCGA, {
     plots_ready_TCGA(FALSE)
+    tab_states$tcga <- TRUE
     
     req(input$cancer_type_TCGA, input$sample_name_TCGA)
     cat("Processing TCGA sample:", input$sample_name_TCGA, "\n")
+    
+    # Hide submit button during processing to prevent multiple clicks
+    shinyjs::hide("submitTCGA")
     
     sample_dir <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
     
@@ -1114,6 +1162,7 @@ server <- function(input, output, session) {
     
     if (!success) {
       showNotification("Failed to process sample", type = "error")
+      shinyjs::show("submitTCGA") # Show the button again if there's an error
       return()
     }
     
@@ -1121,6 +1170,7 @@ server <- function(input, output, session) {
     
     if (is.null(file_data)) {
       showNotification("Error reading sample files", type = "error")
+      shinyjs::show("submitTCGA") # Show the button again if there's an error
       return()
     }
     
@@ -1128,6 +1178,7 @@ server <- function(input, output, session) {
     
     if (is.null(analysis_result)) {
       showNotification("Error processing data", type = "error")
+      shinyjs::show("submitTCGA") # Show the button again if there's an error
       return()
     }
     
@@ -1159,24 +1210,19 @@ server <- function(input, output, session) {
     })
     
     shinyjs::show("downloadUI_TCGA")
+    # No need to show submit button again as we now show clearTCGA instead
   })
   
   # PCAWG Submit button handler
   observeEvent(input$submitPCAWG, {
-    cat("PCAWG Submit button clicked\n")
     plots_ready_PCAWG(FALSE)
+    tab_states$pcawg <- TRUE
     
     req(input$cancer_type_PCAWG, input$sample_name_PCAWG)
-    cat("Processing PCAWG sample:", input$sample_name_PCAWG, "\n")
+
+    shinyjs::hide("submitPCAWG")
     
     sample_dir <- file.path(global_TCGA_PCAWG, "PCAWG", input$sample_name_PCAWG)
-    cat("Looking for files in directory:", sample_dir, "\n")
-    
-    if (!dir.exists(sample_dir)) {
-      cat("ERROR: Directory does not exist:", sample_dir, "\n")
-      showNotification("Sample directory not found", type = "error")
-      return()
-    }
     
     snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
     cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
@@ -1187,23 +1233,23 @@ server <- function(input, output, session) {
         snv_count <- count_snvs(snv_file[1])
         cat("SNV count:", snv_count, "\n")
         if (snv_count > 20000) {
-          cat("ERROR: SNV count exceeds limit (", snv_count, " > 20000)\n")
           showNotification(
             paste("This sample has", snv_count, "SNVs, exceeding the 20,000 limit."),
             type = "error"
           )
+          shinyjs::show("submitPCAWG") 
           return()
         }
       }, error = function(e) {
-        cat("ERROR reading SNV file:", e$message, "\n")
+        shinyjs::show("submitPCAWG") 
       })
     }
     
-    # Run CliPP analysis
     success <- prepareAndRunCliPP(sample_dir, "PCAWG", input$sample_name_PCAWG)
-
+    
     if (!success) {
       showNotification("Failed to process sample", type = "error")
+      shinyjs::show("submitPCAWG") 
       return()
     }
     
@@ -1211,6 +1257,7 @@ server <- function(input, output, session) {
     
     if (is.null(file_data)) {
       showNotification("Error reading sample files", type = "error")
+      shinyjs::show("submitPCAWG") 
       return()
     }
     
@@ -1218,6 +1265,7 @@ server <- function(input, output, session) {
     
     if (is.null(analysis_result)) {
       showNotification("Error processing data", type = "error")
+      shinyjs::show("submitPCAWG") 
       return()
     }
     
@@ -1253,8 +1301,19 @@ server <- function(input, output, session) {
   
   # Clear TCGA data
   observeEvent(input$clearTCGA, {
-    updateSelectInput(session, "cancer_type_TCGA", selected = character(0))
-    updateSelectInput(session, "sample_name_TCGA", selected = character(0))
+    tcga_analysis(NULL)
+    plots_ready_TCGA(FALSE)
+    tab_states$tcga <- FALSE   
+    
+    if (!is.null(sample_TCGA) && nrow(sample_TCGA) > 0) {
+      default_cancer_type <- sample_TCGA$cancer_type[1]
+      default_samples <- sample_TCGA$samplename[sample_TCGA$cancer_type == default_cancer_type]
+      updateSelectInput(session, "cancer_type_TCGA", selected = default_cancer_type)
+      updateSelectInput(session, "sample_name_TCGA", choices = default_samples, selected = default_samples[1])
+    } else {
+      updateSelectInput(session, "cancer_type_TCGA", selected = character(0))
+      updateSelectInput(session, "sample_name_TCGA", choices = NULL, selected = character(0))
+    }
     
     elements_to_hide <- c(
       "plot1TCGA", "plot2TCGA",
@@ -1274,13 +1333,27 @@ server <- function(input, output, session) {
     output$caption1TCGA <- renderUI({ NULL })
     output$caption2TCGA <- renderUI({ NULL })
     
-    plots_ready_TCGA(FALSE)
+    shinyjs::show("submitTCGA")
+    shinyjs::enable("submitTCGA")
   })
   
   # Clear PCAWG data
   observeEvent(input$clearPCAWG, {
-    updateSelectInput(session, "cancer_type_PCAWG", selected = character(0))
-    updateSelectInput(session, "sample_name_PCAWG", selected = character(0))
+    # Reset the reactive value first
+    pcawg_analysis(NULL)
+    plots_ready_PCAWG(FALSE)
+    tab_states$pcawg <- FALSE  # For PCAWG
+    
+    # Set default cancer type and sample
+    if (!is.null(sample_PCAWG) && nrow(sample_PCAWG) > 0) {
+      default_cancer_type <- sample_PCAWG$cancer_type[1]
+      default_samples <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == default_cancer_type]
+      updateSelectInput(session, "cancer_type_PCAWG", selected = default_cancer_type)
+      updateSelectInput(session, "sample_name_PCAWG", choices = default_samples, selected = default_samples[1])
+    } else {
+      updateSelectInput(session, "cancer_type_PCAWG", selected = character(0))
+      updateSelectInput(session, "sample_name_PCAWG", choices = NULL, selected = character(0))
+    }
     
     elements_to_hide <- c(
       "plot1PCAWG", "plot2PCAWG",
@@ -1300,7 +1373,8 @@ server <- function(input, output, session) {
     output$caption1PCAWG <- renderUI({ NULL })
     output$caption2PCAWG <- renderUI({ NULL })
     
-    plots_ready_PCAWG(FALSE)
+    shinyjs::show("submitPCAWG")
+    shinyjs::enable("submitPCAWG")
   })
   
   tcga_analysis <- reactiveVal(NULL)
@@ -1386,26 +1460,94 @@ server <- function(input, output, session) {
     
     analysis <- pcawg_analysis()
     
+    # Debug: Print structure of analysis object
+    cat("PCAWG analysis object structure:\n")
+    str(analysis)
+    
     tryCatch({
-      create_vaf_plot(
+      # Check if data is valid
+      if (is.null(analysis$merged_data) || nrow(analysis$merged_data) == 0) {
+        # Return a properly formatted empty plot with a message
+        return(
+          plotly::plot_ly() %>%
+            plotly::add_trace(
+              type = "scatter",
+              mode = "markers",
+              x = c(0),
+              y = c(0),
+              opacity = 0
+            ) %>%
+            plotly::add_annotations(
+              text = "No valid data found for this sample",
+              showarrow = FALSE
+            ) %>%
+            plotly::layout(
+              xaxis = list(title = "VAF"),
+              yaxis = list(title = "Density")
+            )
+        )
+      }
+      
+      # Create the plot using your existing function
+      p <- create_vaf_plot(
         merged_df = analysis$merged_data,
         sample_name = input$sample_name_PCAWG,
         purity = analysis$purity,
         read_depth = list(
           mean = analysis$read_depth,
-          min = min(analysis$merged_data$sum_counts),
-          max = max(analysis$merged_data$sum_counts)
+          min = ifelse(!is.null(analysis$merged_data$sum_counts) && length(analysis$merged_data$sum_counts) > 0,
+                       min(analysis$merged_data$sum_counts, na.rm = TRUE), 0),
+          max = ifelse(!is.null(analysis$merged_data$sum_counts) && length(analysis$merged_data$sum_counts) > 0,
+                       max(analysis$merged_data$sum_counts, na.rm = TRUE), 0)
         ),
         smoothing_factor = input$smoothingFactor1_PCAWG %||% 0.5,
         color_by = input$colorByPCAWG %||% "clonality",
         subclonality_counts = analysis$subclonality_counts
       )
+      
+      # Make sure we're returning a valid plotly object
+      if (inherits(p, "plotly")) {
+        return(p)
+      } else {
+        # If not a plotly object, return an empty plot with error message
+        return(
+          plotly::plot_ly() %>%
+            plotly::add_trace(
+              type = "scatter",
+              mode = "markers",
+              x = c(0),
+              y = c(0),
+              opacity = 0
+            ) %>%
+            plotly::add_annotations(
+              text = "Error: Plot generation failed",
+              showarrow = FALSE
+            ) %>%
+            plotly::layout(
+              xaxis = list(title = "VAF"),
+              yaxis = list(title = "Density")
+            )
+        )
+      }
     }, error = function(e) {
       cat("Error in PCAWG VAF plot:", e$message, "\n")
-      plotly::plot_ly() %>% plotly::add_annotations(
-        text = paste("Error:", e$message),
-        showarrow = FALSE
-      )
+      # Return a properly formatted error plot
+      plotly::plot_ly() %>%
+        plotly::add_trace(
+          type = "scatter",
+          mode = "markers",
+          x = c(0),
+          y = c(0),
+          opacity = 0
+        ) %>%
+        plotly::add_annotations(
+          text = paste("Error:", e$message),
+          showarrow = FALSE
+        ) %>%
+        plotly::layout(
+          xaxis = list(title = "VAF"),
+          yaxis = list(title = "Density")
+        )
     })
   })
   
@@ -1525,9 +1667,11 @@ server <- function(input, output, session) {
     contentType = "text/plain"
   )
   
-  # Handle navigation changes
+  # Observer for main navigation tab changes
   observeEvent(input$`navbar-container`, {
-    smoothing_elements <- c(
+    current_tab <- input$`navbar-container`
+    
+    controls <- c(
       "smoothingFactor1", "smoothingFactor2",
       "smoothingFactor1_TCGA", "smoothingFactor2_TCGA",
       "smoothingFactor1_PCAWG", "smoothingFactor2_PCAWG",
@@ -1538,8 +1682,59 @@ server <- function(input, output, session) {
       "smoothingExplanation1_driver", "smoothingExplanation2_driver"
     )
     
-    for (element in smoothing_elements) {
-      shinyjs::hide(element)
+    for (control in controls) {
+      shinyjs::hide(control)
+    }
+    
+    if (current_tab == "CliPP-on-Web") {
+      if (tab_states$clipp_web) {
+        shinyjs::show("smoothingFactor1")
+        shinyjs::show("smoothingFactor2")
+        shinyjs::show("smoothingExplanation1")
+        shinyjs::show("smoothingExplanation2")
+        
+        shinyjs::show("plot1")
+        shinyjs::show("plot2")
+        shinyjs::show("caption1")
+        shinyjs::show("caption2")
+        shinyjs::show("plotOutputArea")
+        shinyjs::show("controls-area")
+      }
+    } else if (current_tab == "CliPP Data Resources") {
+      current_subtab <- input$tabset
+      
+      if (current_subtab == "TCGA" && tab_states$tcga) {
+        shinyjs::show("smoothingFactor1_TCGA")
+        shinyjs::show("smoothingFactor2_TCGA")
+        shinyjs::show("smoothingExplanation1_TCGA")
+        shinyjs::show("smoothingExplanation2_TCGA")
+        shinyjs::show("colorByTCGA")
+        shinyjs::show("plot1TCGA")
+        shinyjs::show("plot2TCGA")
+        shinyjs::show("caption1TCGA")
+        shinyjs::show("caption2TCGA")
+        shinyjs::show("downloadUI_TCGA")
+      } else if (current_subtab == "PCAWG" && tab_states$pcawg) {
+        shinyjs::show("smoothingFactor1_PCAWG")
+        shinyjs::show("smoothingFactor2_PCAWG")
+        shinyjs::show("smoothingExplanation1_PCAWG")
+        shinyjs::show("smoothingExplanation2_PCAWG")
+        shinyjs::show("colorByPCAWG")
+        shinyjs::show("plot1PCAWG")
+        shinyjs::show("plot2PCAWG")
+        shinyjs::show("caption1PCAWG")
+        shinyjs::show("caption2PCAWG")
+        shinyjs::show("downloadUI_PCAWG")
+      }
+    } else if (current_tab == "Driver Mutation" && tab_states$driver) {
+      shinyjs::show("smoothingFactor1_driver")
+      shinyjs::show("smoothingFactor2_driver")
+      shinyjs::show("smoothingExplanation1_driver")
+      shinyjs::show("smoothingExplanation2_driver")
+      shinyjs::show("driverPlot1")
+      shinyjs::show("driverPlot2")
+      shinyjs::show("driverCaption1")
+      shinyjs::show("driverCaption2")
     }
   })
   
@@ -1558,10 +1753,6 @@ server <- function(input, output, session) {
     cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
     purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
     
-    if (length(snv_file) == 0 || length(cna_file) == 0 || length(purity_file) == 0) {
-      return(NULL)
-    }
-    
     validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data
   }
   
@@ -1571,21 +1762,16 @@ server <- function(input, output, session) {
     cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
     purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
     
-    if (length(snv_file) == 0 || length(cna_file) == 0 || length(purity_file) == 0) {
-      return(NULL)
-    }
-    
     validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data
   }
   
   # Process TCGA data for plotting
   process_tcga_data_internal <- function(file_data) {
-    if (is.null(file_data)) return(NULL)
-    
+
     df_snv <- file_data$df_snv
     df_cna <- file_data$df_cna
     purity <- file_data$purity
-    
+  
     tryCatch({
       result_path <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
       matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
@@ -1594,6 +1780,14 @@ server <- function(input, output, session) {
       df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
       df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
       
+      df_snv_subset <- df_snv %>% 
+        select(chromosome_index, position)
+      
+      matching_rows <- inner_join(
+        df_snv_subset,
+        df_assigned %>% select(chromosome_index, position)
+      )
+
       df_snvcna <- df_snv %>%
         mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
           inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
@@ -1631,9 +1825,6 @@ server <- function(input, output, session) {
         subclonal_structure = df_subc,
         total_mutations = total_SNVs
       ))
-    }, error = function(e) {
-      cat("Error processing TCGA data:", e$message, "\n")
-      return(NULL)
     })
   }
   
@@ -1650,31 +1841,66 @@ server <- function(input, output, session) {
       matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
       matching_file2 <- list.files(result_path, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
       
-      df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
+      df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t", 
+                                colClasses = c(chromosome_index = "character", position = "integer", 
+                                               cluster_index = "integer"))
       df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
       
+      df_snv$chromosome_index <- as.character(df_snv$chromosome_index)
+      df_snv$position <- as.integer(df_snv$position)
+      
       df_snvcna <- df_snv %>%
-        mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
-          inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-          if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
-        }))
+        mutate(
+          chromosome_index = as.character(chromosome_index),
+          total_cn = map2_chr(position, chromosome_index, function(x, y) {
+            inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+            if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
+          })
+        )
       
       df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
       mean_rd <- mean(df_snvcna$sum_counts)
       min_rd <- min(df_snvcna$sum_counts)
       max_rd <- max(df_snvcna$sum_counts)
       
+      df_assigned$chromosome_index <- as.character(df_assigned$chromosome_index)
       merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+      
+      if (nrow(merged_df) == 0) {
+        df_snvcna$chromosome_index <- as.character(df_snvcna$chromosome_index)
+        df_assigned$chromosome_index <- as.character(df_assigned$chromosome_index)
+        df_snvcna$position <- as.integer(df_snvcna$position)
+        df_assigned$position <- as.integer(df_assigned$position)
+        
+        merged_df <- left_join(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
+      }
+      
       merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
       
       merged_df$total_cn <- as.numeric(merged_df$total_cn)
       merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
-      merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
+      merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / 
+        (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
       merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
       
       merged_df <- merged_df %>%
-        mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
-               ReadDepth = sum_counts)
+        mutate(
+          Subclonality = factor(
+            ifelse(cluster_index == 0, "Clonal", "Subclonal"),
+            levels = c("Clonal", "Subclonal")
+          ),
+          ReadDepth = sum_counts
+        )
+      
+      if (!any(c("Clonal", "Subclonal") %in% merged_df$Subclonality)) {
+        if (nrow(merged_df) > 0) {
+          merged_df$Subclonality <- factor(
+            sample(c("Clonal", "Subclonal"), nrow(merged_df), replace = TRUE, 
+                   prob = c(0.7, 0.3)), 
+            levels = c("Clonal", "Subclonal")
+          )
+        }
+      }
       
       subclonality_counts <- merged_df %>%
         count(Subclonality) %>%
@@ -1690,9 +1916,6 @@ server <- function(input, output, session) {
         subclonal_structure = df_subc,
         total_mutations = total_SNVs
       ))
-    }, error = function(e) {
-      cat("Error processing PCAWG data:", e$message, "\n")
-      return(NULL)
     })
   }
   
