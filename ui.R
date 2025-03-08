@@ -67,8 +67,9 @@ ui <- fluidPage(
              # Page 1: About section with application description and contact info
              tabPanel("About",
                       tags$div(
-                        tags$h4(tags$b(tags$span("Description"))),
-                        p("CliPP-on-Web: Scalable Subclonal Reconstruction for Cancer Research Advancing Tumor Evolution Studies with Efficient Analysis"),
+                        #tags$h4(tags$b(tags$span("Description"))),
+                        #p("CliPP-on-Web: Scalable Subclonal Reconstruction for Cancer Research"),
+                        p(tags$b("Advancing Tumor Evolution Studies with Efficient Analysis")),
                         p("CliPP (Clonal structure identification through Pairwise Penalization) is an advanced computational framework for identifying clonal and subclonal mutations using a regularized likelihood model. Designed for researchers investigating tumor heterogeneity, CliPP-on-Web provides rapid and accurate subclonal reconstruction without requiring programming expertise."),
                         p(tags$b("Addressing Computational Challenges in Subclonal Analysis")),
                         p("Intra-tumor heterogeneity plays a critical role in tumor evolution and therapeutic resistance. However, large-scale subclonal reconstruction has traditionally been constrained by computational limitations. CliPP-on-Web overcomes these challenges by enabling high-throughput, efficient analysis of sequencing data at scale."),
