@@ -116,10 +116,14 @@ server <- function(input, output, session) {
       
       vaf_range <- if (all(is.na(vaf_values))) {
         "NA"
+      } else {
+        paste(sprintf("%.3f", range(vaf_values, na.rm = TRUE)), collapse = "-")
       }
       
       cp_range <- if (all(is.na(cp_values))) {
         "NA"
+      } else {
+        paste(sprintf("%.3f", range(cp_values, na.rm = TRUE)), collapse = "-")
       }
       
       mutation_count <- nrow(sample_rows)
