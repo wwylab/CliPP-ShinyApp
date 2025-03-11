@@ -12,27 +12,239 @@ server <- function(input, output, session) {
     driver = FALSE         
   )
   
+  observe({
+    analysis_data <- tcga_analysis()
+    
+    if (!is.null(analysis_data) && plots_ready_TCGA()) {
+
+      output$plot1TCGA <- renderPlotly({
+
+        req(plots_ready_TCGA())
+        current_analysis <- tcga_analysis()
+        req(!is.null(current_analysis))
+        
+        tryCatch({
+          vaf_plot <- create_vaf_plot(
+            merged_df = current_analysis$merged_data,
+            sample_name = input$sample_name_TCGA,
+            purity = current_analysis$purity,
+            read_depth = list(
+              mean = current_analysis$read_depth,
+              min = min(current_analysis$merged_data$sum_counts, na.rm = TRUE),
+              max = max(current_analysis$merged_data$sum_counts, na.rm = TRUE)
+            ),
+            smoothing_factor = input$smoothingFactor1_TCGA %||% 0.5,
+            color_by = input$colorByTCGA %||% "clonality",
+            subclonality_counts = current_analysis$subclonality_counts
+          )
+          return(vaf_plot)
+        }, error = function(e) {
+          return(plotly::plot_ly() %>% 
+                   plotly::add_annotations(
+                     text = paste("Error:", e$message),
+                     showarrow = FALSE
+                   )
+          )
+        })
+      })
+      
+      output$plot2TCGA <- renderPlotly({
+
+        req(plots_ready_TCGA())
+        current_analysis <- tcga_analysis()
+        req(!is.null(current_analysis))
+        
+        tryCatch({
+          cp_plot <- create_cp_plot(
+            merged_df = current_analysis$merged_data,
+            sample_name = input$sample_name_TCGA,
+            smoothing_factor = input$smoothingFactor2_TCGA %||% 0.5,
+            color_by = input$colorByTCGA %||% "clonality",
+            subclonality_counts = current_analysis$subclonality_counts,
+            df_subc = current_analysis$subclonal_structure
+          )
+          return(cp_plot)
+        }, error = function(e) {
+          return(plotly::plot_ly() %>% 
+                   plotly::add_annotations(
+                     text = paste("Error:", e$message),
+                     showarrow = FALSE
+                   )
+          )
+        })
+      })
+      
+      shinyjs::show("plot1TCGA")
+      shinyjs::show("plot2TCGA")
+      shinyjs::show("caption1TCGA")
+      shinyjs::show("caption2TCGA")
+      }
+  })
+  
+  observe({
+    analysis_data <- pcawg_analysis()
+    
+    if (!is.null(analysis_data) && plots_ready_PCAWG()) {
+
+      output$plot1PCAWG <- renderPlotly({
+
+        req(plots_ready_PCAWG())
+        current_analysis <- pcawg_analysis()
+        req(!is.null(current_analysis))
+        
+        tryCatch({
+
+          if (is.null(current_analysis$merged_data) || nrow(current_analysis$merged_data) == 0) {
+            return(
+              plotly::plot_ly() %>%
+                plotly::add_trace(
+                  type = "scatter",
+                  mode = "markers",
+                  x = c(0),
+                  y = c(0),
+                  opacity = 0
+                ) %>%
+                plotly::add_annotations(
+                  text = "No valid data found for this sample",
+                  showarrow = FALSE
+                ) %>%
+                plotly::layout(
+                  xaxis = list(title = "VAF"),
+                  yaxis = list(title = "Density")
+                )
+            )
+          }
+          
+          vaf_plot <- create_vaf_plot(
+            merged_df = current_analysis$merged_data,
+            sample_name = input$sample_name_PCAWG,
+            purity = current_analysis$purity,
+            read_depth = list(
+              mean = current_analysis$read_depth,
+              min = ifelse(!is.null(current_analysis$merged_data$sum_counts) && length(current_analysis$merged_data$sum_counts) > 0,
+                           min(current_analysis$merged_data$sum_counts, na.rm = TRUE), 0),
+              max = ifelse(!is.null(current_analysis$merged_data$sum_counts) && length(current_analysis$merged_data$sum_counts) > 0,
+                           max(current_analysis$merged_data$sum_counts, na.rm = TRUE), 0)
+            ),
+            smoothing_factor = input$smoothingFactor1_PCAWG %||% 0.5,
+            color_by = input$colorByPCAWG %||% "clonality",
+            subclonality_counts = current_analysis$subclonality_counts
+          )
+          return(vaf_plot)
+        }, error = function(e) {
+          return(
+            plotly::plot_ly() %>%
+              plotly::add_trace(
+                type = "scatter",
+                mode = "markers",
+                x = c(0),
+                y = c(0),
+                opacity = 0
+              ) %>%
+              plotly::add_annotations(
+                text = paste("Error:", e$message),
+                showarrow = FALSE
+              ) %>%
+              plotly::layout(
+                xaxis = list(title = "VAF"),
+                yaxis = list(title = "Density")
+              )
+          )
+        })
+      })
+      
+      output$plot2PCAWG <- renderPlotly({
+
+        req(plots_ready_PCAWG())
+        current_analysis <- pcawg_analysis()
+        req(!is.null(current_analysis))
+        
+        tryCatch({
+
+          if (is.null(current_analysis$merged_data) || nrow(current_analysis$merged_data) == 0) {
+            return(
+              plotly::plot_ly() %>%
+                plotly::add_trace(
+                  type = "scatter",
+                  mode = "markers",
+                  x = c(0),
+                  y = c(0),
+                  opacity = 0
+                ) %>%
+                plotly::add_annotations(
+                  text = "No valid data found for this sample",
+                  showarrow = FALSE
+                ) %>%
+                plotly::layout(
+                  xaxis = list(title = "Cellular Prevalence"),
+                  yaxis = list(title = "Density")
+                )
+            )
+          }
+          
+          cp_plot <- create_cp_plot(
+            merged_df = current_analysis$merged_data,
+            sample_name = input$sample_name_PCAWG,
+            smoothing_factor = input$smoothingFactor2_PCAWG %||% 0.5,
+            color_by = input$colorByPCAWG %||% "clonality",
+            subclonality_counts = current_analysis$subclonality_counts,
+            df_subc = current_analysis$subclonal_structure
+          )
+          return(cp_plot)
+        }, error = function(e) {
+          return(
+            plotly::plot_ly() %>%
+              plotly::add_trace(
+                type = "scatter",
+                mode = "markers",
+                x = c(0),
+                y = c(0),
+                opacity = 0
+              ) %>%
+              plotly::add_annotations(
+                text = paste("Error:", e$message),
+                showarrow = FALSE
+              ) %>%
+              plotly::layout(
+                xaxis = list(title = "Cellular Prevalence"),
+                yaxis = list(title = "Density")
+              )
+          )
+        })
+      })
+      
+      shinyjs::show("plot1PCAWG")
+      shinyjs::show("plot2PCAWG")
+      shinyjs::show("caption1PCAWG")
+      shinyjs::show("caption2PCAWG")
+      }
+  })
+
   # Update existing reactiveVal observers to also update the tab_states
   output$plotsReadyCliPP <- reactive({
-    return(plots_ready_clipp())
+    value <- plots_ready_clipp()
+    return(value)
   })
   outputOptions(output, "plotsReadyCliPP", suspendWhenHidden = FALSE)
   
   # For TCGA tab
   output$plotsReadyTCGA <- reactive({
-    return(plots_ready_TCGA())
+    value <- plots_ready_TCGA()
+    return(value)
   })
   outputOptions(output, "plotsReadyTCGA", suspendWhenHidden = FALSE)
   
   # For PCAWG tab
   output$plotsReadyPCAWG <- reactive({
-    return(plots_ready_PCAWG())
+    value <- plots_ready_PCAWG()
+    return(value)
   })
   outputOptions(output, "plotsReadyPCAWG", suspendWhenHidden = FALSE)
   
   # For Driver Mutation tab
   output$driverRowSelected <- reactive({
-    return(!is.null(input$driverMutationTable_rows_selected))
+    value <- !is.null(input$driverMutationTable_rows_selected)
+    return(value)
   })
   outputOptions(output, "driverRowSelected", suspendWhenHidden = FALSE)
   
@@ -153,7 +365,6 @@ server <- function(input, output, session) {
     selectInput("gene_name_driver", "Select Gene:", choices = NULL)
   })
   
-  # Render the driver mutation table
   # Render the driver mutation table
   output$driverMutationTable <- DT::renderDataTable({
     # Explicitly depend on both cancer type and view mode
@@ -280,8 +491,7 @@ server <- function(input, output, session) {
       matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
       
       if (length(matching_file1) == 0 || length(matching_file2) == 0) {
-        cat("Mutation assignment files not found. Creating simplified plot.\n")
-        
+
         plot_data <- if (!is.null(individual_mutation)) {
           individual_mutation
         } else {
@@ -570,7 +780,6 @@ server <- function(input, output, session) {
       return(TRUE)
       
     }, error = function(e) {
-      cat("Error processing sample:", e$message, "\n")
       showNotification(paste("Error processing sample:", e$message), type = "error")
       
       # Create simple error plots
@@ -665,7 +874,6 @@ server <- function(input, output, session) {
       }
     }, error = function(e) {
       showNotification(paste("Error:", e$message), type = "error")
-      cat("Error in row selection:", e$message, "\n")
     })
   })
   
@@ -673,29 +881,23 @@ server <- function(input, output, session) {
     shinyjs::hide("smoothingControls")
     
     # When the cancer type changes, we need to start fresh
-    # Clear any existing table selection to prevent stale data
     dataTableProxy("driverMutationTable") %>% selectRows(NULL)
     
-    # Hide plots and explanations when changing cancer type
     shinyjs::hide("smoothingFactor1_driver")
     shinyjs::hide("smoothingFactor2_driver")
     shinyjs::hide("smoothingExplanation1_driver")
     shinyjs::hide("smoothingExplanation2_driver")
     
-    # Clear existing plots
     output$driverPlot1 <- renderPlotly({ NULL })
     output$driverPlot2 <- renderPlotly({ NULL })
     output$driverCaption1 <- renderUI({ NULL })
     output$driverCaption2 <- renderUI({ NULL })
     
-    # Make sure we have a valid cancer type selection
     selected_cancer_type <- input$cancer_type_driver
     if (is.null(selected_cancer_type) || selected_cancer_type == "") {
-      return() # Exit early if no valid selection
+      return() 
     }
     
-    # This ensures the driver mutation table gets refreshed with the new cancer type
-    # Use isolate to avoid circular reactivity
     driver_mutations <- isolate({
       driver_mutation_data %>% 
         filter(cancer == selected_cancer_type)
@@ -703,7 +905,6 @@ server <- function(input, output, session) {
     
     if (nrow(driver_mutations) == 0) {
       showNotification("No driver mutations found for this cancer type", type = "warning")
-      # Make sure to render an empty table to clear previous data
       output$driverMutationTable <- DT::renderDataTable({
         DT::datatable(
           data.frame(message = "No data available for the selected cancer type"),
@@ -713,12 +914,10 @@ server <- function(input, output, session) {
       return()
     }
     
-    # Explicitly update the driver mutation table to reflect the new cancer type selection
     view_mode <- ifelse(is.null(input$view_mode), "individual", input$view_mode)
     
     output$driverMutationTable <- DT::renderDataTable({
       if (view_mode == "consolidated") {
-        # Create a consolidated view of mutations by sample
         samples <- unique(driver_mutations$sample)
         consolidated <- data.frame(
           sample = character(),
@@ -770,7 +969,6 @@ server <- function(input, output, session) {
             color = 'black'
           )
       } else {
-        # Show individual mutations
         display_columns <- c("gene", "sample", "protein", "consequence", "Subclonality", "VAF", "CP_unpenalized")
         display_data <- driver_mutations[, display_columns]
         
@@ -794,7 +992,7 @@ server <- function(input, output, session) {
       }
     })
     
-    # Add explanatory captions - these don't depend on data
+    # Add explanatory captions 
     output$driverCaption1 <- renderUI({
       HTML("<p>
       - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
@@ -972,7 +1170,6 @@ server <- function(input, output, session) {
   })
   
   # Clear current session data
-  # Clear current session data
   observeEvent(input$clear, {
     uploadedSamples$samples <- list()
     samplesUploaded(FALSE)
@@ -1003,7 +1200,6 @@ server <- function(input, output, session) {
     plots_ready_clipp(FALSE)
     updateSelectInput(session, "selectedFile", choices = NULL)
     
-    # Reset cancer type and sample name dropdowns with default values
     if (!is.null(sample_TCGA) && nrow(sample_TCGA) > 0) {
       default_cancer_type_tcga <- sample_TCGA$cancer_type[1]
       default_samples_tcga <- sample_TCGA$samplename[sample_TCGA$cancer_type == default_cancer_type_tcga]
@@ -1149,40 +1345,37 @@ server <- function(input, output, session) {
   })
   
   # TCGA Submit button handler
-  # TCGA Submit button handler
   observeEvent(input$submitTCGA, {
     plots_ready_TCGA(FALSE)
-    tab_states$tcga <- TRUE
-    
+    tab_states$tcga <- FALSE
+
     req(input$cancer_type_TCGA, input$sample_name_TCGA)
-    cat("Processing TCGA sample:", input$sample_name_TCGA, "\n")
-    
-    # Hide submit button during processing to prevent multiple clicks
+
     shinyjs::hide("submitTCGA")
+    shinyjs::disable("submitTCGA")
     
     sample_dir <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
-    
     success <- prepareAndRunCliPP(sample_dir, "TCGA", input$sample_name_TCGA)
-    
+
     if (!success) {
       showNotification("Failed to process sample", type = "error")
-      shinyjs::show("submitTCGA") # Show the button again if there's an error
+      shinyjs::show("submitTCGA") 
       return()
     }
     
     file_data <- read_tcga_files(sample_dir)
-    
+
     if (is.null(file_data)) {
       showNotification("Error reading sample files", type = "error")
-      shinyjs::show("submitTCGA") # Show the button again if there's an error
+      shinyjs::show("submitTCGA") 
       return()
     }
     
     analysis_result <- process_tcga_data_internal(file_data)
-    
+
     if (is.null(analysis_result)) {
       showNotification("Error processing data", type = "error")
-      shinyjs::show("submitTCGA") # Show the button again if there's an error
+      shinyjs::show("submitTCGA") 
       return()
     }
     
@@ -1196,10 +1389,12 @@ server <- function(input, output, session) {
     shinyjs::show("caption2TCGA")
     
     plots_ready_TCGA(TRUE)
-    shinyjs::show("smoothingFactor1")
-    shinyjs::show("smoothingFactor2")
-    shinyjs::show("smoothingExplanation1")
-    shinyjs::show("smoothingExplanation2")
+    tab_states$tcga <- TRUE
+
+    shinyjs::show("smoothingFactor1_TCGA")
+    shinyjs::show("smoothingFactor2_TCGA")
+    shinyjs::show("smoothingExplanation1_TCGA")
+    shinyjs::show("smoothingExplanation2_TCGA")
     shinyjs::show(selector = ".controls-area")
     
     # Create download UI
@@ -1214,17 +1409,17 @@ server <- function(input, output, session) {
     })
     
     shinyjs::show("downloadUI_TCGA")
-    # No need to show submit button again as we now show clearTCGA instead
   })
   
   # PCAWG Submit button handler
   observeEvent(input$submitPCAWG, {
     plots_ready_PCAWG(FALSE)
-    tab_states$pcawg <- TRUE
+    tab_states$pcawg <- FALSE
     
     req(input$cancer_type_PCAWG, input$sample_name_PCAWG)
 
     shinyjs::hide("submitPCAWG")
+    shinyjs::disable("submitPCAWG")
     
     sample_dir <- file.path(global_TCGA_PCAWG, "PCAWG", input$sample_name_PCAWG)
     
@@ -1235,10 +1430,8 @@ server <- function(input, output, session) {
     if (length(snv_file) > 0) {
       tryCatch({
         snv_count <- count_snvs(snv_file[1])
-        cat("SNV count:", snv_count, "\n")
         if (snv_count > 20000) {
           showNotification(
-            paste("This sample has", snv_count, "SNVs, exceeding the 20,000 limit."),
             type = "error"
           )
           shinyjs::show("submitPCAWG") 
@@ -1252,7 +1445,6 @@ server <- function(input, output, session) {
     success <- prepareAndRunCliPP(sample_dir, "PCAWG", input$sample_name_PCAWG)
     
     if (!success) {
-      showNotification("Failed to process sample", type = "error")
       shinyjs::show("submitPCAWG") 
       return()
     }
@@ -1260,7 +1452,6 @@ server <- function(input, output, session) {
     file_data <- read_pcawg_files(sample_dir)
     
     if (is.null(file_data)) {
-      showNotification("Error reading sample files", type = "error")
       shinyjs::show("submitPCAWG") 
       return()
     }
@@ -1268,7 +1459,6 @@ server <- function(input, output, session) {
     analysis_result <- process_pcawg_data_internal(file_data)
     
     if (is.null(analysis_result)) {
-      showNotification("Error processing data", type = "error")
       shinyjs::show("submitPCAWG") 
       return()
     }
@@ -1283,6 +1473,7 @@ server <- function(input, output, session) {
     shinyjs::show("caption2PCAWG")
     
     plots_ready_PCAWG(TRUE)
+    tab_states$pcawg <- TRUE
     shinyjs::show("smoothingFactor1")
     shinyjs::show("smoothingFactor2")
     shinyjs::show("smoothingExplanation1")
@@ -1306,17 +1497,15 @@ server <- function(input, output, session) {
   # Clear TCGA data
   observeEvent(input$clearTCGA, {
     tcga_analysis(NULL)
-    plots_ready_TCGA(FALSE)
-    tab_states$tcga <- FALSE   
     
+    plots_ready_TCGA(FALSE)
+    tab_states$tcga <- FALSE
+
     if (!is.null(sample_TCGA) && nrow(sample_TCGA) > 0) {
       default_cancer_type <- sample_TCGA$cancer_type[1]
       default_samples <- sample_TCGA$samplename[sample_TCGA$cancer_type == default_cancer_type]
       updateSelectInput(session, "cancer_type_TCGA", selected = default_cancer_type)
       updateSelectInput(session, "sample_name_TCGA", choices = default_samples, selected = default_samples[1])
-    } else {
-      updateSelectInput(session, "cancer_type_TCGA", selected = character(0))
-      updateSelectInput(session, "sample_name_TCGA", choices = NULL, selected = character(0))
     }
     
     elements_to_hide <- c(
@@ -1332,31 +1521,39 @@ server <- function(input, output, session) {
       shinyjs::hide(element)
     }
     
-    output$plot1TCGA <- renderPlotly({ NULL })
-    output$plot2TCGA <- renderPlotly({ NULL })
+    output$plot1TCGA <- renderPlotly({ 
+      plotly::plot_ly() %>% plotly::layout(title = "")
+    })
+    output$plot2TCGA <- renderPlotly({ 
+      plotly::plot_ly() %>% plotly::layout(title = "")
+    })
+    
+    # Clear UI text elements
     output$caption1TCGA <- renderUI({ NULL })
     output$caption2TCGA <- renderUI({ NULL })
     
+    # Reset download UI
+    output$downloadUI_TCGA <- renderUI({ NULL })
+    
     shinyjs::show("submitTCGA")
     shinyjs::enable("submitTCGA")
+    updateSliderInput(session, "smoothingFactor1_TCGA", value = 0.45)
+    updateSliderInput(session, "smoothingFactor2_TCGA", value = 0.45)
+    
+    invalidateLater(1)
   })
   
   # Clear PCAWG data
   observeEvent(input$clearPCAWG, {
-    # Reset the reactive value first
     pcawg_analysis(NULL)
     plots_ready_PCAWG(FALSE)
-    tab_states$pcawg <- FALSE  # For PCAWG
+    tab_states$pcawg <- FALSE  
     
-    # Set default cancer type and sample
     if (!is.null(sample_PCAWG) && nrow(sample_PCAWG) > 0) {
       default_cancer_type <- sample_PCAWG$cancer_type[1]
       default_samples <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == default_cancer_type]
       updateSelectInput(session, "cancer_type_PCAWG", selected = default_cancer_type)
       updateSelectInput(session, "sample_name_PCAWG", choices = default_samples, selected = default_samples[1])
-    } else {
-      updateSelectInput(session, "cancer_type_PCAWG", selected = character(0))
-      updateSelectInput(session, "sample_name_PCAWG", choices = NULL, selected = character(0))
     }
     
     elements_to_hide <- c(
@@ -1379,6 +1576,8 @@ server <- function(input, output, session) {
     
     shinyjs::show("submitPCAWG")
     shinyjs::enable("submitPCAWG")
+    
+    invalidateLater(1)
   })
   
   tcga_analysis <- reactiveVal(NULL)
@@ -1386,12 +1585,15 @@ server <- function(input, output, session) {
   
   # TCGA Plot renderers
   output$plot1TCGA <- renderPlotly({
-    req(plots_ready_TCGA(), tcga_analysis())
-    
-    analysis <- tcga_analysis()
+    tcga_ready <- plots_ready_TCGA()
+    tcga_data <- tcga_analysis()
+
+    req(tcga_ready, tcga_data)
+
+    analysis <- tcga_data
     
     tryCatch({
-      create_vaf_plot(
+      plot <- create_vaf_plot(
         merged_df = analysis$merged_data,
         sample_name = input$sample_name_TCGA,
         purity = analysis$purity,
@@ -1404,8 +1606,8 @@ server <- function(input, output, session) {
         color_by = input$colorByTCGA %||% "clonality",
         subclonality_counts = analysis$subclonality_counts
       )
+      return(plot)
     }, error = function(e) {
-      cat("Error in TCGA VAF plot:", e$message, "\n")
       plotly::plot_ly() %>% plotly::add_annotations(
         text = paste("Error:", e$message),
         showarrow = FALSE
@@ -1428,13 +1630,13 @@ server <- function(input, output, session) {
         df_subc = analysis$subclonal_structure
       )
     }, error = function(e) {
-      cat("Error in TCGA CP plot:", e$message, "\n")
       plotly::plot_ly() %>% plotly::add_annotations(
         text = paste("Error:", e$message),
         showarrow = FALSE
       )
     })
   })
+  
   # TCGA captions and explanations
   output$caption1TCGA <- renderUI({
     req(plots_ready_TCGA())
@@ -1464,14 +1666,10 @@ server <- function(input, output, session) {
     
     analysis <- pcawg_analysis()
     
-    # Debug: Print structure of analysis object
-    cat("PCAWG analysis object structure:\n")
     str(analysis)
     
     tryCatch({
-      # Check if data is valid
       if (is.null(analysis$merged_data) || nrow(analysis$merged_data) == 0) {
-        # Return a properly formatted empty plot with a message
         return(
           plotly::plot_ly() %>%
             plotly::add_trace(
@@ -1534,8 +1732,6 @@ server <- function(input, output, session) {
         )
       }
     }, error = function(e) {
-      cat("Error in PCAWG VAF plot:", e$message, "\n")
-      # Return a properly formatted error plot
       plotly::plot_ly() %>%
         plotly::add_trace(
           type = "scatter",
@@ -1570,7 +1766,6 @@ server <- function(input, output, session) {
         df_subc = analysis$subclonal_structure
       )
     }, error = function(e) {
-      cat("Error in PCAWG CP plot:", e$message, "\n")
       plotly::plot_ly() %>% plotly::add_annotations(
         text = paste("Error:", e$message),
         showarrow = FALSE
@@ -1674,7 +1869,7 @@ server <- function(input, output, session) {
   # Observer for main navigation tab changes
   observeEvent(input$`navbar-container`, {
     current_tab <- input$`navbar-container`
-    
+
     controls <- c(
       "smoothingFactor1", "smoothingFactor2",
       "smoothingFactor1_TCGA", "smoothingFactor2_TCGA",
@@ -1706,18 +1901,20 @@ server <- function(input, output, session) {
       }
     } else if (current_tab == "CliPP Data Resources") {
       current_subtab <- input$tabset
-      
-      if (current_subtab == "TCGA" && tab_states$tcga) {
-        shinyjs::show("smoothingFactor1_TCGA")
-        shinyjs::show("smoothingFactor2_TCGA")
-        shinyjs::show("smoothingExplanation1_TCGA")
-        shinyjs::show("smoothingExplanation2_TCGA")
-        shinyjs::show("colorByTCGA")
-        shinyjs::show("plot1TCGA")
-        shinyjs::show("plot2TCGA")
-        shinyjs::show("caption1TCGA")
-        shinyjs::show("caption2TCGA")
-        shinyjs::show("downloadUI_TCGA")
+
+      if (current_subtab == "TCGA") {
+        if (tab_states$tcga) {
+          shinyjs::show("smoothingFactor1_TCGA")
+          shinyjs::show("smoothingFactor2_TCGA")
+          shinyjs::show("smoothingExplanation1_TCGA")
+          shinyjs::show("smoothingExplanation2_TCGA")
+          shinyjs::show("colorByTCGA")
+          shinyjs::show("plot1TCGA")
+          shinyjs::show("plot2TCGA")
+          shinyjs::show("caption1TCGA")
+          shinyjs::show("caption2TCGA")
+          shinyjs::show("downloadUI_TCGA")
+        }
       } else if (current_subtab == "PCAWG" && tab_states$pcawg) {
         shinyjs::show("smoothingFactor1_PCAWG")
         shinyjs::show("smoothingFactor2_PCAWG")
