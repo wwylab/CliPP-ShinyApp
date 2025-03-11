@@ -1,3 +1,8 @@
+# for Sylvain
+#old_path <- Sys.getenv("PATH")
+#Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
+#Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
+
 server <- function(input, output, session) {
   
   plots_ready_clipp <- reactiveVal(FALSE)
