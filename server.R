@@ -788,16 +788,18 @@ server <- function(input, output, session) {
       showNotification(paste("Error processing sample:", e$message), type = "error")
       
       # Create simple error plots
-      output$driverPlot1 <- renderPlotly({
-        plotly::plot_ly() %>% 
+      output$driverPlot1 <- renderPlotly({ 
+        plotly::plot_ly(type = "scatter", mode = "markers") %>% 
+          plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
           plotly::add_annotations(
             text = paste("Error processing sample:", e$message),
             showarrow = FALSE
           )
       })
       
-      output$driverPlot2 <- renderPlotly({
-        plotly::plot_ly() %>% 
+      output$driverPlot2 <- renderPlotly({ 
+        plotly::plot_ly(type = "scatter", mode = "markers") %>% 
+          plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
           plotly::add_annotations(
             text = paste("Error processing sample:", e$message),
             showarrow = FALSE
@@ -1356,6 +1358,8 @@ server <- function(input, output, session) {
 
     req(input$cancer_type_TCGA, input$sample_name_TCGA)
 
+    shinyjs::disable("cancer_type_TCGA")
+    shinyjs::disable("sample_name_TCGA")
     shinyjs::hide("submitTCGA")
     shinyjs::disable("submitTCGA")
     
@@ -1423,6 +1427,8 @@ server <- function(input, output, session) {
     
     req(input$cancer_type_PCAWG, input$sample_name_PCAWG)
 
+    shinyjs::disable("cancer_type_PCAWG")
+    shinyjs::disable("sample_name_PCAWG")
     shinyjs::hide("submitPCAWG")
     shinyjs::disable("submitPCAWG")
     
@@ -1506,6 +1512,9 @@ server <- function(input, output, session) {
     plots_ready_TCGA(FALSE)
     tab_states$tcga <- FALSE
 
+    shinyjs::enable("cancer_type_TCGA")
+    shinyjs::enable("sample_name_TCGA")
+    
     if (!is.null(sample_TCGA) && nrow(sample_TCGA) > 0) {
       default_cancer_type <- sample_TCGA$cancer_type[1]
       default_samples <- sample_TCGA$samplename[sample_TCGA$cancer_type == default_cancer_type]
@@ -1527,10 +1536,14 @@ server <- function(input, output, session) {
     }
     
     output$plot1TCGA <- renderPlotly({ 
-      plotly::plot_ly() %>% plotly::layout(title = "")
+      plotly::plot_ly(type = "scatter", mode = "markers") %>% 
+        plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+        plotly::layout(title = "")
     })
     output$plot2TCGA <- renderPlotly({ 
-      plotly::plot_ly() %>% plotly::layout(title = "")
+      plotly::plot_ly(type = "scatter", mode = "markers") %>% 
+        plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+        plotly::layout(title = "")
     })
     
     # Clear UI text elements
@@ -1554,6 +1567,9 @@ server <- function(input, output, session) {
     plots_ready_PCAWG(FALSE)
     tab_states$pcawg <- FALSE  
     
+    shinyjs::enable("cancer_type_PCAWG")
+    shinyjs::enable("sample_name_PCAWG")
+    
     if (!is.null(sample_PCAWG) && nrow(sample_PCAWG) > 0) {
       default_cancer_type <- sample_PCAWG$cancer_type[1]
       default_samples <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == default_cancer_type]
@@ -1574,6 +1590,17 @@ server <- function(input, output, session) {
       shinyjs::hide(element)
     }
     
+    output$plot1PCAWG <- renderPlotly({ 
+      plotly::plot_ly(type = "scatter", mode = "markers") %>% 
+        plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+        plotly::layout(title = "") 
+    })
+    output$plot2PCAWG <- renderPlotly({ 
+      plotly::plot_ly(type = "scatter", mode = "markers") %>% 
+        plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+        plotly::layout(title = "") 
+    })
+    
     output$plot1PCAWG <- renderPlotly({ NULL })
     output$plot2PCAWG <- renderPlotly({ NULL })
     output$caption1PCAWG <- renderUI({ NULL })
@@ -1590,54 +1617,66 @@ server <- function(input, output, session) {
   
   # TCGA Plot renderers
   output$plot1TCGA <- renderPlotly({
-    tcga_ready <- plots_ready_TCGA()
-    tcga_data <- tcga_analysis()
-
-    req(tcga_ready, tcga_data)
-
-    analysis <- tcga_data
+    req(plots_ready_TCGA())
+    current_analysis <- tcga_analysis()
+    req(!is.null(current_analysis))
     
     tryCatch({
-      plot <- create_vaf_plot(
-        merged_df = analysis$merged_data,
+      vaf_plot <- create_vaf_plot(
+        merged_df = current_analysis$merged_data,
         sample_name = input$sample_name_TCGA,
-        purity = analysis$purity,
+        purity = current_analysis$purity,
         read_depth = list(
-          mean = analysis$read_depth,
-          min = min(analysis$merged_data$sum_counts),
-          max = max(analysis$merged_data$sum_counts)
+          mean = current_analysis$read_depth,
+          min = min(current_analysis$merged_data$sum_counts, na.rm = TRUE),
+          max = max(current_analysis$merged_data$sum_counts, na.rm = TRUE)
         ),
         smoothing_factor = input$smoothingFactor1_TCGA %||% 0.5,
         color_by = input$colorByTCGA %||% "clonality",
-        subclonality_counts = analysis$subclonality_counts
+        subclonality_counts = current_analysis$subclonality_counts
       )
-      return(plot)
+      return(vaf_plot)
     }, error = function(e) {
-      plotly::plot_ly() %>% plotly::add_annotations(
-        text = paste("Error:", e$message),
-        showarrow = FALSE
+      return(plotly::plot_ly(type = "scatter", mode = "markers") %>% 
+               plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+               plotly::add_annotations(
+                 text = paste("Error:", e$message),
+                 showarrow = FALSE
+               ) %>%
+               plotly::layout(
+                 xaxis = list(title = "VAF"),
+                 yaxis = list(title = "Density")
+               )
       )
     })
   })
   
   output$plot2TCGA <- renderPlotly({
-    req(plots_ready_TCGA(), tcga_analysis())
-    
-    analysis <- tcga_analysis()
+    req(plots_ready_TCGA())
+    current_analysis <- tcga_analysis()
+    req(!is.null(current_analysis))
     
     tryCatch({
-      create_cp_plot(
-        merged_df = analysis$merged_data,
+      cp_plot <- create_cp_plot(
+        merged_df = current_analysis$merged_data,
         sample_name = input$sample_name_TCGA,
         smoothing_factor = input$smoothingFactor2_TCGA %||% 0.5,
         color_by = input$colorByTCGA %||% "clonality",
-        subclonality_counts = analysis$subclonality_counts,
-        df_subc = analysis$subclonal_structure
+        subclonality_counts = current_analysis$subclonality_counts,
+        df_subc = current_analysis$subclonal_structure
       )
+      return(cp_plot)
     }, error = function(e) {
-      plotly::plot_ly() %>% plotly::add_annotations(
-        text = paste("Error:", e$message),
-        showarrow = FALSE
+      return(plotly::plot_ly(type = "scatter", mode = "markers") %>% 
+               plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+               plotly::add_annotations(
+                 text = paste("Error:", e$message),
+                 showarrow = FALSE
+               ) %>%
+               plotly::layout(
+                 xaxis = list(title = "CP"),
+                 yaxis = list(title = "Density")
+               )
       )
     })
   })
@@ -1667,23 +1706,15 @@ server <- function(input, output, session) {
   
   # PCAWG Plot renderers
   output$plot1PCAWG <- renderPlotly({
-    req(plots_ready_PCAWG(), pcawg_analysis())
-    
-    analysis <- pcawg_analysis()
-    
-    str(analysis)
+    req(plots_ready_PCAWG())
+    current_analysis <- pcawg_analysis()
+    req(!is.null(current_analysis))
     
     tryCatch({
-      if (is.null(analysis$merged_data) || nrow(analysis$merged_data) == 0) {
+      if (is.null(current_analysis$merged_data) || nrow(current_analysis$merged_data) == 0) {
         return(
-          plotly::plot_ly() %>%
-            plotly::add_trace(
-              type = "scatter",
-              mode = "markers",
-              x = c(0),
-              y = c(0),
-              opacity = 0
-            ) %>%
+          plotly::plot_ly(type = "scatter", mode = "markers") %>%
+            plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
             plotly::add_annotations(
               text = "No valid data found for this sample",
               showarrow = FALSE
@@ -1695,85 +1726,80 @@ server <- function(input, output, session) {
         )
       }
       
-      # Create the plot using your existing function
-      p <- create_vaf_plot(
-        merged_df = analysis$merged_data,
+      vaf_plot <- create_vaf_plot(
+        merged_df = current_analysis$merged_data,
         sample_name = input$sample_name_PCAWG,
-        purity = analysis$purity,
+        purity = current_analysis$purity,
         read_depth = list(
-          mean = analysis$read_depth,
-          min = ifelse(!is.null(analysis$merged_data$sum_counts) && length(analysis$merged_data$sum_counts) > 0,
-                       min(analysis$merged_data$sum_counts, na.rm = TRUE), 0),
-          max = ifelse(!is.null(analysis$merged_data$sum_counts) && length(analysis$merged_data$sum_counts) > 0,
-                       max(analysis$merged_data$sum_counts, na.rm = TRUE), 0)
+          mean = current_analysis$read_depth,
+          min = ifelse(!is.null(current_analysis$merged_data$sum_counts) && length(current_analysis$merged_data$sum_counts) > 0,
+                       min(current_analysis$merged_data$sum_counts, na.rm = TRUE), 0),
+          max = ifelse(!is.null(current_analysis$merged_data$sum_counts) && length(current_analysis$merged_data$sum_counts) > 0,
+                       max(current_analysis$merged_data$sum_counts, na.rm = TRUE), 0)
         ),
         smoothing_factor = input$smoothingFactor1_PCAWG %||% 0.5,
         color_by = input$colorByPCAWG %||% "clonality",
-        subclonality_counts = analysis$subclonality_counts
+        subclonality_counts = current_analysis$subclonality_counts
       )
-      
-      # Make sure we're returning a valid plotly object
-      if (inherits(p, "plotly")) {
-        return(p)
-      } else {
-        # If not a plotly object, return an empty plot with error message
-        return(
-          plotly::plot_ly() %>%
-            plotly::add_trace(
-              type = "scatter",
-              mode = "markers",
-              x = c(0),
-              y = c(0),
-              opacity = 0
-            ) %>%
-            plotly::add_annotations(
-              text = "Error: Plot generation failed",
-              showarrow = FALSE
-            ) %>%
-            plotly::layout(
-              xaxis = list(title = "VAF"),
-              yaxis = list(title = "Density")
-            )
-        )
-      }
+      return(vaf_plot)
     }, error = function(e) {
-      plotly::plot_ly() %>%
-        plotly::add_trace(
-          type = "scatter",
-          mode = "markers",
-          x = c(0),
-          y = c(0),
-          opacity = 0
-        ) %>%
-        plotly::add_annotations(
-          text = paste("Error:", e$message),
-          showarrow = FALSE
-        ) %>%
-        plotly::layout(
-          xaxis = list(title = "VAF"),
-          yaxis = list(title = "Density")
-        )
+      return(
+        plotly::plot_ly(type = "scatter", mode = "markers") %>%
+          plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+          plotly::add_annotations(
+            text = paste("Error:", e$message),
+            showarrow = FALSE
+          ) %>%
+          plotly::layout(
+            xaxis = list(title = "VAF"),
+            yaxis = list(title = "Density")
+          )
+      )
     })
   })
   
   output$plot2PCAWG <- renderPlotly({
-    req(plots_ready_PCAWG(), pcawg_analysis())
-    
-    analysis <- pcawg_analysis()
+    req(plots_ready_PCAWG())
+    current_analysis <- pcawg_analysis()
+    req(!is.null(current_analysis))
     
     tryCatch({
-      create_cp_plot(
-        merged_df = analysis$merged_data,
+      if (is.null(current_analysis$merged_data) || nrow(current_analysis$merged_data) == 0) {
+        return(
+          plotly::plot_ly(type = "scatter", mode = "markers") %>%
+            plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+            plotly::add_annotations(
+              text = "No valid data found for this sample",
+              showarrow = FALSE
+            ) %>%
+            plotly::layout(
+              xaxis = list(title = "Cellular Prevalence"),
+              yaxis = list(title = "Density")
+            )
+        )
+      }
+      
+      cp_plot <- create_cp_plot(
+        merged_df = current_analysis$merged_data,
         sample_name = input$sample_name_PCAWG,
         smoothing_factor = input$smoothingFactor2_PCAWG %||% 0.5,
         color_by = input$colorByPCAWG %||% "clonality",
-        subclonality_counts = analysis$subclonality_counts,
-        df_subc = analysis$subclonal_structure
+        subclonality_counts = current_analysis$subclonality_counts,
+        df_subc = current_analysis$subclonal_structure
       )
+      return(cp_plot)
     }, error = function(e) {
-      plotly::plot_ly() %>% plotly::add_annotations(
-        text = paste("Error:", e$message),
-        showarrow = FALSE
+      return(
+        plotly::plot_ly(type = "scatter", mode = "markers") %>%
+          plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+          plotly::add_annotations(
+            text = paste("Error:", e$message),
+            showarrow = FALSE
+          ) %>%
+          plotly::layout(
+            xaxis = list(title = "Cellular Prevalence"),
+            yaxis = list(title = "Density")
+          )
       )
     })
   })
@@ -1989,9 +2015,11 @@ server <- function(input, output, session) {
       df_snv_subset <- df_snv %>% 
         select(chromosome_index, position)
       
-      matching_rows <- inner_join(
-        df_snv_subset,
-        df_assigned %>% select(chromosome_index, position)
+      matching_rows <- suppressMessages(
+        inner_join(
+          df_snv_subset,
+          df_assigned %>% select(chromosome_index, position)
+        )
       )
 
       df_snvcna <- df_snv %>%
