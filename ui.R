@@ -346,6 +346,11 @@ ui <- fluidPage(
                                        selected = "consolidated")
                         ),
                         mainPanel(
+                          tags$div(
+                            class = "alert alert-info",
+                            tags$b("How to use:"),
+                            tags$p("Select a cancer type, then click on any row in the table below to visualize the mutation data.")
+                          ),
                           DT::DTOutput("driverMutationTable"),
                           uiOutput("selectedMutationInfo"),
                           downloadButton("downloadDriverMutation", "Download Data"),
