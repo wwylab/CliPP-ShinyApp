@@ -349,7 +349,13 @@ ui <- fluidPage(
                           tags$div(
                             class = "alert alert-info",
                             tags$b("How to use:"),
-                            tags$p("Select a cancer type, then click on any row in the table below to visualize the mutation data.")
+                            tags$p("To explore driver mutations, first select a cancer type from the dropdown menu. You can then view mutations in two modes:
+
+                            Consolidated by Sample: Displays aggregated mutation data for each sample, helping you identify prevalent mutations across different cases.
+
+                            Individual Mutations: Provides a detailed view of each mutation within a sample, allowing for in-depth analysis of specific genetic alterations.
+
+                            Click on any entry in the mutation table to see detailed visualization of the genetic changes.")
                           ),
                           DT::DTOutput("driverMutationTable"),
                           uiOutput("selectedMutationInfo"),
