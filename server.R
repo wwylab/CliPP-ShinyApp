@@ -767,18 +767,19 @@ server <- function(input, output, session) {
       # Show explanatory captions
       output$driverCaption1 <- renderUI({
         HTML("<p>
-    - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
-    - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
-    - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE).<br>
-    - <b>Colored vertical lines</b> show the VAF of each driver mutation in this sample.
+    - <b>Variant Allele Frequency (VAF)</b> represents the proportion of sequencing reads containing a specific mutation, indicating its prevalence in the sample.<br>
+    - <b>Mean read depth</b> shows the average coverage per mutation site, with higher values suggesting more reliable detection.<br>
+    - <b>Density curve</b> visualizes the distribution of VAFs across all mutations, helping identify potential subclonal populations.<br>
+    - <b>Colored vertical lines</b> highlight specific driver mutations, allowing comparison of their VAFs relative to the overall distribution.
   </p>")
       })
       
       output$driverCaption2 <- renderUI({
         HTML("<p>
-    - <b>Cellular Prevalence (CP)</b> is the fraction of all cells (both tumor and normal) from the sample carrying a particular SNV.<br>
-    - <b>Vertical dashed lines</b> indicate subclonal clusters identified in the tumor sample.<br>
-    - <b>Colored vertical lines</b> show the CP of each driver mutation in this sample.
+    - <b>Cellular Prevalence (CP)</b> estimates the fraction of cells (tumor and normal) harboring each mutation after accounting for tumor purity and copy number.<br>
+    - <b>Vertical dashed lines</b> mark distinct subclonal populations identified through clustering analysis.<br>
+    - <b>Colored vertical lines</b> indicate the cellular prevalence of key driver mutations, revealing their evolutionary timing and subclonal association.<br>
+    - <b>CP values near 1.0</b> suggest early (clonal) mutations present in most tumor cells, while lower values indicate later (subclonal) events.
   </p>")
       })
       
