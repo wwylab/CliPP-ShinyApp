@@ -818,6 +818,11 @@ server <- function(input, output, session) {
       shinyjs::hide("smoothingFactor2_driver")
       shinyjs::hide("smoothingExplanation1_driver")
       shinyjs::hide("smoothingExplanation2_driver")
+      shinyjs::hide("driverCaption1")
+      shinyjs::hide("driverCaption2")
+      
+      output$driverPlot1 <- renderPlotly({ NULL })
+      output$driverPlot2 <- renderPlotly({ NULL })
       return()
     }
     
@@ -825,6 +830,8 @@ server <- function(input, output, session) {
     shinyjs::show("smoothingFactor2_driver")
     shinyjs::show("smoothingExplanation1_driver")
     shinyjs::show("smoothingExplanation2_driver")
+    shinyjs::show("driverCaption1")
+    shinyjs::show("driverCaption2")
     
     selected_cancer_type <- input$cancer_type_driver
     if (is.null(selected_cancer_type) || selected_cancer_type == "") {
@@ -895,6 +902,8 @@ server <- function(input, output, session) {
     shinyjs::hide("smoothingFactor2_driver")
     shinyjs::hide("smoothingExplanation1_driver")
     shinyjs::hide("smoothingExplanation2_driver")
+    shinyjs::hide("driverCaption1")
+    shinyjs::hide("driverCaption2")
     
     output$driverPlot1 <- renderPlotly({ NULL })
     output$driverPlot2 <- renderPlotly({ NULL })
