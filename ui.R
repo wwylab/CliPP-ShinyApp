@@ -79,7 +79,7 @@ ui <- fluidPage(
                         tags$ul(
                           tags$li("Analyze Your Own Data: Upload tumor sequencing data and obtain rapid subclonal reconstruction results."),
                           tags$li("Access Curated Datasets: Explore pre-processed subclonal analyses from PCAWG and TCGA."),
-                          tags$li("Driver Mutation Subclonality: Investigate the clonal architecture of key driver mutations.")
+                          tags$li("Driver Mutation Subclonality: Investigate the clonal architecture of key driver mutations in TCGA.")
                         ),
                         p("For detailed methodology, refer to our BioRxiv preprint: ",
                           a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1",
@@ -338,6 +338,16 @@ ui <- fluidPage(
                       sidebarLayout(
                         sidebarPanel(
                           uiOutput("cancer_type_ui_driver"),
+                          tags$div(
+                            class = "alert alert-info",
+                            tags$b("How to use:"),
+                            tags$div(
+                              tags$p("To explore driver mutations, first select a cancer type from the dropdown menu. You can then view mutations in two modes:"),
+                              tags$p("Consolidated by Sample: Displays aggregated mutation data for each sample, helping you identify prevalent mutations across different cases."),
+                              tags$p("Individual Mutations: Provides a detailed view of each mutation within a sample, allowing for in-depth analysis of specific genetic alterations."),
+                              tags$p("Click on any entry in the mutation table to see detailed visualization of the genetic changes.")
+                            )
+                          ),
                           radioButtons("view_mode", "View Mode:",
                                        choices = list(
                                          "Consolidated by Sample" = "consolidated",
@@ -346,17 +356,6 @@ ui <- fluidPage(
                                        selected = "consolidated")
                         ),
                         mainPanel(
-                          tags$div(
-                            class = "alert alert-info",
-                            tags$b("How to use:"),
-                            tags$p("To explore driver mutations, first select a cancer type from the dropdown menu. You can then view mutations in two modes:
-
-                            Consolidated by Sample: Displays aggregated mutation data for each sample, helping you identify prevalent mutations across different cases.
-
-                            Individual Mutations: Provides a detailed view of each mutation within a sample, allowing for in-depth analysis of specific genetic alterations.
-
-                            Click on any entry in the mutation table to see detailed visualization of the genetic changes.")
-                          ),
                           DT::DTOutput("driverMutationTable"),
                           uiOutput("selectedMutationInfo"),
                           downloadButton("downloadDriverMutation", "Download Data"),
@@ -380,7 +379,7 @@ ui <- fluidPage(
                                 )
                               ),
                               div(class = "caption-area",
-                                  uiOutput("driverCaption1")
+                                  hidden(uiOutput("driverCaption1"))
                               )
                           ),
                           
@@ -401,7 +400,7 @@ ui <- fluidPage(
                                 )
                               ),
                               div(class = "caption-area",
-                                  uiOutput("driverCaption2")
+                                  hidden(uiOutput("driverCaption2"))
                               )
                           )
                         )
