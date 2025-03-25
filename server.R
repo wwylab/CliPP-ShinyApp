@@ -1261,6 +1261,9 @@ server <- function(input, output, session) {
       shinyjs::show("caption2")
       shinyjs::show("controls-area")
       
+      resultPath <- "forCliPP/CliPP/sample_id/final_result/Best_lambda"
+      result_files <- list.files(resultPath, pattern = "\\.txt$")
+      updateSelectInput(session, "selectedFile", choices = result_files)
       plots_ready_clipp(TRUE)
       tab_states$clipp_web <- TRUE
       
@@ -1325,10 +1328,13 @@ server <- function(input, output, session) {
   output$plotOutputArea <- renderUI({
     req(plots_ready_clipp())
     
+    resultPath <- "forCliPP/CliPP/sample_id/final_result/Best_lambda"
+    result_files <- list.files(resultPath, pattern = "\\.txt$")
+    
     fluidPage(
       h4("Output:"),
       textOutput("result"),
-      selectInput("selectedFile", "Choose a file to download:", choices = c()),
+      selectInput("selectedFile", "Choose a file to download:", choices = result_files),
       downloadButton("downloadResult", "Download Result")
     )
   })
