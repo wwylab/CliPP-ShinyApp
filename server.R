@@ -1188,8 +1188,8 @@ server <- function(input, output, session) {
   
   # Clear current session data
   observeEvent(input$clear, {
-    uploadedSamples$samples <- list()
-    samplesUploaded(FALSE)
+    uploaded_samples$samples <- list()
+    samples_uploaded(FALSE)    
     updateNumericInput(session, "numSamples", value = 1)
     shinyjs::enable("numSamples")
     shinyjs::reset("dynamicFileInputs")
@@ -1562,11 +1562,9 @@ server <- function(input, output, session) {
         plotly::layout(title = "")
     })
     
-    # Clear UI text elements
     output$caption1TCGA <- renderUI({ NULL })
     output$caption2TCGA <- renderUI({ NULL })
     
-    # Reset download UI
     output$downloadUI_TCGA <- renderUI({ NULL })
     
     shinyjs::show("submitTCGA")
