@@ -206,6 +206,11 @@ prepare_plot_data <- function(merged_data, color_by = "clonality") {
 #' @param sampleName Name of the sample being processed
 #' @return List containing processing success status, message, and data if successful
 process_sample_files <- function(sampleFiles, sampleName) {
+  
+  old_path <- Sys.getenv("PATH")
+  Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
+  Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
+  
   if (is.null(sampleFiles$snvFile) || is.null(sampleFiles$cnaFile) || is.null(sampleFiles$purityFile)) {
     return(list(
       success = FALSE,
