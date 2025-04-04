@@ -21,9 +21,9 @@ server <- function(input, output, session) {
     analysis_data <- tcga_analysis()
     
     if (!is.null(analysis_data) && plots_ready_TCGA()) {
-
+      
       output$plot1TCGA <- renderPlotly({
-
+        
         req(plots_ready_TCGA())
         current_analysis <- tcga_analysis()
         req(!is.null(current_analysis))
@@ -54,7 +54,7 @@ server <- function(input, output, session) {
       })
       
       output$plot2TCGA <- renderPlotly({
-
+        
         req(plots_ready_TCGA())
         current_analysis <- tcga_analysis()
         req(!is.null(current_analysis))
@@ -83,22 +83,22 @@ server <- function(input, output, session) {
       shinyjs::show("plot2TCGA")
       shinyjs::show("caption1TCGA")
       shinyjs::show("caption2TCGA")
-      }
+    }
   })
   
   observe({
     analysis_data <- pcawg_analysis()
     
     if (!is.null(analysis_data) && plots_ready_PCAWG()) {
-
+      
       output$plot1PCAWG <- renderPlotly({
-
+        
         req(plots_ready_PCAWG())
         current_analysis <- pcawg_analysis()
         req(!is.null(current_analysis))
         
         tryCatch({
-
+          
           if (is.null(current_analysis$merged_data) || nrow(current_analysis$merged_data) == 0) {
             return(
               plotly::plot_ly() %>%
@@ -159,13 +159,13 @@ server <- function(input, output, session) {
       })
       
       output$plot2PCAWG <- renderPlotly({
-
+        
         req(plots_ready_PCAWG())
         current_analysis <- pcawg_analysis()
         req(!is.null(current_analysis))
         
         tryCatch({
-
+          
           if (is.null(current_analysis$merged_data) || nrow(current_analysis$merged_data) == 0) {
             return(
               plotly::plot_ly() %>%
@@ -222,9 +222,9 @@ server <- function(input, output, session) {
       shinyjs::show("plot2PCAWG")
       shinyjs::show("caption1PCAWG")
       shinyjs::show("caption2PCAWG")
-      }
+    }
   })
-
+  
   # Update existing reactiveVal observers to also update the tab_states
   output$plotsReadyCliPP <- reactive({
     value <- plots_ready_clipp()
@@ -497,7 +497,7 @@ server <- function(input, output, session) {
       matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
       
       if (length(matching_file1) == 0 || length(matching_file2) == 0) {
-
+        
         plot_data <- if (!is.null(individual_mutation)) {
           individual_mutation
         } else {
@@ -1374,9 +1374,9 @@ server <- function(input, output, session) {
     
     plots_ready_TCGA(FALSE)
     tab_states$tcga <- FALSE
-
+    
     req(input$cancer_type_TCGA, input$sample_name_TCGA)
-
+    
     shinyjs::disable("cancer_type_TCGA")
     shinyjs::disable("sample_name_TCGA")
     shinyjs::hide("submitTCGA")
@@ -1384,7 +1384,7 @@ server <- function(input, output, session) {
     
     sample_dir <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
     success <- prepareAndRunCliPP(sample_dir, "TCGA", input$sample_name_TCGA)
-
+    
     if (!success) {
       showNotification("Failed to process sample", type = "error")
       shinyjs::show("submitTCGA") 
@@ -1392,7 +1392,7 @@ server <- function(input, output, session) {
     }
     
     file_data <- read_tcga_files(sample_dir)
-
+    
     if (is.null(file_data)) {
       showNotification("Error reading sample files", type = "error")
       shinyjs::show("submitTCGA") 
@@ -1400,7 +1400,7 @@ server <- function(input, output, session) {
     }
     
     analysis_result <- process_tcga_data_internal(file_data)
-
+    
     if (is.null(analysis_result)) {
       showNotification("Error processing data", type = "error")
       shinyjs::show("submitTCGA") 
@@ -1418,7 +1418,7 @@ server <- function(input, output, session) {
     
     plots_ready_TCGA(TRUE)
     tab_states$tcga <- TRUE
-
+    
     shinyjs::show("smoothingFactor1_TCGA")
     shinyjs::show("smoothingFactor2_TCGA")
     shinyjs::show("smoothingExplanation1_TCGA")
@@ -1446,7 +1446,7 @@ server <- function(input, output, session) {
     tab_states$pcawg <- FALSE
     
     req(input$cancer_type_PCAWG, input$sample_name_PCAWG)
-
+    
     shinyjs::disable("cancer_type_PCAWG")
     shinyjs::disable("sample_name_PCAWG")
     shinyjs::hide("submitPCAWG")
@@ -1531,7 +1531,7 @@ server <- function(input, output, session) {
     
     plots_ready_TCGA(FALSE)
     tab_states$tcga <- FALSE
-
+    
     shinyjs::enable("cancer_type_TCGA")
     shinyjs::enable("sample_name_TCGA")
     
@@ -1918,7 +1918,7 @@ server <- function(input, output, session) {
   # Observer for main navigation tab changes
   observeEvent(input$`navbar-container`, {
     current_tab <- input$`navbar-container`
-
+    
     controls <- c(
       "smoothingFactor1", "smoothingFactor2",
       "smoothingFactor1_TCGA", "smoothingFactor2_TCGA",
@@ -1950,7 +1950,7 @@ server <- function(input, output, session) {
       }
     } else if (current_tab == "CliPP Data Resources") {
       current_subtab <- input$tabset
-
+      
       if (current_subtab == "TCGA") {
         if (tab_states$tcga) {
           shinyjs::show("smoothingFactor1_TCGA")
@@ -2017,11 +2017,11 @@ server <- function(input, output, session) {
   
   # Process TCGA data for plotting
   process_tcga_data_internal <- function(file_data) {
-
+    
     df_snv <- file_data$df_snv
     df_cna <- file_data$df_cna
     purity <- file_data$purity
-  
+    
     tryCatch({
       result_path <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
       matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
@@ -2039,7 +2039,7 @@ server <- function(input, output, session) {
           df_assigned %>% select(chromosome_index, position)
         )
       )
-
+      
       df_snvcna <- df_snv %>%
         mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
           inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
