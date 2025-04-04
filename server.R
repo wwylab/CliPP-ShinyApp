@@ -448,10 +448,6 @@ server <- function(input, output, session) {
   # Handle all files to prepare for processing
   process_driver_sample <- function(selected_sample, mutations_data, individual_mutation = NULL) {
     
-    old_path <- Sys.getenv("PATH")
-    Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
-    Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
-    
     tryCatch({
       if (is.null(selected_sample) || length(selected_sample) == 0 || selected_sample == "") {
         showNotification("Invalid sample name", type = "error")
@@ -1240,10 +1236,6 @@ server <- function(input, output, session) {
   # Process uploaded samples
   observeEvent(input$submit, {
     
-    old_path <- Sys.getenv("PATH")
-    Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
-    Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
-    
     withProgress(message = 'Processing data...', value = 0, {
       plots_ready_clipp(FALSE)
       tab_states$clipp_web <- FALSE
@@ -1380,10 +1372,6 @@ server <- function(input, output, session) {
   # TCGA Submit button handler
   observeEvent(input$submitTCGA, {
     
-    old_path <- Sys.getenv("PATH")
-    Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
-    Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
-    
     plots_ready_TCGA(FALSE)
     tab_states$tcga <- FALSE
 
@@ -1453,10 +1441,6 @@ server <- function(input, output, session) {
   
   # PCAWG Submit button handler
   observeEvent(input$submitPCAWG, {
-    
-    old_path <- Sys.getenv("PATH")
-    Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
-    Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
     
     plots_ready_PCAWG(FALSE)
     tab_states$pcawg <- FALSE
