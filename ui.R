@@ -45,6 +45,10 @@ ui <- fluidPage(
         padding: 15px;
         border-radius: 8px;
         z-index: 100;
+        transition: top 0.3s ease; 
+      }
+      .controls-area-depth {
+        top: -10%; 
       }
       .caption-area {
         width: 100%;
@@ -55,6 +59,32 @@ ui <- fluidPage(
         color: #666;
         margin-top: 10px;
       }
+    ")),
+    
+    tags$script(HTML("
+      $(document).ready(function() {
+        function adjustControlPosition(colorBySelector, controlAreaSelectors) {
+          $(document).on('change', colorBySelector, function() {
+            var colorMode = $(this).val();
+            
+            controlAreaSelectors.forEach(function(selector) {
+              if (colorMode === 'readDepth' || colorMode === 'depth') {
+                $(selector).addClass('controls-area-depth');
+              } else {
+                $(selector).removeClass('controls-area-depth');
+              }
+            });
+          });
+        }
+        
+        adjustControlPosition('#colorBy', ['.plot-container .controls-area']);
+        
+        adjustControlPosition('#colorByTCGA', ['.plot-container .controls-area']);
+        
+        adjustControlPosition('#colorByPCAWG', ['.plot-container .controls-area']);
+        
+        adjustControlPosition('#colorByDriver', ['.plot-container .controls-area']);
+      });
     "))
   ),
   
