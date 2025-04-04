@@ -1235,7 +1235,6 @@ server <- function(input, output, session) {
   
   # Process uploaded samples
   observeEvent(input$submit, {
-    
     withProgress(message = 'Processing data...', value = 0, {
       plots_ready_clipp(FALSE)
       tab_states$clipp_web <- FALSE
@@ -1257,23 +1256,69 @@ server <- function(input, output, session) {
       
       shinyjs::show("clear")
       shinyjs::show("plotOutputArea")
-      shinyjs::show("plot1")
-      shinyjs::show("plot2")
-      shinyjs::show("caption1")
-      shinyjs::show("caption2")
-      shinyjs::show("controls-area")
+      
+      current_analysis <- get_current_analysis(sampleFiles)
+      
+      if (!is.null(current_analysis)) {
+        output$plot1 <- renderPlotly({
+          create_vaf_plot(
+            merged_df = current_analysis$merged_data,
+            sample_name = selectedSample,
+            purity = current_analysis$purity,
+            read_depth = current_analysis$read_depth,
+            smoothing_factor = input$smoothingFactor1 %||% 0.45,
+            color_by = input$colorBy %||% "clonality",
+            subclonality_counts = current_analysis$subclonality_counts
+          )
+        })
+        
+        output$plot2 <- renderPlotly({
+          create_cp_plot(
+            merged_df = current_analysis$merged_data,
+            sample_name = selectedSample,
+            smoothing_factor = input$smoothingFactor2 %||% 0.45,
+            color_by = input$colorBy %||% "clonality",
+            subclonality_counts = current_analysis$subclonality_counts,
+            df_subc = current_analysis$subclonal_structure
+          )
+        })
+        
+        output$caption1 <- renderUI({
+          get_vaf_plot_caption()
+        })
+        
+        output$caption2 <- renderUI({
+          get_cp_plot_caption()
+        })
+        
+        shinyjs::show("plot1")
+        shinyjs::show("plot2")
+        shinyjs::show("caption1")
+        shinyjs::show("caption2")
+        
+        output$smoothingExplanation1 <- renderUI({
+          recommended <- recommended_smoothing_factor(current_analysis$total_mutations)
+          HTML(paste0("Recommended smoothing factor: ", recommended))
+        })
+        
+        output$smoothingExplanation2 <- renderUI({
+          recommended <- recommended_smoothing_factor(current_analysis$total_mutations)
+          HTML(paste0("Recommended smoothing factor: ", recommended)) 
+        })
+        
+        shinyjs::show("smoothingFactor1")
+        shinyjs::show("smoothingFactor2")
+        shinyjs::show("smoothingExplanation1")
+        shinyjs::show("smoothingExplanation2")
+        shinyjs::show(selector = ".controls-area")
+      }
       
       resultPath <- "forCliPP/CliPP/sample_id/final_result/Best_lambda"
       result_files <- list.files(resultPath, pattern = "\\.txt$")
       updateSelectInput(session, "selectedFile", choices = result_files)
+      
       plots_ready_clipp(TRUE)
       tab_states$clipp_web <- TRUE
-      
-      shinyjs::show("smoothingFactor1")
-      shinyjs::show("smoothingFactor2")
-      shinyjs::show("smoothingExplanation1")
-      shinyjs::show("smoothingExplanation2")
-      shinyjs::show(selector = ".controls-area")
     })
   })
   
