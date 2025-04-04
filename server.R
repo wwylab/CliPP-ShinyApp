@@ -1528,7 +1528,6 @@ server <- function(input, output, session) {
   # Clear TCGA data
   observeEvent(input$clearTCGA, {
     tcga_analysis(NULL)
-    
     plots_ready_TCGA(FALSE)
     tab_states$tcga <- FALSE
     
@@ -1565,9 +1564,6 @@ server <- function(input, output, session) {
         plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
         plotly::layout(title = "")
     })
-    
-    output$caption1TCGA <- renderUI({ NULL })
-    output$caption2TCGA <- renderUI({ NULL })
     
     output$downloadUI_TCGA <- renderUI({ NULL })
     
@@ -1621,8 +1617,6 @@ server <- function(input, output, session) {
     
     output$plot1PCAWG <- renderPlotly({ NULL })
     output$plot2PCAWG <- renderPlotly({ NULL })
-    output$caption1PCAWG <- renderUI({ NULL })
-    output$caption2PCAWG <- renderUI({ NULL })
     
     shinyjs::show("submitPCAWG")
     shinyjs::enable("submitPCAWG")
@@ -2079,6 +2073,19 @@ server <- function(input, output, session) {
       ))
     })
   }
+  
+  observeEvent(input$selectedSample, {
+    if (!is.null(input$selectedSample) && plots_ready_clipp()) {
+
+      shinyjs::hide("plot1")
+      shinyjs::hide("plot2")
+      shinyjs::hide("caption1")
+      shinyjs::hide("caption2")
+      shinyjs::hide("plotOutputArea")
+      shinyjs::hide("smoothingFactor1")
+      shinyjs::hide("smoothingFactor2")
+    }
+  }, ignoreInit = TRUE) 
   
   # Process PCAWG data for plotting
   process_pcawg_data_internal <- function(file_data) {
