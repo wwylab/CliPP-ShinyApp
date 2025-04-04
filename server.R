@@ -2129,6 +2129,10 @@ server <- function(input, output, session) {
       shinyjs::hide("plotOutputArea")
       shinyjs::hide("smoothingFactor1")
       shinyjs::hide("smoothingFactor2")
+      shinyjs::hide("smoothingExplanation1")
+      shinyjs::hide("smoothingExplanation2")
+      shinyjs::hide(selector = ".controls-area")
+      
     }
   }, ignoreInit = TRUE) 
   
