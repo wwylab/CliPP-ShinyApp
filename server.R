@@ -1550,10 +1550,10 @@ server <- function(input, output, session) {
     
     plots_ready_PCAWG(TRUE)
     tab_states$pcawg <- TRUE
-    shinyjs::show("smoothingFactor1")
-    shinyjs::show("smoothingFactor2")
-    shinyjs::show("smoothingExplanation1")
-    shinyjs::show("smoothingExplanation2")
+    shinyjs::show("smoothingFactor1_PCAWG")
+    shinyjs::show("smoothingFactor2_PCAWG")
+    shinyjs::show("smoothingExplanation1_PCAWG")
+    shinyjs::show("smoothingExplanation2_PCAWG")
     shinyjs::show(selector = ".controls-area")
     
     # Create download UI
