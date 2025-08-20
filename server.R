@@ -2121,7 +2121,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$selectedSample, {
     if (!is.null(input$selectedSample) && plots_ready_clipp()) {
-
+      
       shinyjs::hide("plot1")
       shinyjs::hide("plot2")
       shinyjs::hide("caption1")
@@ -2386,4 +2386,121 @@ server <- function(input, output, session) {
       }
     })
   })
+  
+  survival_data <- reactive({
+    load_survival_data()
+  })
+  
+  # Dynamic UI for cancer type selection based on survival endpoint
+  output$cancerTypeUI_survival <- renderUI({
+    data_list <- survival_data()
+    
+    if (input$survivalType == "PFI") {
+      cancer_types <- get_pfi_cancer_types(data_list)
+    } else {
+      cancer_types <- get_os_cancer_types(data_list)
+    }
+    
+    if (length(cancer_types) == 0) {
+      return(div(
+        tags$p("No data available for the selected survival endpoint.", style = "color: red;")
+      ))
+    }
+    
+    selectInput(
+      "cancerType_survival",
+      "Select Cancer Type:",
+      choices = cancer_types,
+      selected = cancer_types[1]
+    )
+  })
+  
+  current_survival_plot <- reactiveVal(NULL)
+  current_survival_data <- reactiveVal(NULL)
+  
+  # Generate survival plot when button is clicked
+  observeEvent(input$generateKMPlot, {
+    req(input$survivalType, input$cancerType_survival)
+    
+    data_list <- survival_data()
+    
+    if (input$survivalType == "PFI") {
+      df_data <- data_list$PFI_data %>%
+        dplyr::filter(can_sub == input$cancerType_survival)
+    } else {
+      df_data <- data_list$OS_data %>%
+        dplyr::filter(can_sub == input$cancerType_survival)
+    }
+    
+    current_survival_data(df_data)
+    
+    gg_plot <- create_km_plot(df_data, input$survivalType, input$cancerType_survival)
+    current_survival_plot(gg_plot)
+  })
+  
+  # Render survival plot
+  output$survivalPlot <- renderPlotly({
+    plot_obj <- current_survival_plot()
+    
+    if (is.null(plot_obj)) {
+      return(plot_ly() %>%
+        add_annotations(
+          text = "Click 'Generate Survival Plot' to view the analysis",
+          showarrow = FALSE,
+          font = list(size = 16)
+        ))
+    }
+    
+    convert_to_plotly(plot_obj)
+  })
+  
+  # Display survival plot information
+  output$survivalPlotInfo <- renderUI({
+    req(current_survival_plot())
+    
+    tags$div(
+      tags$hr(),
+      tags$h5(tags$b("Analysis Information:")),
+      tags$p(paste(
+        "This Kaplan-Meier survival analysis stratifies patients based on their subclonal mutational fraction (sMF).",
+        "The optimal cutoff is determined using decision tree analysis to maximize survival differences between groups."
+      )),
+      tags$p(paste(
+        "sMF represents the proportion of mutations that are subclonal (present in only a subset of tumor cells),",
+        "providing insight into tumor heterogeneity and evolution."
+      ))
+    )
+  })
+  
+  # Display sample size information
+  output$survivalSampleInfo <- renderUI({
+    df_data <- current_survival_data()
+    
+    if (is.null(df_data) || nrow(df_data) == 0) {
+      return(NULL)
+    }
+    
+    n_total <- nrow(df_data)
+    endpoint <- if (input$survivalType == "PFI") "progression-free interval" else "overall survival"
+    
+    tags$div(
+      tags$hr(),
+      tags$h5(tags$b("Sample Information:")),
+      tags$p(paste("Total samples with", endpoint, "data:", n_total)),
+      tags$p(paste("Cancer type/subtype:", input$cancerType_survival))
+    )
+  })
+  
+  # Download handler for survival plot
+  output$downloadSurvivalPlot <- downloadHandler(
+    filename = function() {
+      paste0("survival_plot_", input$cancerType_survival, "_", input$survivalType, "_", Sys.Date(), ".png")
+    },
+    content = function(file) {
+      plot_obj <- current_survival_plot()
+      if (!is.null(plot_obj)) {
+        ggsave(file, plot_obj, width = 12, height = 8, dpi = 300)
+      }
+    }
+  )
 }
