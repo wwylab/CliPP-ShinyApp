@@ -12,11 +12,13 @@ library(survminer)
 library(rpart)
 library(data.table)
 library(readxl)
+library(corrr)
 
 source("R/modules/driver_mutation_module.R")
 source("R/modules/tcga_module.R")
 source("R/modules/pcawg_module.R")
 source("R/modules/survival_module.R")
+source("R/modules/tmb_smf_module.R")
 source("R/plotting.R")
 source("R/data_processing.R")
 source("R/file_handlers.R")
@@ -38,7 +40,6 @@ if (!dir.exists(global_TCGA_PCAWG)) {
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
-# Load driver mutation data
 driver_mutation_data <- tryCatch({
   file_path <- file.path(global_TCGA_PCAWG, "driver_mut_data.tsv")
   if (!file.exists(file_path)) {
@@ -70,7 +71,6 @@ driver_mutation_data <- tryCatch({
   data.frame()
 })
 
-# Load TCGA sample data
 sample_TCGA <- tryCatch({
   file_path <- file.path(global_TCGA_PCAWG, "CliPP_TCGA.tsv") 
   if (!file.exists(file_path)) {
@@ -84,7 +84,6 @@ sample_TCGA <- tryCatch({
   data.frame(samplename = character(), cancer_type = character())
 })
 
-# Load PCAWG sample data
 sample_PCAWG <- tryCatch({
   file_path <- file.path(global_TCGA_PCAWG, "CliPP_PCAWG.tsv") 
   if (!file.exists(file_path)) {
@@ -114,12 +113,67 @@ if (nrow(sample_PCAWG) == 0) {
   )
 }
 
+cohort_cancer_mapping <- list(
+  "TCGA" = c("ACC", "BLCA", "BRCA", "CESC", "CHOL", "COAD", "DLBC", "ESCA", 
+             "GBM", "HNSC", "KICH", "KIRC", "KIRP", "LAML", "LGG", "LIHC", 
+             "LUAD", "LUSC", "MESO", "OV", "PAAD", "PCPG", "PRAD", "READ", 
+             "SARC", "SKCM", "STAD", "TGCT", "THCA", "THYM", "UCEC", "UCS", "UVM"),
+  "OCCAMS" = c("ESCC", "EAC"),
+  "NCT02113657 (IPI)" = c("Melanoma", "Lung Cancer", "Bladder Cancer", "Renal Cancer"),
+  "NCT02703623 (ARPi+IPI)" = c("Prostate Cancer")
+)
+
+# Function to get cancer types for a specific cohort
+get_cancer_types_for_cohort <- function(cohort) {
+  if (cohort %in% names(cohort_cancer_mapping)) {
+    return(cohort_cancer_mapping[[cohort]])
+  } else {
+    return(character(0))
+  }
+}
+
+# Function to get all available cohorts
+get_available_cohorts <- function() {
+  return(names(cohort_cancer_mapping))
+}
+
+# Function to create conditional select input that can be deactivated
+conditional_select_input <- function(inputId, label, choices = NULL, selected = NULL, 
+                                   multiple = FALSE, selectize = TRUE, width = NULL, 
+                                   size = NULL, disabled = FALSE) {
+  if (disabled) {
+    div(
+      style = "opacity: 0.6; pointer-events: none;",
+      selectInput(inputId = inputId, label = label, choices = choices, 
+                 selected = selected, multiple = multiple, selectize = selectize, 
+                 width = width, size = size)
+    )
+  } else {
+    selectInput(inputId = inputId, label = label, choices = choices, 
+               selected = selected, multiple = multiple, selectize = selectize, 
+               width = width, size = size)
+  }
+}
+
+tmb_smf_data <- tryCatch({
+  load_tmb_smf_data()
+}, error = function(e) {
+  warning("Error loading TMB vs sMF data: ", e$message)
+  data.frame()
+})
+
+if (nrow(tmb_smf_data) > 0) {
+  cohort_summary <- tmb_smf_data %>%
+    group_by(cohort) %>%
+    summarise(n_samples = n(), n_cancer_types = length(unique(cancer_type)), .groups = 'drop')
+} 
+
 if (nrow(driver_mutation_data) == 0) {
   driver_mutation_data <- data.frame(
     gene = c("TP53", "KRAS", "PIK3CA", "BRAF", "EGFR"),
     sample = c("TCGA-OR-A5J1", "TCGA-OR-A5J1", "TCGA-OR-A5J2", "TCGA-3L-AA1B", "TCGA-N5-A4RA"),
     cancer_type = c("BLCA", "BLCA", "BLCA", "BLCA", "BLCA"),
-    cancer = c("BLCA", "BLCA", "BLCA", "BLCA", "BLCA"),  # Added 'cancer' column to match expected format
+    cancer = c("BLCA", "BLCA", "BLCA", "BLCA", "BLCA"),  
     Subclonality = c("Clonal", "Subclonal", "Clonal", "Clonal", "Subclonal"),
     protein = c("p.R175H", "p.G12D", "p.E545K", "p.V600E", "p.L858R"),
     consequence = c("Missense", "Missense", "Missense", "Missense", "Missense"),
