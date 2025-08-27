@@ -144,7 +144,6 @@ get_os_cancer_types <- function(data_list) {
 #' @param cancer_type Name of cancer type
 #' @return ggplot object
 create_km_plot <- function(df_data, survival_type, cancer_type) {
-  # Guard: empty input
   if (is.null(df_data) || nrow(df_data) == 0) {
     return(
       ggplot() +
@@ -186,7 +185,6 @@ create_km_plot <- function(df_data, survival_type, cancer_type) {
     )
   }
   
-  # Try to compute optimal cutoff and make the plot
   tryCatch({
     cutoff <- tryCatch({
       surv_formula_split <- as.formula(
@@ -222,27 +220,60 @@ create_km_plot <- function(df_data, survival_type, cancer_type) {
     df_clean$group <- ifelse(df_clean$sML >= cutoff, "High sMF", "Low sMF")
     df_clean$group <- factor(df_clean$group, levels = c("Low sMF", "High sMF"))
     
-    # KM plot
+    surv_diff <- survival::survdiff(
+      as.formula(paste0("survival::Surv(", time_col, "/365.25, ", event_col, ") ~ (sML >= ", cutoff, ")")),
+      data = df_clean
+    )
+    p_value <- 1 - stats::pchisq(surv_diff$chisq, length(surv_diff$n) - 1)
+    p_text <- if (p_value < 0.001) {
+      sprintf("p < 0.001")
+    } else {
+      sprintf("p = %.3f", p_value)
+    }
+    
     p <- survminer::ggsurvplot(
       fit,
       data       = df_clean,
       xlab       = "Years",
       ylab       = y_label,
       title      = paste("Survival Analysis:", cancer_type),
-      pval       = TRUE,
-      pval.coord = c(0.5, 0.25),  
+      pval       = FALSE,
+      pval.coord = NULL,
       conf.int   = FALSE,
       xlim       = c(0, 10),
       break.time.by = 2,
       palette    = c("#D6ACC0", "#63A299"),
-      legend.title = "Group",
-      legend.labs  = c(
-        paste0("Low sMF (< ", sprintf("%.3f", cutoff), ", n=", n_low,  ")"),
-        paste0("High sMF (≥ ", sprintf("%.3f", cutoff), ", n=", n_high, ")")
-      )
+      legend     = "none"
     )
     
-    return(p$plot)
+    final_plot <- p$plot +
+      theme(
+        plot.subtitle = element_blank(),
+        plot.caption = element_blank(),
+        legend.position = "none",
+        legend.title = element_blank(),
+        legend.text = element_blank(),
+        legend.key = element_blank(),     
+        legend.background = element_blank() 
+      ) +
+      labs(subtitle = "", caption = "", tag = "") +
+      annotate("text", 
+               x = 9, y = 0.95,  
+               label = paste0("High sMF (≥", sprintf("%.3f", cutoff), ", n=", n_high, ")"),
+               hjust = 1, vjust = 1, size = 3, color = "#63A299", fontface = "bold") +
+      annotate("text", 
+               x = 9, y = 0.90, 
+               label = paste0("Low sMF (<", sprintf("%.3f", cutoff), ", n=", n_low, ")"),
+               hjust = 1, vjust = 1, size = 3, color = "#D6ACC0", fontface = "bold") +
+      annotate("text", 
+               x = 9, y = 0.85, 
+               label = p_text,
+               hjust = 1, vjust = 1, size = 3, fontface = "bold")
+
+    final_plot$labels$subtitle <- NULL
+    final_plot$labels$caption <- NULL
+    
+    return(final_plot)
     
   }, error = function(e) {
     ggplot() +
@@ -268,12 +299,7 @@ convert_to_plotly <- function(gg_plot) {
     
     p <- p %>%
       layout(
-        showlegend = TRUE,
-        legend = list(
-          orientation = "v",
-          x = 0.02,
-          y = 0.98
-        )
+        showlegend = FALSE  
       )
     
     return(p)
