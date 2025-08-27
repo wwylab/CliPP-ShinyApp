@@ -2625,9 +2625,9 @@ server <- function(input, output, session) {
     }
     
     selectInput("selected_cancer_types_tmb", 
-                      "Select Cancer Types (optional):",
-                      choices = c("All" = "", setNames(available_types, available_types)),
-                      selected = "",
+                      "Select Cancer Types:",
+                      choices = c(setNames(available_types, available_types)),
+                      selected = NULL,
                       multiple = TRUE)
   })
   
@@ -2671,7 +2671,6 @@ server <- function(input, output, session) {
     corr_data <- create_correlation_summary(plot_data, c(input$selected_cohort_tmb))
     current_correlation_data(corr_data)
     
-    showNotification("TMB vs sMF plot generated successfully!", type = "message")
   })
   
   # Render TMB vs sMF plot
