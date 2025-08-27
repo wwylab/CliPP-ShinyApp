@@ -1386,10 +1386,34 @@ server <- function(input, output, session) {
     )
   })
   
-  # UI for TCGA cancer type selector
+  # UI for TCGA cohort selector
+  output$cohort_ui_TCGA <- renderUI({
+    selectInput("cohort_TCGA", "Select Cohort:",
+                choices = get_available_cohorts(),
+                selected = "TCGA")
+  })
+  
+  # UI for TCGA cancer type selector (now filtered by cohort)
   output$cancer_type_ui_TCGA <- renderUI({
-    selectInput("cancer_type_TCGA", "Select Cancer Type:",
-                choices = sort(unique(sample_TCGA$cancer_type)))
+    req(input$cohort_TCGA)
+    
+    # Get cancer types for selected cohort
+    cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_TCGA)
+    
+    # Filter to only show cancer types that exist in the data
+    available_cancer_types <- intersect(cohort_cancer_types, unique(sample_TCGA$cancer_type))
+    
+    # If no cohort-specific types available, fall back to all available types
+    if (length(available_cancer_types) == 0) {
+      available_cancer_types <- sort(unique(sample_TCGA$cancer_type))
+    }
+    
+    # Check if select box should be disabled
+    disabled <- isTRUE(input$disable_select_TCGA)
+    
+    conditional_select_input("cancer_type_TCGA", "Select Cancer Type:",
+                           choices = sort(available_cancer_types),
+                           disabled = disabled)
   })
   
   # UI for TCGA sample selector
@@ -1400,10 +1424,34 @@ server <- function(input, output, session) {
                 choices = sort(filtered_samples))
   })
   
-  # UI for PCAWG cancer type selector
+  # UI for PCAWG cohort selector
+  output$cohort_ui_PCAWG <- renderUI({
+    selectInput("cohort_PCAWG", "Select Cohort:",
+                choices = get_available_cohorts(),
+                selected = "TCGA")
+  })
+  
+  # UI for PCAWG cancer type selector (now filtered by cohort)
   output$cancer_type_ui_PCAWG <- renderUI({
-    selectInput("cancer_type_PCAWG", "Select Cancer Type:",
-                choices = sort(unique(sample_PCAWG$cancer_type)))
+    req(input$cohort_PCAWG)
+    
+    # Get cancer types for selected cohort
+    cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_PCAWG)
+    
+    # Filter to only show cancer types that exist in the data
+    available_cancer_types <- intersect(cohort_cancer_types, unique(sample_PCAWG$cancer_type))
+    
+    # If no cohort-specific types available, fall back to all available types
+    if (length(available_cancer_types) == 0) {
+      available_cancer_types <- sort(unique(sample_PCAWG$cancer_type))
+    }
+    
+    # Check if select box should be disabled
+    disabled <- isTRUE(input$disable_select_PCAWG)
+    
+    conditional_select_input("cancer_type_PCAWG", "Select Cancer Type:",
+                           choices = sort(available_cancer_types),
+                           disabled = disabled)
   })
   
   # UI for PCAWG sample selector
@@ -1412,6 +1460,58 @@ server <- function(input, output, session) {
     filtered_samples <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == input$cancer_type_PCAWG]
     selectInput("sample_name_PCAWG", "Select Sample Name:",
                 choices = sort(filtered_samples))
+  })
+  
+  # Observer for TCGA disable select checkbox
+  observeEvent(input$disable_select_TCGA, {
+    # Trigger re-rendering of cancer type UI when checkbox changes
+    output$cancer_type_ui_TCGA <- renderUI({
+      req(input$cohort_TCGA)
+      
+      # Get cancer types for selected cohort
+      cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_TCGA)
+      
+      # Filter to only show cancer types that exist in the data
+      available_cancer_types <- intersect(cohort_cancer_types, unique(sample_TCGA$cancer_type))
+      
+      # If no cohort-specific types available, fall back to all available types
+      if (length(available_cancer_types) == 0) {
+        available_cancer_types <- sort(unique(sample_TCGA$cancer_type))
+      }
+      
+      # Check if select box should be disabled
+      disabled <- isTRUE(input$disable_select_TCGA)
+      
+      conditional_select_input("cancer_type_TCGA", "Select Cancer Type:",
+                             choices = sort(available_cancer_types),
+                             disabled = disabled)
+    })
+  })
+  
+  # Observer for PCAWG disable select checkbox
+  observeEvent(input$disable_select_PCAWG, {
+    # Trigger re-rendering of cancer type UI when checkbox changes
+    output$cancer_type_ui_PCAWG <- renderUI({
+      req(input$cohort_PCAWG)
+      
+      # Get cancer types for selected cohort
+      cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_PCAWG)
+      
+      # Filter to only show cancer types that exist in the data
+      available_cancer_types <- intersect(cohort_cancer_types, unique(sample_PCAWG$cancer_type))
+      
+      # If no cohort-specific types available, fall back to all available types
+      if (length(available_cancer_types) == 0) {
+        available_cancer_types <- sort(unique(sample_PCAWG$cancer_type))
+      }
+      
+      # Check if select box should be disabled
+      disabled <- isTRUE(input$disable_select_PCAWG)
+      
+      conditional_select_input("cancer_type_PCAWG", "Select Cancer Type:",
+                             choices = sort(available_cancer_types),
+                             disabled = disabled)
+    })
   })
   
   # TCGA Submit button handler
@@ -2443,12 +2543,13 @@ server <- function(input, output, session) {
     plot_obj <- current_survival_plot()
     
     if (is.null(plot_obj)) {
-      return(plot_ly() %>%
-        add_annotations(
-          text = "Click 'Generate Survival Plot' to view the analysis",
-          showarrow = FALSE,
-          font = list(size = 16)
-        ))
+      return(plot_ly(type = "scatter", mode = "markers") %>%
+               add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+               add_annotations(
+                 text = "Click 'Generate Survival Plot' to view the analysis",
+                 showarrow = FALSE,
+                 font = list(size = 16)
+               ))
     }
     
     convert_to_plotly(plot_obj)
@@ -2500,6 +2601,204 @@ server <- function(input, output, session) {
       plot_obj <- current_survival_plot()
       if (!is.null(plot_obj)) {
         ggsave(file, plot_obj, width = 12, height = 8, dpi = 300)
+      }
+    }
+  )
+  
+
+  # UI for cancer type selection in TMB analysis
+  output$cancer_types_ui_tmb <- renderUI({
+    req(input$selected_cohort_tmb)
+    
+    if (nrow(tmb_smf_data) == 0) {
+      return(tags$p("No TMB/sMF data available"))
+    }
+    
+    available_types <- tmb_smf_data %>%
+      filter(cohort == input$selected_cohort_tmb) %>%
+      pull(cancer_type) %>%
+      unique() %>%
+      sort()
+    
+    if (length(available_types) == 0) {
+      return(tags$p("No cancer types available for selected cohort"))
+    }
+    
+    selectInput("selected_cancer_types_tmb", 
+                      "Select Cancer Types (optional):",
+                      choices = c("All" = "", setNames(available_types, available_types)),
+                      selected = "",
+                      multiple = TRUE)
+  })
+  
+  current_tmb_plot <- reactiveVal()
+  current_correlation_data <- reactiveVal()
+  
+  # Generate TMB vs sMF plot
+  observeEvent(input$generate_tmb_plot, {
+    req(input$selected_cohort_tmb)
+    
+    if (nrow(tmb_smf_data) == 0) {
+      showNotification("No TMB/sMF data available", type = "error")
+      return()
+    }
+    
+    selected_cancer_types <- NULL
+    if (!is.null(input$selected_cancer_types_tmb) && length(input$selected_cancer_types_tmb) > 0) {
+      selected_cancer_types <- input$selected_cancer_types_tmb[input$selected_cancer_types_tmb != ""]
+      if (length(selected_cancer_types) == 0) {
+        selected_cancer_types <- NULL
+      }
+    }
+    
+    plot_obj <- create_tmb_smf_plot(
+      data = tmb_smf_data,
+      selected_cohorts = c(input$selected_cohort_tmb),
+      selected_cancer_types = selected_cancer_types,
+      log_scale = input$log_scale_tmb
+    )
+    
+    current_tmb_plot(plot_obj)
+    
+    plot_data <- tmb_smf_data %>%
+      filter(cohort == input$selected_cohort_tmb)
+    
+    if (!is.null(selected_cancer_types) && length(selected_cancer_types) > 0) {
+      plot_data <- plot_data %>%
+        filter(cancer_type %in% selected_cancer_types)
+    }
+    
+    corr_data <- create_correlation_summary(plot_data, c(input$selected_cohort_tmb))
+    current_correlation_data(corr_data)
+    
+    showNotification("TMB vs sMF plot generated successfully!", type = "message")
+  })
+  
+  # Render TMB vs sMF plot
+  output$tmb_smf_plot <- renderPlotly({
+    plot_obj <- current_tmb_plot()
+    
+    if (is.null(plot_obj)) {
+      return(plot_ly(type = "scatter", mode = "markers") %>%
+               add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+               add_annotations(
+                 text = "Click 'Generate Survival Plot' to view the analysis",
+                 showarrow = FALSE,
+                 font = list(size = 16)
+               ))
+    }
+    
+    tryCatch({
+      ggplotly(plot_obj, tooltip = c("x", "y")) %>%
+        layout(
+          title = list(text = "TMB vs sMF Analysis", font = list(size = 16)),
+          showlegend = TRUE
+        )
+    }, error = function(e) {
+      plot_ly(type = "scatter", mode = "markers") %>%
+        add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+        add_annotations(
+          text = paste("Error rendering plot:", e$message),
+          showarrow = FALSE,
+          font = list(size = 14)
+        )
+    })
+  })
+  
+  # Render correlation table
+  output$correlation_table <- DT::renderDT({
+    corr_data <- current_correlation_data()
+    
+    if (is.null(corr_data) || nrow(corr_data) == 0) {
+      return(data.frame(Message = "Generate plot to see correlation data"))
+    }
+    
+    display_data <- corr_data %>%
+      select(
+        "Cancer Type" = cancer_type,
+        "Cohorts" = cohorts,
+        "Samples" = n_samples,
+        "Correlation" = correlation_rounded,
+        "P-value" = p_value_formatted,
+        "Significance" = significance
+      )
+    
+    DT::datatable(
+      display_data,
+      options = list(
+        pageLength = 15,
+        scrollX = TRUE,
+        dom = 'ftip'
+      ),
+      rownames = FALSE
+    ) %>%
+      formatStyle(
+        "Correlation",
+        backgroundColor = styleInterval(c(-0.3, 0.3), c("#ffcccc", "white", "#ccffcc"))
+      )
+  })
+  
+  # TMB vs sMF information panel
+  output$tmb_smf_info <- renderUI({
+    req(current_tmb_plot())
+    
+    plot_data <- tmb_smf_data
+    if (!is.null(input$selected_cohort_tmb)) {
+      plot_data <- plot_data %>%
+        filter(cohort == input$selected_cohort_tmb)
+    }
+    
+    if (!is.null(input$selected_cancer_types_tmb) && length(input$selected_cancer_types_tmb) > 0) {
+      selected_cancer_types <- input$selected_cancer_types_tmb[input$selected_cancer_types_tmb != ""]
+      if (length(selected_cancer_types) > 0) {
+        plot_data <- plot_data %>%
+          filter(cancer_type %in% selected_cancer_types)
+      }
+    }
+    
+    n_total <- nrow(plot_data)
+    n_cohorts <- length(unique(plot_data$cohort))
+    n_cancer_types <- length(unique(plot_data$cancer_type))
+    
+    tags$div(
+      tags$hr(),
+      tags$h5(tags$b("Analysis Summary:")),
+      tags$p(paste("Total samples analyzed:", n_total)),
+      tags$p(paste("Number of cohorts:", n_cohorts)),
+      tags$p(paste("Number of cancer types:", n_cancer_types)),
+      if (n_total > 0) {
+        tags$div(
+          tags$p(paste("TMB range:", sprintf("%.2f - %.2f", min(plot_data$TMB), max(plot_data$TMB)))),
+          tags$p(paste("sMF range:", sprintf("%.3f - %.3f", min(plot_data$sMF), max(plot_data$sMF))))
+        )
+      }
+    )
+  })
+  
+  # Download handler for TMB plot
+  output$download_tmb_plot <- downloadHandler(
+    filename = function() {
+      cohorts_str <- input$selected_cohort_tmb
+      paste0("tmb_smf_plot_", cohorts_str, "_", Sys.Date(), ".png")
+    },
+    content = function(file) {
+      plot_obj <- current_tmb_plot()
+      if (!is.null(plot_obj)) {
+        ggsave(file, plot_obj, width = 16, height = 12, dpi = 300)
+      }
+    }
+  )
+  
+  # Download handler for correlation table
+  output$download_correlation_table <- downloadHandler(
+    filename = function() {
+      cohorts_str <- input$selected_cohort_tmb
+      paste0("tmb_smf_correlations_", cohorts_str, "_", Sys.Date(), ".csv")
+    },
+    content = function(file) {
+      corr_data <- current_correlation_data()
+      if (!is.null(corr_data) && nrow(corr_data) > 0) {
+        write.csv(corr_data, file, row.names = FALSE)
       }
     }
   )
