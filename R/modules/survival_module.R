@@ -258,17 +258,17 @@ create_km_plot <- function(df_data, survival_type, cancer_type) {
       ) +
       labs(subtitle = "", caption = "", tag = "") +
       annotate("text", 
-               x = 9, y = 0.95,  
+               x = 7.5, y = 0.95,  
                label = paste0("High sMF (≥", sprintf("%.3f", cutoff), ", n=", n_high, ")"),
-               hjust = 1, vjust = 1, size = 3, color = "#63A299", fontface = "bold") +
+               hjust = 1, vjust = 1, size = 5, color = "#63A299", fontface = "bold") +
       annotate("text", 
-               x = 9, y = 0.90, 
+               x = 7.5, y = 0.90, 
                label = paste0("Low sMF (<", sprintf("%.3f", cutoff), ", n=", n_low, ")"),
-               hjust = 1, vjust = 1, size = 3, color = "#D6ACC0", fontface = "bold") +
+               hjust = 1, vjust = 1, size = 5, color = "#D6ACC0", fontface = "bold") +
       annotate("text", 
-               x = 9, y = 0.85, 
+               x = 7.5, y = 0.85, 
                label = p_text,
-               hjust = 1, vjust = 1, size = 3, fontface = "bold")
+               hjust = 1, vjust = 1, size = 5, fontface = "bold")
 
     final_plot$labels$subtitle <- NULL
     final_plot$labels$caption <- NULL
