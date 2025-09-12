@@ -1,7 +1,4 @@
-# for Sylvain
-#old_path <- Sys.getenv("PATH")
 #Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
-#Sys.setenv(LD_LIBRARY_PATH="/usr/local/gcc/7.0.0/lib64")
 
 server <- function(input, output, session) {
   
@@ -9,7 +6,6 @@ server <- function(input, output, session) {
   plots_ready_TCGA <- reactiveVal(FALSE)
   plots_ready_PCAWG <- reactiveVal(FALSE)
   
-  # Reactive values object to track the state of each tab
   tab_states <- reactiveValues(
     clipp_web = FALSE,     
     tcga = FALSE,         
@@ -225,35 +221,30 @@ server <- function(input, output, session) {
     }
   })
   
-  # Update existing reactiveVal observers to also update the tab_states
   output$plotsReadyCliPP <- reactive({
     value <- plots_ready_clipp()
     return(value)
   })
   outputOptions(output, "plotsReadyCliPP", suspendWhenHidden = FALSE)
   
-  # For TCGA tab
   output$plotsReadyTCGA <- reactive({
     value <- plots_ready_TCGA()
     return(value)
   })
   outputOptions(output, "plotsReadyTCGA", suspendWhenHidden = FALSE)
   
-  # For PCAWG tab
   output$plotsReadyPCAWG <- reactive({
     value <- plots_ready_PCAWG()
     return(value)
   })
   outputOptions(output, "plotsReadyPCAWG", suspendWhenHidden = FALSE)
   
-  # For Driver Mutation tab
   output$driverRowSelected <- reactive({
     value <- !is.null(input$driverMutationTable_rows_selected)
     return(value)
   })
   outputOptions(output, "driverRowSelected", suspendWhenHidden = FALSE)
   
-  # For Driver Mutation, track when a row is selected
   observeEvent(input$driverMutationTable_rows_selected, {
     tab_states$driver <- !is.null(input$driverMutationTable_rows_selected)
   })
@@ -271,7 +262,6 @@ server <- function(input, output, session) {
     sample_PCAWG
   })
   
-  # Add reactive values for driver data
   driver_data <- reactive({
     req(input$cancer_type_driver)
     selected_cancer_type <- input$cancer_type_driver
@@ -289,7 +279,6 @@ server <- function(input, output, session) {
     return(driver_mutations)
   })
   
-  # Add a reactive for consolidated data
   driver_data_consolidated <- reactive({
     req(input$cancer_type_driver)
     selected_cancer_type <- input$cancer_type_driver
@@ -361,7 +350,6 @@ server <- function(input, output, session) {
     return(result)
   })
   
-  # UI elements for driver mutation section
   output$cancer_type_ui_driver <- renderUI({
     selectInput("cancer_type_driver", "Select Cancer Type:", choices = unique(driver_mutation_data$cancer))
   })
@@ -370,9 +358,7 @@ server <- function(input, output, session) {
     selectInput("gene_name_driver", "Select Gene:", choices = NULL)
   })
   
-  # Render the driver mutation table
   output$driverMutationTable <- DT::renderDataTable({
-    # Explicitly depend on both cancer type and view mode
     cancer_type <- input$cancer_type_driver
     view_mode <- input$view_mode %||% "individual"
     
@@ -445,7 +431,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # Handle all files to prepare for processing
   process_driver_sample <- function(selected_sample, mutations_data, individual_mutation = NULL) {
     
     tryCatch({
@@ -539,7 +524,6 @@ server <- function(input, output, session) {
           ggplotly(gg1)
         })
         
-        # Create a simplified CP plot with just driver mutations
         output$driverPlot2 <- renderPlotly({
           gg2 <- ggplot() +
             xlim(0, 1.5) +
@@ -575,7 +559,6 @@ server <- function(input, output, session) {
           ggplotly(gg2)
         })
         
-        # Show simplified captions
         output$driverCaption1 <- renderUI({
           HTML("<p>
           - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
@@ -647,7 +630,6 @@ server <- function(input, output, session) {
         mutations_data
       }
       
-      # Create VAF plot with driver mutations highlighted
       output$driverPlot1 <- renderPlotly({
         smoothing_factor1 <- input$smoothingFactor1_driver %||% 0.45
         
@@ -716,7 +698,6 @@ server <- function(input, output, session) {
         ggplotly(gg1)
       })
       
-      # Create CP plot with driver mutations highlighted
       output$driverPlot2 <- renderPlotly({
         smoothing_factor2 <- input$smoothingFactor2_driver %||% 0.45
         
@@ -765,7 +746,6 @@ server <- function(input, output, session) {
         ggplotly(gg2)
       })
       
-      # Show explanatory captions
       output$driverCaption1 <- renderUI({
         HTML("<p>
     - <b>Variant Allele Frequency (VAF)</b> represents the proportion of sequencing reads containing a specific mutation, indicating its prevalence in the sample.<br>
@@ -789,7 +769,6 @@ server <- function(input, output, session) {
     }, error = function(e) {
       showNotification(paste("Error processing sample:", e$message), type = "error")
       
-      # Create simple error plots
       output$driverPlot1 <- renderPlotly({ 
         plotly::plot_ly(type = "scatter", mode = "markers") %>% 
           plotly::add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
@@ -810,7 +789,6 @@ server <- function(input, output, session) {
     })
   }
   
-  # Modified row selection handler to handle consolidated vs individual views correctly
   observeEvent(input$driverMutationTable_rows_selected, {
     row_selected <- input$driverMutationTable_rows_selected
     
@@ -896,7 +874,6 @@ server <- function(input, output, session) {
   observeEvent(input$cancer_type_driver, {
     shinyjs::hide("smoothingControls")
     
-    # When the cancer type changes, we need to start fresh
     dataTableProxy("driverMutationTable") %>% selectRows(NULL)
     
     shinyjs::hide("smoothingFactor1_driver")
@@ -1010,7 +987,6 @@ server <- function(input, output, session) {
       }
     })
     
-    # Add explanatory captions 
     output$driverCaption1 <- renderUI({
       HTML("<p>
       - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
@@ -1043,7 +1019,6 @@ server <- function(input, output, session) {
     updateSelectInput(session, "sample_name_driver", choices = sample_names)
   })
   
-  # Generate driver mutation data table and configure file download for driver mutation data
   observeEvent(input$submitDriver, {
     selected_sample <- input$sample_name_driver
     selected_cancer_type <- input$cancer_type_driver  
@@ -1075,7 +1050,6 @@ server <- function(input, output, session) {
     shinyjs::show("downloadDriverMutation")
   })
   
-  # Update the downloadDriverMutation handler
   output$downloadDriverMutation <- downloadHandler(
     filename = function() {
       paste("Driver_Mutation_Data-", input$cancer_type_driver, "-",
@@ -1106,7 +1080,6 @@ server <- function(input, output, session) {
     contentType = "text/plain"
   )
   
-  # Add observer to initially hide smoothing controls
   observe({
     if (is.null(input$driverMutationTable_rows_selected)) {
       shinyjs::hide("smoothingFactor1_driver")
@@ -1116,7 +1089,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # Display UI elements for specific sections
   output$driverMutationPlots <- renderUI({
     if (!is.null(input$cancer_type_driver)) {
       tagList(
@@ -1141,7 +1113,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # Dynamic file upload inputs based on selected number of samples
   observeEvent(input$setSamples, {
     numSamples <- input$numSamples
     output$dynamicFileInputs <- renderUI({
@@ -1170,7 +1141,6 @@ server <- function(input, output, session) {
     shinyjs::disable("numSamples")
   })
   
-  # Store uploaded files
   observeEvent(input$uploadSamples, {
     numSamples <- input$numSamples
     samples <- store_uploaded_files(input, numSamples, input$uploadMode)
@@ -1187,7 +1157,6 @@ server <- function(input, output, session) {
     shinyjs::show("colorBy")
   })
   
-  # Clear current session data
   observeEvent(input$clear, {
     uploaded_samples$samples <- list()
     samples_uploaded(FALSE)    
@@ -1233,7 +1202,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # Process uploaded samples
   observeEvent(input$submit, {
     withProgress(message = 'Processing data...', value = 0, {
       plots_ready_clipp(FALSE)
@@ -1322,7 +1290,6 @@ server <- function(input, output, session) {
     })
   })
   
-  # Main plot outputs for uploaded samples
   output$plot1 <- renderPlotly({
     req(plots_ready_clipp())
     
@@ -1360,7 +1327,6 @@ server <- function(input, output, session) {
     )
   })
   
-  # Plot captions
   output$caption1 <- renderUI({
     req(plots_ready_clipp())
     get_vaf_plot_caption()
@@ -1371,7 +1337,6 @@ server <- function(input, output, session) {
     get_cp_plot_caption()
   })
   
-  # Results download section
   output$plotOutputArea <- renderUI({
     req(plots_ready_clipp())
     
@@ -1386,29 +1351,23 @@ server <- function(input, output, session) {
     )
   })
   
-  # UI for TCGA cohort selector
   output$cohort_ui_TCGA <- renderUI({
     selectInput("cohort_TCGA", "Select Cohort:",
                 choices = get_available_cohorts(),
                 selected = "TCGA")
   })
   
-  # UI for TCGA cancer type selector (now filtered by cohort)
   output$cancer_type_ui_TCGA <- renderUI({
     req(input$cohort_TCGA)
     
-    # Get cancer types for selected cohort
     cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_TCGA)
     
-    # Filter to only show cancer types that exist in the data
     available_cancer_types <- intersect(cohort_cancer_types, unique(sample_TCGA$cancer_type))
     
-    # If no cohort-specific types available, fall back to all available types
     if (length(available_cancer_types) == 0) {
       available_cancer_types <- sort(unique(sample_TCGA$cancer_type))
     }
     
-    # Check if select box should be disabled
     disabled <- isTRUE(input$disable_select_TCGA)
     
     conditional_select_input("cancer_type_TCGA", "Select Cancer Type:",
@@ -1416,7 +1375,6 @@ server <- function(input, output, session) {
                            disabled = disabled)
   })
   
-  # UI for TCGA sample selector
   output$sample_name_ui_TCGA <- renderUI({
     req(input$cancer_type_TCGA)
     filtered_samples <- sample_TCGA$samplename[sample_TCGA$cancer_type == input$cancer_type_TCGA]
@@ -1424,29 +1382,23 @@ server <- function(input, output, session) {
                 choices = sort(filtered_samples))
   })
   
-  # UI for PCAWG cohort selector
   output$cohort_ui_PCAWG <- renderUI({
     selectInput("cohort_PCAWG", "Select Cohort:",
                 choices = get_available_cohorts(),
                 selected = "TCGA")
   })
   
-  # UI for PCAWG cancer type selector (now filtered by cohort)
   output$cancer_type_ui_PCAWG <- renderUI({
     req(input$cohort_PCAWG)
     
-    # Get cancer types for selected cohort
     cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_PCAWG)
     
-    # Filter to only show cancer types that exist in the data
     available_cancer_types <- intersect(cohort_cancer_types, unique(sample_PCAWG$cancer_type))
     
-    # If no cohort-specific types available, fall back to all available types
     if (length(available_cancer_types) == 0) {
       available_cancer_types <- sort(unique(sample_PCAWG$cancer_type))
     }
     
-    # Check if select box should be disabled
     disabled <- isTRUE(input$disable_select_PCAWG)
     
     conditional_select_input("cancer_type_PCAWG", "Select Cancer Type:",
@@ -1454,7 +1406,6 @@ server <- function(input, output, session) {
                            disabled = disabled)
   })
   
-  # UI for PCAWG sample selector
   output$sample_name_ui_PCAWG <- renderUI({
     req(input$cancer_type_PCAWG)
     filtered_samples <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == input$cancer_type_PCAWG]
@@ -1464,14 +1415,11 @@ server <- function(input, output, session) {
   
   # Observer for TCGA disable select checkbox
   observeEvent(input$disable_select_TCGA, {
-    # Trigger re-rendering of cancer type UI when checkbox changes
     output$cancer_type_ui_TCGA <- renderUI({
       req(input$cohort_TCGA)
       
-      # Get cancer types for selected cohort
       cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_TCGA)
       
-      # Filter to only show cancer types that exist in the data
       available_cancer_types <- intersect(cohort_cancer_types, unique(sample_TCGA$cancer_type))
       
       # If no cohort-specific types available, fall back to all available types
@@ -1479,7 +1427,6 @@ server <- function(input, output, session) {
         available_cancer_types <- sort(unique(sample_TCGA$cancer_type))
       }
       
-      # Check if select box should be disabled
       disabled <- isTRUE(input$disable_select_TCGA)
       
       conditional_select_input("cancer_type_TCGA", "Select Cancer Type:",
@@ -1488,24 +1435,19 @@ server <- function(input, output, session) {
     })
   })
   
-  # Observer for PCAWG disable select checkbox
   observeEvent(input$disable_select_PCAWG, {
     # Trigger re-rendering of cancer type UI when checkbox changes
     output$cancer_type_ui_PCAWG <- renderUI({
       req(input$cohort_PCAWG)
       
-      # Get cancer types for selected cohort
       cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_PCAWG)
       
-      # Filter to only show cancer types that exist in the data
       available_cancer_types <- intersect(cohort_cancer_types, unique(sample_PCAWG$cancer_type))
       
-      # If no cohort-specific types available, fall back to all available types
       if (length(available_cancer_types) == 0) {
         available_cancer_types <- sort(unique(sample_PCAWG$cancer_type))
       }
       
-      # Check if select box should be disabled
       disabled <- isTRUE(input$disable_select_PCAWG)
       
       conditional_select_input("cancer_type_PCAWG", "Select Cancer Type:",
@@ -1514,7 +1456,6 @@ server <- function(input, output, session) {
     })
   })
   
-  # TCGA Submit button handler
   observeEvent(input$submitTCGA, {
     
     plots_ready_TCGA(FALSE)
@@ -1584,7 +1525,6 @@ server <- function(input, output, session) {
     shinyjs::show("downloadUI_TCGA")
   })
   
-  # PCAWG Submit button handler
   observeEvent(input$submitPCAWG, {
     
     plots_ready_PCAWG(FALSE)
@@ -1656,7 +1596,6 @@ server <- function(input, output, session) {
     shinyjs::show("smoothingExplanation2_PCAWG")
     shinyjs::show(selector = ".controls-area")
     
-    # Create download UI
     output$downloadUI_PCAWG <- renderUI({
       result_files <- list.files(sample_dir, pattern = "\\.txt$")
       if (length(result_files) > 0) {
@@ -1670,7 +1609,6 @@ server <- function(input, output, session) {
     shinyjs::show("downloadUI_PCAWG")
   })
   
-  # Clear TCGA data
   observeEvent(input$clearTCGA, {
     tcga_analysis(NULL)
     plots_ready_TCGA(FALSE)
@@ -1720,7 +1658,6 @@ server <- function(input, output, session) {
     invalidateLater(1)
   })
   
-  # Clear PCAWG data
   observeEvent(input$clearPCAWG, {
     pcawg_analysis(NULL)
     plots_ready_PCAWG(FALSE)
@@ -1861,7 +1798,6 @@ server <- function(input, output, session) {
     HTML(paste0("Recommended smoothing factor: ", recommended))
   })
   
-  # PCAWG Plot renderers
   output$plot1PCAWG <- renderPlotly({
     req(plots_ready_PCAWG())
     current_analysis <- pcawg_analysis()
@@ -1961,7 +1897,6 @@ server <- function(input, output, session) {
     })
   })
   
-  # PCAWG captions and explanations
   output$caption1PCAWG <- renderUI({
     req(plots_ready_PCAWG())
     get_vaf_plot_caption()
@@ -1984,7 +1919,6 @@ server <- function(input, output, session) {
     HTML(paste0("Recommended smoothing factor: ", recommended))
   })
   
-  # Download handlers
   output$downloadResultTCGA <- downloadHandler(
     filename = function() {
       selected_file <- input$selectedFileTCGA
@@ -2054,7 +1988,6 @@ server <- function(input, output, session) {
     contentType = "text/plain"
   )
   
-  # Observer for main navigation tab changes
   observeEvent(input$`navbar-container`, {
     current_tab <- input$`navbar-container`
     
@@ -2127,7 +2060,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # HELPER FUNCTIONS
   
   # Function to count SNVs in a file
   count_snvs <- function(file_path) {
@@ -2136,7 +2068,6 @@ server <- function(input, output, session) {
     nrow(df)
   }
   
-  # Helper function to read TCGA files
   read_tcga_files <- function(sample_dir) {
     snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
     cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
@@ -2491,7 +2422,6 @@ server <- function(input, output, session) {
     load_survival_data()
   })
   
-  # Dynamic UI for cancer type selection based on survival endpoint
   output$cancerTypeUI_survival <- renderUI({
     data_list <- survival_data()
     
@@ -2518,7 +2448,6 @@ server <- function(input, output, session) {
   current_survival_plot <- reactiveVal(NULL)
   current_survival_data <- reactiveVal(NULL)
   
-  # Generate survival plot when button is clicked
   observeEvent(input$generateKMPlot, {
     req(input$survivalType, input$cancerType_survival)
     
@@ -2538,7 +2467,6 @@ server <- function(input, output, session) {
     current_survival_plot(gg_plot)
   })
   
-  # Render survival plot
   output$survivalPlot <- renderPlotly({
     plot_obj <- current_survival_plot()
     
@@ -2555,7 +2483,6 @@ server <- function(input, output, session) {
     convert_to_plotly(plot_obj)
   })
   
-  # Display survival plot information
   output$survivalPlotInfo <- renderUI({
     req(current_survival_plot())
     
@@ -2573,7 +2500,6 @@ server <- function(input, output, session) {
     )
   })
   
-  # Display sample size information
   output$survivalSampleInfo <- renderUI({
     df_data <- current_survival_data()
     
@@ -2592,7 +2518,6 @@ server <- function(input, output, session) {
     )
   })
   
-  # Download handler for survival plot
   output$downloadSurvivalPlot <- downloadHandler(
     filename = function() {
       paste0("survival_plot_", input$cancerType_survival, "_", input$survivalType, "_", Sys.Date(), ".png")
@@ -2606,7 +2531,6 @@ server <- function(input, output, session) {
   )
   
 
-  # UI for cancer type selection in TMB analysis
   output$cancer_types_ui_tmb <- renderUI({
     req(input$selected_cohort_tmb)
     
@@ -2634,7 +2558,6 @@ server <- function(input, output, session) {
   current_tmb_plot <- reactiveVal()
   current_correlation_data <- reactiveVal()
   
-  # Generate TMB vs sMF plot
   observeEvent(input$generate_tmb_plot, {
     req(input$selected_cohort_tmb)
     
@@ -2673,7 +2596,6 @@ server <- function(input, output, session) {
     
   })
   
-  # Render TMB vs sMF plot
   output$tmb_smf_plot <- renderPlotly({
     plot_obj <- current_tmb_plot()
     
@@ -2704,7 +2626,6 @@ server <- function(input, output, session) {
     })
   })
   
-  # Render correlation table
   output$correlation_table <- DT::renderDT({
     corr_data <- current_correlation_data()
     
@@ -2737,7 +2658,6 @@ server <- function(input, output, session) {
       )
   })
   
-  # TMB vs sMF information panel
   output$tmb_smf_info <- renderUI({
     req(current_tmb_plot())
     
@@ -2774,7 +2694,6 @@ server <- function(input, output, session) {
     )
   })
   
-  # Download handler for TMB plot
   output$download_tmb_plot <- downloadHandler(
     filename = function() {
       cohorts_str <- input$selected_cohort_tmb
@@ -2788,7 +2707,6 @@ server <- function(input, output, session) {
     }
   )
   
-  # Download handler for correlation table
   output$download_correlation_table <- downloadHandler(
     filename = function() {
       cohorts_str <- input$selected_cohort_tmb
@@ -2801,4 +2719,107 @@ server <- function(input, output, session) {
       }
     }
   )
+
+  ## HEATMAP ANALYSIS FUNCTIONS - COMMENTED OUT FOR FUTURE USE ##
+  ## Uncomment and activate when Matthew provides heatmap figures ##
+  
+  # # UI for cancer type selection in heatmap analysis
+  # output$cancer_types_ui_heatmap <- renderUI({
+  #   req(input$selected_cohort_heatmap)
+  #   if (nrow(heatmap_data) == 0) {
+  #     return(tags$p("Heatmap data will be available when Matthew provides the figures."))
+  #   }
+  #   
+  #   available_types <- get_available_cancer_types_heatmap(heatmap_data)
+  #   if (length(available_types) == 0) {
+  #     return(tags$p("No cancer types available for heatmap analysis"))
+  #   
+  #   selectInput("selected_cancer_types_heatmap", 
+  #                     "Select Cancer Types:",
+  #                     choices = c(setNames(available_types, available_types)),
+  # current_heatmap_plot <- reactiveVal()
+  # current_heatmap_summary <- reactiveVal()
+  # # Generate heatmap plot
+  # observeEvent(input$generate_heatmap_plot, {
+  #   req(input$selected_cohort_heatmap)
+  #   if (nrow(heatmap_data) == 0) {
+  #     showNotification("Heatmap data not yet available. Will be updated when Matthew provides the figures.", type = "message")
+  #     placeholder_plot <- create_heatmap_plot(data.frame())
+  #     current_heatmap_plot(placeholder_plot)
+  #     return()
+  #   
+  #   if (!is.null(input$selected_cancer_types_heatmap) && length(input$selected_cancer_types_heatmap) > 0) {
+  #     selected_cancer_types <- input$selected_cancer_types_heatmap[input$selected_cancer_types_heatmap != ""]
+  #     if (length(selected_cancer_types) == 0) {
+  #       selected_cancer_types <- NULL
+  #     }
+  #   
+  #   plot_obj <- create_heatmap_plot(
+  #     data = heatmap_data,
+  #     selected_cohorts = c(input$selected_cohort_heatmap),
+  #     color_scale = input$color_scale_heatmap
+  #   )
+  #   current_heatmap_plot(plot_obj)
+  #   
+  #   summary_data <- create_heatmap_summary(heatmap_data, c(input$selected_cohort_heatmap))
+  #   current_heatmap_summary(summary_data)
+  # # Render heatmap plot
+  # output$heatmap_plot <- renderPlotly({
+  #   plot_obj <- current_heatmap_plot()
+  #   if (is.null(plot_obj)) {
+  #     return(plot_ly(type = "scatter", mode = "markers") %>%
+  #              add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+  #              add_annotations(
+  #                text = "Click 'Generate Heatmap' to view the analysis",
+  #                font = list(size = 16)
+  #              ))
+  #   }
+  #   tryCatch({
+  #     if (inherits(plot_obj, "ggplot")) {
+  #           title = list(text = "Heatmap Analysis", font = list(size = 16)),
+  #           showlegend = TRUE
+  #       plot_obj
+  #     }
+  #   }, error = function(e) {
+  #       add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
+  #       add_annotations(
+  #         text = paste("Error generating heatmap:", e$message),
+  #         showarrow = FALSE,
+  #         font = list(size = 12)
+  # })
+  # 
+  # # Render heatmap summary table
+  # output$heatmap_summary_table <- renderDT({
+  #   summary_data <- current_heatmap_summary()
+  #                     options = list(dom = 't', pageLength = -1, ordering = FALSE, searching = FALSE),
+  #                     rownames = FALSE))
+  #   datatable(summary_data, 
+  #             options = list(
+  #               dom = 'Bfrtip'
+  #             rownames = FALSE)
+  # 
+  # # Display heatmap information
+  # output$heatmap_info <- renderUI({
+  #   req(current_heatmap_plot())
+  #   
+  #     tags$h5(tags$b("Analysis Information:")),
+  #     tags$p("This heatmap visualization will display patterns and correlations in cancer genomic data."),
+  #     tags$p("Features will include hierarchical clustering, interactive exploration, and detailed annotations."),
+  #     tags$p("Full functionality will be available when Matthew provides the heatmap figures.")
+  #   )
+  # # Download handler for heatmap plot
+  # output$download_heatmap_plot <- downloadHandler(
+  #   filename = function() {
+  #     cohorts_str <- input$selected_cohort_heatmap
+  #     paste0("heatmap_plot_", cohorts_str, "_", Sys.Date(), ".png")
+  #     plot_obj <- current_heatmap_plot()
+  #       ggsave(file, plot_obj, width = 12, height = 10, dpi = 300)
+  #   }
+  # 
+  # # Download handler for heatmap data
+  # output$download_heatmap_data <- downloadHandler(
+  #     cohorts_str <- input$selected_cohort_heatmap
+  #     paste0("heatmap_data_", cohorts_str, "_", Sys.Date(), ".csv")
+  #   },
+  #     summary_data <- current_heatmap_summary()
 }
