@@ -231,6 +231,13 @@ create_km_plot <- function(df_data, survival_type, cancer_type) {
       sprintf("p = %.3f", p_value)
     }
     
+    # Calculate dynamic x-axis limit based on max follow-up time
+    max_time_years <- max(df_clean[[time_col]], na.rm = TRUE) / 365.25
+    x_max <- ceiling(max_time_years)  # Round up to next integer
+
+    # Set appropriate time break interval based on max time
+    time_break <- if (x_max <= 5) 1 else if (x_max <= 15) 2 else 5
+
     p <- survminer::ggsurvplot(
       fit,
       data       = df_clean,
@@ -240,8 +247,8 @@ create_km_plot <- function(df_data, survival_type, cancer_type) {
       pval       = FALSE,
       pval.coord = NULL,
       conf.int   = FALSE,
-      xlim       = c(0, 10),
-      break.time.by = 2,
+      xlim       = c(0, x_max),
+      break.time.by = time_break,
       palette    = c("#D6ACC0", "#63A299"),
       legend     = "none"
     )
@@ -257,16 +264,16 @@ create_km_plot <- function(df_data, survival_type, cancer_type) {
         legend.background = element_blank() 
       ) +
       labs(subtitle = "", caption = "", tag = "") +
-      annotate("text", 
-               x = 7.5, y = 0.95,  
+      annotate("text",
+               x = x_max * 0.75, y = 0.95,
                label = paste0("High sMF (≥", sprintf("%.3f", cutoff), ", n=", n_high, ")"),
                hjust = 1, vjust = 1, size = 5, color = "#63A299", fontface = "bold") +
-      annotate("text", 
-               x = 7.5, y = 0.90, 
+      annotate("text",
+               x = x_max * 0.75, y = 0.90,
                label = paste0("Low sMF (<", sprintf("%.3f", cutoff), ", n=", n_low, ")"),
                hjust = 1, vjust = 1, size = 5, color = "#D6ACC0", fontface = "bold") +
-      annotate("text", 
-               x = 7.5, y = 0.85, 
+      annotate("text",
+               x = x_max * 0.75, y = 0.85,
                label = p_text,
                hjust = 1, vjust = 1, size = 5, fontface = "bold")
 
