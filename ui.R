@@ -210,6 +210,317 @@ ui <- fluidPage(
         color: #3498db;
         margin-right: 8px;
       }
+
+      /* Downloads Tab Specific Styling */
+      .downloads-tab-container {
+        position: relative;
+        min-height: 100vh;
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+
+      /* Floating Vertical Navigation */
+      .vertical-nav-floating {
+        position: fixed;
+        top: 50%;
+        left: 20px;
+        transform: translateY(-50%);
+        width: 200px;
+        background: linear-gradient(135deg, #2c3e50, #3498db);
+        border-radius: 10px;
+        padding: 20px;
+        z-index: 1000;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+      }
+
+      .vertical-nav-floating:hover {
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+        transform: translateY(-50%) scale(1.02);
+      }
+
+      .vertical-nav-floating .nav-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .vertical-nav-floating .nav-list li {
+        margin-bottom: 12px;
+      }
+
+      .vertical-nav-floating .nav-link {
+        display: block;
+        color: white;
+        text-decoration: none;
+        padding: 12px 16px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        font-size: 14px;
+        border-left: 3px solid transparent;
+      }
+
+      .vertical-nav-floating .nav-link:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-left: 3px solid #f39c12;
+        transform: translateX(8px);
+        color: white;
+        text-decoration: none;
+      }
+
+      .vertical-nav-floating .nav-link:active,
+      .vertical-nav-floating .nav-link.active {
+        background: rgba(255, 255, 255, 0.2);
+        border-left: 3px solid #f39c12;
+        color: white;
+      }
+
+      /* Main Downloads Content Area */
+      .downloads-main-content {
+        margin-left: 260px;
+        padding: 30px;
+        max-width: calc(100% - 300px);
+      }
+
+      .download-section {
+        margin-bottom: 50px;
+        padding: 30px;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+      }
+
+      .download-section:hover {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+      }
+
+      .download-section h3 {
+        margin-bottom: 25px;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      /* Metadata Cards */
+      .metadata-card {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-left: 4px solid #3498db;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      /* Enhanced Download Tables */
+      .download-table-styled {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 25px 0;
+        font-size: 16px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .download-table-styled thead tr {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        text-align: left;
+        font-weight: 600;
+      }
+
+      .download-table-styled th,
+      .download-table-styled td {
+        padding: 15px 20px;
+        border: none;
+      }
+
+      .download-table-styled tbody tr {
+        border-bottom: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
+      }
+
+      .download-table-styled tbody tr:nth-of-type(even) {
+        background: #f8f9fa;
+      }
+
+      .download-table-styled tbody tr:hover {
+        background: linear-gradient(135deg, #e8f4f8, #d6eaf8);
+        transform: scale(1.02);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .download-table-styled tbody tr:last-of-type {
+        border-bottom: none;
+      }
+
+      .dataset-name {
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      /* File Type Badges */
+      .file-type-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      /* Download and Browse Buttons */
+      .download-btn, .browse-btn {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        text-align: center;
+      }
+
+      .download-btn {
+        background: linear-gradient(135deg, #27ae60, #2ecc71);
+        color: white;
+        box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+      }
+
+      .download-btn:hover {
+        background: linear-gradient(135deg, #219653, #27ae60);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+        color: white;
+        text-decoration: none;
+      }
+
+      .browse-btn {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+        box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+      }
+
+      .browse-btn:hover {
+        background: linear-gradient(135deg, #d68910, #f39c12);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+        color: white;
+        text-decoration: none;
+      }
+
+      .file-size {
+        font-size: 12px;
+        color: #7f8c8d;
+        font-style: italic;
+        margin-left: 10px;
+      }
+
+      /* Citation Section */
+      .citation-section {
+        background: linear-gradient(135deg, #ecf0f1, #bdc3c7);
+        border-radius: 12px;
+        padding: 30px;
+        margin-top: 40px;
+        border-left: 5px solid #34495e;
+      }
+
+      /* Responsive Design for Downloads */
+      @media (max-width: 1200px) {
+        .vertical-nav-floating {
+          width: 180px;
+          left: 15px;
+        }
+
+        .downloads-main-content {
+          margin-left: 220px;
+          max-width: calc(100% - 250px);
+        }
+      }
+
+      @media (max-width: 992px) {
+        .vertical-nav-floating {
+          position: relative;
+          top: auto;
+          left: auto;
+          transform: none;
+          width: 100%;
+          margin-bottom: 30px;
+        }
+
+        .downloads-main-content {
+          margin-left: 0;
+          max-width: 100%;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .download-table-styled {
+          font-size: 14px;
+        }
+
+        .download-table-styled th,
+        .download-table-styled td {
+          padding: 12px 15px;
+        }
+
+        .download-btn, .browse-btn {
+          padding: 8px 16px;
+          font-size: 12px;
+        }
+      }
+
+      /* Sample Count Display Styling */
+      .sample-count-info {
+        background: linear-gradient(135deg, #e8f5e8, #d4edda);
+        border: 1px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .sample-count-info:hover {
+        background: linear-gradient(135deg, #d4edda, #c3e6cb);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .sample-count-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #155724;
+        margin-bottom: 5px;
+        display: block;
+      }
+
+      .sample-count-label {
+        font-size: 14px;
+        color: #155724;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .sample-count-details {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 8px;
+        font-style: italic;
+      }
+
+      .sample-count-hidden {
+        display: none;
+      }
     ")),
     
     tags$script(HTML("
@@ -249,6 +560,37 @@ ui <- fluidPage(
           if (event.target.id === 'downloads-modal') {
             $('#downloads-modal').hide();
           }
+        });
+
+        // Floating vertical navigation smooth scrolling
+        $(document).on('click', '.vertical-nav-floating .nav-link', function(e) {
+          e.preventDefault();
+          var target = $($(this).attr('href'));
+          if (target.length) {
+            $('.vertical-nav-floating .nav-link').removeClass('active');
+            $(this).addClass('active');
+
+            $('html, body').animate({
+              scrollTop: target.offset().top - 100
+            }, 800, 'easeInOutCubic');
+          }
+        });
+
+        // Highlight active section in navigation based on scroll position
+        $(window).scroll(function() {
+          var scrollPos = $(window).scrollTop() + 150;
+
+          $('.download-section').each(function() {
+            var section = $(this);
+            var sectionTop = section.offset().top;
+            var sectionBottom = sectionTop + section.outerHeight();
+            var sectionId = section.attr('id');
+
+            if (scrollPos >= sectionTop && scrollPos < sectionBottom) {
+              $('.vertical-nav-floating .nav-link').removeClass('active');
+              $('.vertical-nav-floating .nav-link[href=\"#' + sectionId + '\"]').addClass('active');
+            }
+          });
         });
       });
     "))
@@ -824,11 +1166,17 @@ ui <- fluidPage(
                                                    uiOutput("cohort_ui_TCGA"),
                                                    checkboxInput("disable_select_TCGA", "Deactivate Cancer Type Selection", value = FALSE),
                                                    uiOutput("cancer_type_ui_TCGA"),
+
+                                                   # Sample count display
+                                                   div(id = "sample_count_display_TCGA", class = "sample-count-info",
+                                                       uiOutput("sample_count_TCGA")
+                                                   ),
+
                                                    uiOutput("sample_name_ui_TCGA"),
                                                    actionButton("submitTCGA", "Submit", class = "btn-primary"),
                                                    hidden(actionButton("clearTCGA", "Clear", class = "btn-danger")),
-                                                   hidden(selectInput("colorByTCGA", "Color points by:", 
-                                                                      choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), 
+                                                   hidden(selectInput("colorByTCGA", "Color points by:",
+                                                                      choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
                                                                       selected = "clonality"))
                                                  ),
                                                  mainPanel(
@@ -889,11 +1237,17 @@ ui <- fluidPage(
                                                    uiOutput("cohort_ui_PCAWG"),
                                                    checkboxInput("disable_select_PCAWG", "Deactivate Cancer Type Selection", value = FALSE),
                                                    uiOutput("cancer_type_ui_PCAWG"),
+
+                                                   # Sample count display
+                                                   div(id = "sample_count_display_PCAWG", class = "sample-count-info",
+                                                       uiOutput("sample_count_PCAWG")
+                                                   ),
+
                                                    uiOutput("sample_name_ui_PCAWG"),
                                                    actionButton("submitPCAWG", "Submit", class = "btn-primary"),
                                                    hidden(actionButton("clearPCAWG", "Clear", class = "btn-danger")),
-                                                   hidden(selectInput("colorByPCAWG", "Color points by:", 
-                                                                      choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), 
+                                                   hidden(selectInput("colorByPCAWG", "Color points by:",
+                                                                      choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
                                                                       selected = "clonality"))
                                                  ),
                                                  mainPanel(
@@ -1206,7 +1560,215 @@ ui <- fluidPage(
                       )
              ),
              
-             # Page 7: Citations for related studies and resources
+             # Page 7: Downloads tab with embedded content and floating vertical navigation
+             tabPanel("Downloads",
+                      tags$div(class = "downloads-tab-container",
+                               # Floating vertical navigation
+                               tags$div(id = "downloads-vertical-nav", class = "vertical-nav-floating",
+                                        tags$h5("Navigate", style = "color: white; margin-bottom: 15px; font-weight: bold;"),
+                                        tags$ul(class = "nav-list",
+                                                tags$li(tags$a(href = "#overview-section", class = "nav-link", "Overview")),
+                                                tags$li(tags$a(href = "#simulation-section", class = "nav-link", "Simulation Data")),
+                                                tags$li(tags$a(href = "#tcga-section", class = "nav-link", "TCGA Data")),
+                                                tags$li(tags$a(href = "#pcawg-section", class = "nav-link", "PCAWG Data")),
+                                                tags$li(tags$a(href = "#tools-section", class = "nav-link", "Analysis Tools"))
+                                        )
+                               ),
+
+                               # Main downloads content area
+                               tags$div(class = "downloads-main-content",
+                                        tags$h2("CliPP Data Downloads", style = "color: #2c3e50; margin-bottom: 20px;"),
+
+                                        # Overview section
+                                        div(id = "overview-section", class = "download-section",
+                                            tags$h3(tags$b("Overview"), style = "color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 10px;"),
+                                            p(tags$b("CliPP (Clonal structure Identification through Penalizing Pairwise differences)"),
+                                              " provides comprehensive datasets for cancer genomic analysis. Download processed data from major cancer genomic consortiums and simulation data:"),
+                                            tags$ul(
+                                              tags$li(tags$b("Simulation (CliPPSim4k)"), " - Simulated cancer genomic data for testing and validation"),
+                                              tags$li(tags$b("TCGA (The Cancer Genome Atlas)"), " - Multi-platform genomic data"),
+                                              tags$li(tags$b("PCAWG (Pan-Cancer Analysis of Whole Genomes)"), " - Whole genome sequencing data")
+                                            ),
+                                            p("All datasets include clonal structure analysis results, mutation assignments, and sample metadata.")
+                                        ),
+
+                                        # Simulation section
+                                        div(id = "simulation-section", class = "download-section",
+                                            tags$h3(tags$b("Simulation Dataset Downloads (CliPPSim4k)"), style = "color: #e74c3c; border-bottom: 2px solid #e74c3c; padding-bottom: 10px;"),
+
+                                            div(class = "metadata-card",
+                                                tags$b("Dataset Information:"),
+                                                tags$ul(
+                                                  tags$li("Sample count: 4,000 simulated cancer genomes"),
+                                                  tags$li("Simulation types: Various clonal architectures and mutation patterns"),
+                                                  tags$li("Data processing: CliPP clonal structure analysis"),
+                                                  tags$li("File formats: TSV, TXT")
+                                                )
+                                            ),
+
+                                            tags$table(class = "download-table-styled",
+                                                       tags$thead(
+                                                         tags$tr(
+                                                           tags$th("Dataset"),
+                                                           tags$th("Description"),
+                                                           tags$th("File Type"),
+                                                           tags$th("Download")
+                                                         )
+                                                       ),
+                                                       tags$tbody(
+                                                         tags$tr(
+                                                           tags$td(class = "dataset-name", "CliPPSim4k Summary"),
+                                                           tags$td("Comprehensive simulation results for 4,000 samples with known ground truth"),
+                                                           tags$td(tags$span(class = "file-type-badge", "TSV")),
+                                                           tags$td(a(href = "dataSource/CliPPSim4k.tsv", class = "download-btn", download = "CliPPSim4k.tsv", "Download"),
+                                                                   tags$span(class = "file-size", " (~2MB)"))
+                                                         ),
+                                                         tags$tr(
+                                                           tags$td(class = "dataset-name", "Individual Simulation Data"),
+                                                           tags$td("Per-sample simulation files with ground truth clonal structure"),
+                                                           tags$td(tags$span(class = "file-type-badge", "TXT Files")),
+                                                           tags$td(a(href = "dataSource/Simulation/", class = "browse-btn", "Browse Folder"))
+                                                         )
+                                                       )
+                                            )
+                                        ),
+
+                                        # TCGA section
+                                        div(id = "tcga-section", class = "download-section",
+                                            tags$h3(tags$b("TCGA Dataset Downloads"), style = "color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 10px;"),
+
+                                            div(class = "metadata-card",
+                                                tags$b("Dataset Information:"),
+                                                tags$ul(
+                                                  tags$li("Sample count: ~10,000+ cancer samples"),
+                                                  tags$li("Cancer types: 33 cancer types"),
+                                                  tags$li("Data types: Multi-platform genomic data with CliPP analysis"),
+                                                  tags$li("File formats: TSV, TXT")
+                                                )
+                                            ),
+
+                                            tags$table(class = "download-table-styled",
+                                                       tags$thead(
+                                                         tags$tr(
+                                                           tags$th("Dataset"),
+                                                           tags$th("Description"),
+                                                           tags$th("File Type"),
+                                                           tags$th("Download")
+                                                         )
+                                                       ),
+                                                       tags$tbody(
+                                                         tags$tr(
+                                                           tags$td(class = "dataset-name", "CliPP TCGA Summary"),
+                                                           tags$td("Comprehensive CliPP analysis results for all TCGA samples"),
+                                                           tags$td(tags$span(class = "file-type-badge", "TSV")),
+                                                           tags$td(a(href = "dataSource/CliPP_TCGA.tsv", class = "download-btn", download = "CliPP_TCGA.tsv", "Download"),
+                                                                   tags$span(class = "file-size", " (~5MB)"))
+                                                         ),
+                                                         tags$tr(
+                                                           tags$td(class = "dataset-name", "Individual Sample Data"),
+                                                           tags$td("Per-sample mutation assignments and clonal structure"),
+                                                           tags$td(tags$span(class = "file-type-badge", "TXT Files")),
+                                                           tags$td(a(href = "dataSource/TCGA/", class = "browse-btn", "Browse Folder"))
+                                                         )
+                                                       )
+                                            )
+                                        ),
+
+                                        # PCAWG section
+                                        div(id = "pcawg-section", class = "download-section",
+                                            tags$h3(tags$b("PCAWG Dataset Downloads"), style = "color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 10px;"),
+
+                                            div(class = "metadata-card",
+                                                tags$b("Dataset Information:"),
+                                                tags$ul(
+                                                  tags$li("Sample count: ~2,600 cancer whole genomes"),
+                                                  tags$li("Cancer types: 38 tumor types across multiple sites"),
+                                                  tags$li("Data processing: CliPP clonal structure analysis with multiple λ parameters"),
+                                                  tags$li("File formats: TSV, TXT")
+                                                )
+                                            ),
+
+                                            tags$table(class = "download-table-styled",
+                                                       tags$thead(
+                                                         tags$tr(
+                                                           tags$th("Dataset"),
+                                                           tags$th("Description"),
+                                                           tags$th("File Type"),
+                                                           tags$th("Download")
+                                                         )
+                                                       ),
+                                                       tags$tbody(
+                                                         tags$tr(
+                                                           tags$td(class = "dataset-name", "CliPP PCAWG Summary"),
+                                                           tags$td("Comprehensive CliPP analysis results for all PCAWG samples"),
+                                                           tags$td(tags$span(class = "file-type-badge", "TSV")),
+                                                           tags$td(a(href = "dataSource/CliPP_PCAWG.tsv", class = "download-btn", download = "CliPP_PCAWG.tsv", "Download"),
+                                                                   tags$span(class = "file-size", " (~2.5MB)"))
+                                                         ),
+                                                         tags$tr(
+                                                           tags$td(class = "dataset-name", "Individual Sample Data"),
+                                                           tags$td("Per-sample mutation assignments and clonal structure"),
+                                                           tags$td(tags$span(class = "file-type-badge", "TXT Files")),
+                                                           tags$td(a(href = "dataSource/PCAWG/", class = "browse-btn", "Browse Folder"))
+                                                         )
+                                                       )
+                                            )
+                                        ),
+
+                                        # Analysis Tools section
+                                        div(id = "tools-section", class = "download-section",
+                                            tags$h3(tags$b("Analysis Tools & Software"), style = "color: #f39c12; border-bottom: 2px solid #f39c12; padding-bottom: 10px;"),
+
+                                            tags$table(class = "download-table-styled",
+                                                       tags$thead(
+                                                         tags$tr(
+                                                           tags$th("Tool"),
+                                                           tags$th("Description"),
+                                                           tags$th("Platform"),
+                                                           tags$th("Access")
+                                                         )
+                                                       ),
+                                                       tags$tbody(
+                                                         tags$tr(
+                                                           tags$td(class = "dataset-name", "CliPP Python Package"),
+                                                           tags$td("Command-line interface for CliPP analysis"),
+                                                           tags$td(tags$span(class = "file-type-badge", "Python")),
+                                                           tags$td(a(href = "forCliPP/CliPP/", class = "browse-btn", "Browse Source"))
+                                                         ),
+                                                         tags$tr(
+                                                           tags$td(class = "dataset-name", "Github Repository"),
+                                                           tags$td("Source code and documentation"),
+                                                           tags$td(tags$span(class = "file-type-badge", "Git")),
+                                                           tags$td(a(href = "https://github.com/your-repo/CliPP", class = "browse-btn", "View on Github"))
+                                                         ),
+                                                         tags$tr(
+                                                           tags$td(class = "dataset-name", "CliPP Docker"),
+                                                           tags$td("Containerized CliPP environment"),
+                                                           tags$td(tags$span(class = "file-type-badge", "Docker")),
+                                                           tags$td(a(href = "forCliPP/CliPP/Dockerfile", class = "browse-btn", "View Dockerfile"))
+                                                         )
+                                                       )
+                                            )
+                                        ),
+
+                                        # Usage and Citation
+                                        div(class = "citation-section",
+                                            tags$h4(tags$b("Data Usage & Citation"), style = "color: #2c3e50; margin-top: 40px;"),
+                                            p(tags$b("If you use this data in your research, please cite:")),
+                                            tags$ul(
+                                              tags$li("CliPP methodology and software publication"),
+                                              tags$li("PCAWG Consortium publications for PCAWG data"),
+                                              tags$li("TCGA Research Network publications for TCGA data")
+                                            ),
+                                            p(tags$b("Data Usage:"), " All data is provided for research purposes. Please follow the data usage policies of the respective consortiums."),
+                                            p(tags$b("Last Updated:"), " August 2025"),
+                                            p(tags$b("Contact:"), " For questions about the datasets, please contact the development team via the About page.")
+                                        )
+                               )
+                      )
+             ),
+
+             # Page 8: Citations for related studies and resources
              tabPanel("Citations",
                       tags$div(
                         tags$h4(tags$b(tags$span("Manuscript under preparation:"))),
@@ -1220,12 +1782,12 @@ ui <- fluidPage(
                         in cancers with low to moderate TMB.",
                           a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1",
                             "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"),"."),
-                        
+
                         tags$br(),
                         tags$h4(tags$b(tags$span("TMB vs sMF Analysis:"))),
-                        p("The TMB vs sMF analysis module in this application reproduces the analysis shown in Supplementary Figure 12 of the above manuscript. 
-                        This feature enables researchers to explore the relationship between tumor mutational burden (TMB) and subclonal mutational fraction (sMF) 
-                        across different cohorts including TCGA, PCAWG, OCCAMS, NCT02113657 (IPI), and NCT02703623 (ARPi+IPI). 
+                        p("The TMB vs sMF analysis module in this application reproduces the analysis shown in Supplementary Figure 12 of the above manuscript.
+                        This feature enables researchers to explore the relationship between tumor mutational burden (TMB) and subclonal mutational fraction (sMF)
+                        across different cohorts including TCGA, PCAWG, OCCAMS, NCT02113657 (IPI), and NCT02703623 (ARPi+IPI).
                         The analysis includes Spearman correlation coefficients, statistical significance testing, and interactive visualization capabilities.")
                       )
              )
