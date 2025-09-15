@@ -1381,6 +1381,39 @@ server <- function(input, output, session) {
     selectInput("sample_name_TCGA", "Select Sample Name:",
                 choices = sort(filtered_samples))
   })
+
+  # Sample count display for TCGA
+  output$sample_count_TCGA <- renderUI({
+    req(input$cohort_TCGA)
+
+    if (input$disable_select_TCGA || is.null(input$cancer_type_TCGA)) {
+      # Show total count for cohort when cancer type selection is disabled or no cancer type selected
+      cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_TCGA)
+      available_cancer_types <- intersect(cohort_cancer_types, unique(sample_TCGA$cancer_type))
+
+      if (length(available_cancer_types) == 0) {
+        available_cancer_types <- unique(sample_TCGA$cancer_type)
+      }
+
+      total_samples <- sum(sample_TCGA$cancer_type %in% available_cancer_types)
+      cancer_type_count <- length(available_cancer_types)
+
+      tagList(
+        tags$span(paste("n =", total_samples), class = "sample-count-number"),
+        tags$div("Total Samples", class = "sample-count-label"),
+        tags$div(paste(cancer_type_count, "cancer types available"), class = "sample-count-details")
+      )
+    } else {
+      # Show count for specific cancer type
+      cancer_type_samples <- sum(sample_TCGA$cancer_type == input$cancer_type_TCGA)
+
+      tagList(
+        tags$span(paste("n =", cancer_type_samples), class = "sample-count-number"),
+        tags$div(paste(input$cancer_type_TCGA, "Samples"), class = "sample-count-label"),
+        tags$div(paste("from", input$cohort_TCGA, "cohort"), class = "sample-count-details")
+      )
+    }
+  })
   
   output$cohort_ui_PCAWG <- renderUI({
     selectInput("cohort_PCAWG", "Select Cohort:",
@@ -1411,6 +1444,39 @@ server <- function(input, output, session) {
     filtered_samples <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == input$cancer_type_PCAWG]
     selectInput("sample_name_PCAWG", "Select Sample Name:",
                 choices = sort(filtered_samples))
+  })
+
+  # Sample count display for PCAWG
+  output$sample_count_PCAWG <- renderUI({
+    req(input$cohort_PCAWG)
+
+    if (input$disable_select_PCAWG || is.null(input$cancer_type_PCAWG)) {
+      # Show total count for cohort when cancer type selection is disabled or no cancer type selected
+      cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_PCAWG)
+      available_cancer_types <- intersect(cohort_cancer_types, unique(sample_PCAWG$cancer_type))
+
+      if (length(available_cancer_types) == 0) {
+        available_cancer_types <- unique(sample_PCAWG$cancer_type)
+      }
+
+      total_samples <- sum(sample_PCAWG$cancer_type %in% available_cancer_types)
+      cancer_type_count <- length(available_cancer_types)
+
+      tagList(
+        tags$span(paste("n =", total_samples), class = "sample-count-number"),
+        tags$div("Total Samples", class = "sample-count-label"),
+        tags$div(paste(cancer_type_count, "cancer types available"), class = "sample-count-details")
+      )
+    } else {
+      # Show count for specific cancer type
+      cancer_type_samples <- sum(sample_PCAWG$cancer_type == input$cancer_type_PCAWG)
+
+      tagList(
+        tags$span(paste("n =", cancer_type_samples), class = "sample-count-number"),
+        tags$div(paste(input$cancer_type_PCAWG, "Samples"), class = "sample-count-label"),
+        tags$div(paste("from", input$cohort_PCAWG, "cohort"), class = "sample-count-details")
+      )
+    }
   })
   
   # Observer for TCGA disable select checkbox
