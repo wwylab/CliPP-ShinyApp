@@ -13,12 +13,10 @@ read_and_validate_files <- function(snvFile, cnaFile, purityFile) {
     return(NULL)
   }
   
-  # Input data
   df_snv <- read.table(snvFile, header = TRUE)
   df_cna <- read.table(cnaFile, header = TRUE)
   purity <- as.numeric(readLines(purityFile, warn = FALSE))
   
-  # Check required columns in SNV data
   required_cols <- c("chromosome_index", "position", "ref_count", "alt_count")
   if (!all(required_cols %in% colnames(df_snv))) {
     missing_cols <- required_cols[!required_cols %in% colnames(df_snv)]
@@ -75,12 +73,10 @@ store_uploaded_files <- function(input, numSamples, uploadMode) {
 #' @param selectedSample Name of the sample being processed
 #' @return List containing processing success status and message
 process_sample_files <- function(sampleFiles, selectedSample) {
-  # Initialize progress indicators
   snvFile <- sampleFiles$snvFile
   cnaFile <- sampleFiles$cnaFile
   purityFile <- sampleFiles$purityFile
   
-  # Validate existence of required files
   if (is.null(snvFile) || is.null(cnaFile) || is.null(purityFile)) {
     return(list(
       success = FALSE,
@@ -88,7 +84,6 @@ process_sample_files <- function(sampleFiles, selectedSample) {
     ))
   }
   
-  # Validate and read files
   file_data <- read_and_validate_files(snvFile, cnaFile, purityFile)
   if (is.null(file_data)) {
     return(list(
@@ -97,32 +92,25 @@ process_sample_files <- function(sampleFiles, selectedSample) {
     ))
   }
   
-  # Define the directory path
   directoryPath <- "forCliPP/CliPP/sample_id/"
   
-  # Check if the directory exists, if not, create it
   if (!dir.exists(directoryPath)) {
     dir.create(directoryPath, recursive = TRUE, showWarnings = TRUE)
   } else {
-    # Clear previous files in the directory
     system(paste("rm -rf", shQuote(directoryPath)), intern = TRUE)
     dir.create(directoryPath, recursive = TRUE, showWarnings = FALSE)
   }
   
-  # Create the output directory structure
   finalResultPath <- file.path(directoryPath, "final_result", "Best_lambda")
   if (!dir.exists(finalResultPath)) {
     dir.create(finalResultPath, recursive = TRUE, showWarnings = FALSE)
   }
   
-  # Construct the command exactly as in the original server.R
   command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
                      shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile))
   
-  # Display the command being executed
   cat("Executing command:", command, "\n")
   
-  # Execute the command
   tryCatch({
     result <- system(command, intern = TRUE)
   }, error = function(e) {
@@ -132,7 +120,6 @@ process_sample_files <- function(sampleFiles, selectedSample) {
     ))
   })
   
-  # Check if result files were generated
   resultPath <- "forCliPP/CliPP/sample_id/final_result/Best_lambda"
   matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
   matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
@@ -208,7 +195,6 @@ get_current_analysis <- function(sampleFiles) {
     return(NULL)
   }
   
-  # Read the files directly
   file_data <- read_and_validate_files(sampleFiles$snvFile, sampleFiles$cnaFile, sampleFiles$purityFile)
   if (is.null(file_data)) {
     return(NULL)
@@ -220,7 +206,6 @@ get_current_analysis <- function(sampleFiles) {
   
   resultPath <- "forCliPP/CliPP/sample_id/final_result/Best_lambda"
   
-  # Read mutation and subclonal structure assignments
   matching_file1 <- list.files(resultPath, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
   matching_file2 <- list.files(resultPath, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
   
@@ -237,10 +222,8 @@ get_current_analysis <- function(sampleFiles) {
       if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
     }))
   
-  # Calculate the sum of ref_count and alt_count
   df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
   
-  # Compute the mean of the sum_counts column
   mean_rd <- mean(df_snvcna$sum_counts)
   min_rd <- min(df_snvcna$sum_counts)
   max_rd <- max(df_snvcna$sum_counts)
@@ -255,12 +238,10 @@ get_current_analysis <- function(sampleFiles) {
   
   total_SNVs <- sum(df_subc$num_SNV)
   
-  # Add subclonality information
   merged_df <- merged_df %>%
     mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
            ReadDepth = sum_counts)
   
-  # Rename the count column to 'n'
   subclonality_counts <- merged_df %>%
     count(Subclonality) %>%
     rename(n = n)
@@ -302,7 +283,6 @@ recommended_smoothing_factor <- function(total_mutations) {
 #' @param subclonality_counts Subclonality counts
 #' @return Plotly object
 create_vaf_plot <- function(merged_df, sample_name, purity, read_depth, smoothing_factor, color_by, subclonality_counts) {
-  # Set color aesthetic based on the user input
   color_aesthetic <- if (color_by == "clonality") "Subclonality" else "ReadDepth"
   
   gg1 <- ggplot(merged_df, aes(x = AF)) +
@@ -323,7 +303,6 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth, smoothin
     ggpubr::theme_pubr() + xlab("VAF") + ylab("Density") + 
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
   
-  # Create annotations for clonal and subclonal counts
   if ("Clonal" %in% subclonality_counts$Subclonality) {
     n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
     gg1 <- gg1 + annotate("text", x = 0.85, y = -1.65, 
@@ -350,7 +329,6 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth, smoothin
 #' @param df_subc Subclonal structure data frame
 #' @return Plotly object
 create_cp_plot <- function(merged_df, sample_name, smoothing_factor, color_by, subclonality_counts, df_subc) {
-  # Set color aesthetic based on the user input
   color_aesthetic <- if (color_by == "clonality") "Subclonality" else "ReadDepth"
   
   gg2 <- ggplot(merged_df, aes(x = CP_unpenalized)) +
@@ -370,7 +348,6 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor, color_by, s
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
     geom_segment(data = df_subc, aes(x = cellular_prevalence, xend = cellular_prevalence, y = 0, yend = 5.7), lty = "dashed")
   
-  # Create annotations for clonal and subclonal counts
   if ("Clonal" %in% subclonality_counts$Subclonality) {
     n_clonal <- subclonality_counts$n[subclonality_counts$Subclonality == "Clonal"]
     gg2 <- gg2 + annotate("text", x = 1.3, y = -1.65, 
@@ -388,25 +365,6 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor, color_by, s
   return(plotly::ggplotly(gg2))
 }
 
-#' Get VAF plot caption
-#' @return HTML for VAF plot caption
-get_vaf_plot_caption <- function() {
-  HTML("<p> - <b>Variant Allele Frequency (VAF)</b> indicates the proportion of sequencing reads that support a variant allele.<br>
-       - <b>Purity</b> reflects the proportion of tumor cells in the sample. For instance, a purity of 0.9 means 90% of the cells are cancerous.<br>
-       - <b>Mean read depth</b> is the average number of sequencing reads per SNV, influencing data reliability.<br>
-       - <b>Density</b> estimates the probability density function of VAFs based on kernel density estimation (KDE). <br>
-  </p>")
-}
-
-#' Get CP plot caption
-#' @return HTML for CP plot caption
-get_cp_plot_caption <- function() {
-  HTML("<p> - <b>Cellular Prevalence (CP)</b> the fraction of all cells (both tumor and admixed normal cells) from the sequenced tissue carrying a particular SNV.<br>
-       - Annotations on the x-axis indicate whether mutations are <b>clonal</b> (present in all tumor cells) or <b>subclonal</b> (found in a subset).<br>
-       - Counts of clonal and subclonal mutations are indicated as <b>n clonal</b> and <b>n subclonal</b> respectively.<br>
-  </p>")
-}
-
 #' Prepare and run CliPP for TCGA/PCAWG samples
 #' @param sampleDir Directory containing sample files
 #' @param prefix Prefix (TCGA or PCAWG)
@@ -418,7 +376,6 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
     return(FALSE)
   }
   
-  # Check for existing results
   matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
   matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
   
@@ -426,7 +383,6 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
     return(TRUE)
   }
   
-  # Find input files
   snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
   cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
   purityFile <- list.files(sampleDir, pattern = "*.purity.txt", full.names = TRUE)
@@ -436,7 +392,6 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
     return(FALSE)
   }
   
-  # Set up directory
   directoryPath <- "forCliPP/CliPP/sample_id/"
   if (!dir.exists(directoryPath)) {
     dir.create(directoryPath, recursive = TRUE, showWarnings = TRUE)
@@ -445,20 +400,16 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
     dir.create(directoryPath, recursive = TRUE, showWarnings = FALSE)
   }
   
-  # Create output directory
   finalResultPath <- file.path(directoryPath, "final_result", "Best_lambda")
   if (!dir.exists(finalResultPath)) {
     dir.create(finalResultPath, recursive = TRUE, showWarnings = FALSE)
   }
   
-  # Construct the command
   command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
                      shQuote(snvFile[1]), shQuote(cnaFile[1]), shQuote(purityFile[1]))
   
-  # Display the command being executed
   cat("Executing command:", command, "\n")
   
-  # Execute the command
   result <- tryCatch({
     system(command, intern = TRUE)
     TRUE
@@ -469,7 +420,6 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
   
   if (!result) return(FALSE)
   
-  # Copy results to sample directory
   resultPath <- "forCliPP/CliPP/sample_id/final_result/Best_lambda"
   resultFiles <- list.files(resultPath, pattern = "\\.txt$", full.names = TRUE)
   
@@ -482,7 +432,6 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
     file.copy(file, file.path(sampleDir, basename(file)), overwrite = TRUE)
   }
   
-  # Verify results were copied
   matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
   matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
   
@@ -492,4 +441,35 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
   }
   
   return(TRUE)
+}
+
+#' Count SNVs in a file
+#' @param file_path Path to the SNV file
+#' @return Number of SNVs or 0 if file doesn't exist
+count_snvs <- function(file_path) {
+  if (!file.exists(file_path)) return(0)
+  df <- read.table(file_path, header = TRUE)
+  nrow(df)
+}
+
+#' Read TCGA files from sample directory
+#' @param sample_dir Directory containing TCGA sample files
+#' @return Validated file data or NULL
+read_tcga_files <- function(sample_dir) {
+  snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
+  cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
+  purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
+
+  validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data
+}
+
+#' Read PCAWG files from sample directory
+#' @param sample_dir Directory containing PCAWG sample files
+#' @return Validated file data or NULL
+read_pcawg_files <- function(sample_dir) {
+  snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
+  cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
+  purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
+
+  validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data
 }
