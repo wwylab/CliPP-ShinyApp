@@ -110,7 +110,7 @@ driverMutationServer <- function(id, driver_data, global_path) {
     # Initialize cancer type choices for both tabs
     observe({
       req(driver_data())
-
+      
       df <- driver_data()
       cancer_col <- if("cancer_type" %in% colnames(df)) "cancer_type" else "cancer"
       
@@ -140,7 +140,7 @@ driverMutationServer <- function(id, driver_data, global_path) {
     # Update sample choices based on cancer type
     observeEvent(input$cancer_type_sample, {
       req(driver_data(), input$cancer_type_sample)
-
+      
       df <- driver_data()
       cancer_col <- if("cancer_type" %in% colnames(df)) "cancer_type" else "cancer"
       
@@ -154,7 +154,7 @@ driverMutationServer <- function(id, driver_data, global_path) {
     # Process data by gene
     observeEvent(input$gene_name, {
       req(driver_data(), input$cancer_type_gene, input$gene_name)
-
+      
       filtered_data <- tryCatch({
         cancer_type_val <- input$cancer_type_gene
         gene_name_val <- input$gene_name
@@ -339,7 +339,7 @@ driverMutationServer <- function(id, driver_data, global_path) {
     # Process data by sample
     observeEvent(input$sample_name, {
       req(driver_data(), input$cancer_type_sample, input$sample_name)
-
+      
       filtered_data <- tryCatch({
         cancer_type_val <- input$cancer_type_sample
         sample_name_val <- input$sample_name
