@@ -209,7 +209,7 @@ create_tmb_smf_plot <- function(data, selected_cohorts = "TCGA",
     geom_point(aes(color = cohort), alpha = 0.6, size = 1.2) +
     scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
     labs(
-      x = "sMF",
+      x = "sML",
       y = "TMB",
       title = "TMB vs sMF Analysis",
       color = "Cohort"
@@ -234,7 +234,7 @@ create_tmb_smf_plot <- function(data, selected_cohorts = "TCGA",
   
   cancer_types <- unique(plot_data$cancer_type)
   if (length(cancer_types) > 1) {
-    p <- p + facet_wrap(~ cancer_type, scales = "free_y", ncol = 6) +
+    p <- p + facet_wrap(~ cancer_type, scales = "free_y", ncol = 2) +
       theme(strip.background = element_rect(fill = "white", color = "black", linewidth = 0.5))
     
     if (nrow(correlations) > 0) {
