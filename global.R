@@ -13,12 +13,18 @@ library(rpart)
 library(data.table)
 library(readxl)
 library(corrr)
+library(ComplexHeatmap)
+library(circlize)
+library(grid)
 
 source("R/modules/driver_mutation_module.R")
 source("R/modules/tcga_module.R")
 source("R/modules/pcawg_module.R")
 source("R/modules/survival_module.R")
+source("R/file_handlers.R")
+source("R/tcga_pcawg_processing.R")
 source("R/modules/tmb_smf_module.R")
+source("R/modules/heatmap_module.R")
 source("R/plotting.R")
 source("R/data_processing.R")
 source("R/file_handlers.R")
@@ -123,7 +129,6 @@ cohort_cancer_mapping <- list(
   "NCT02703623 (ARPi+IPI)" = c("Prostate Cancer")
 )
 
-# Function to get cancer types for a specific cohort
 get_cancer_types_for_cohort <- function(cohort) {
   if (cohort %in% names(cohort_cancer_mapping)) {
     return(cohort_cancer_mapping[[cohort]])
@@ -132,12 +137,10 @@ get_cancer_types_for_cohort <- function(cohort) {
   }
 }
 
-# Function to get all available cohorts
 get_available_cohorts <- function() {
   return(names(cohort_cancer_mapping))
 }
 
-# Function to create conditional select input that can be deactivated
 conditional_select_input <- function(inputId, label, choices = NULL, selected = NULL, 
                                    multiple = FALSE, selectize = TRUE, width = NULL, 
                                    size = NULL, disabled = FALSE) {
@@ -166,7 +169,14 @@ if (nrow(tmb_smf_data) > 0) {
   cohort_summary <- tmb_smf_data %>%
     group_by(cohort) %>%
     summarise(n_samples = n(), n_cancer_types = length(unique(cancer_type)), .groups = 'drop')
-} 
+}
+
+heatmap_data <- tryCatch({
+  load_heatmap_data()
+}, error = function(e) {
+  warning("Error loading heatmap data: ", e$message)
+  data.frame()
+}) 
 
 if (nrow(driver_mutation_data) == 0) {
   driver_mutation_data <- data.frame(
