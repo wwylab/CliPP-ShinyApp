@@ -206,7 +206,6 @@ prepare_plot_data <- function(merged_data, color_by = "clonality") {
 #' @param sampleName Name of the sample being processed
 #' @return List containing processing success status, message, and data if successful
 process_sample_files <- function(sampleFiles, sampleName) {
-  
   if (is.null(sampleFiles$snvFile) || is.null(sampleFiles$cnaFile) || is.null(sampleFiles$purityFile)) {
     return(list(
       success = FALSE,
