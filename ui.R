@@ -552,9 +552,6 @@ ui <- fluidPage(
                           )
                         ),
 
-                        # Feature-specific tutorials
-                          tags$h4(tags$b("Feature-Specific Tutorials")),
-                          tags$p("Deep dive into individual features with these focused tutorials:"),
                           
                           # Row 1: Data Upload and Resources
                           tags$div(
@@ -566,9 +563,11 @@ ui <- fluidPage(
                               class = "tutorial-card",
                               style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
                               tags$h6(tags$b("1️⃣ Data Upload & File Formats"), style = "color: #e74c3c;"),
-                              tags$div(
-                                style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc;",
-                                tags$span("📹 Video Placeholder", style = "color: #999; font-size: 18px;")
+                              tags$iframe(
+                                src = "https://www.youtube.com/embed/VIDEO_ID_1",
+                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
+                                frameborder = "0",
+                                allowfullscreen = TRUE
                               ),
                               tags$p("Learn to upload and validate your data files:", style = "font-size: 14px;"),
                               tags$ul(
@@ -576,8 +575,7 @@ ui <- fluidPage(
                                 tags$li("SNV, CNA, and purity file requirements"),
                                 tags$li("File validation and error handling"),
                                 tags$li("Multiple sample upload modes")
-                              ),
-                              tags$p(tags$em("Target: 5-7 minutes"), style = "color: #7f8c8d; font-size: 12px;")
+                              )
                             ),
                             
                             # Tutorial 2: TCGA Resources
@@ -585,9 +583,11 @@ ui <- fluidPage(
                               class = "tutorial-card",
                               style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
                               tags$h6(tags$b("2️⃣ TCGA Data Exploration"), style = "color: #3498db;"),
-                              tags$div(
-                                style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc;",
-                                tags$span("📹 Video Placeholder", style = "color: #999; font-size: 18px;")
+                              tags$iframe(
+                                src = "https://www.youtube.com/embed/VIDEO_ID_2",
+                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
+                                frameborder = "0",
+                                allowfullscreen = TRUE
                               ),
                               tags$p("Navigate TCGA datasets effectively:", style = "font-size: 14px;"),
                               tags$ul(
@@ -595,43 +595,25 @@ ui <- fluidPage(
                                 tags$li("Cancer type and cohort selection"),
                                 tags$li("Sample filtering and comparison"),
                                 tags$li("Visualization customization")
-                              ),
-                              tags$p(tags$em("Target: 6-8 minutes"), style = "color: #7f8c8d; font-size: 12px;")
+                              )
                             )
                           ),
                           
-                          # Row 2: PCAWG and Driver Mutations
+                          # Row 2: Driver Mutations and PCAWG
                           tags$div(
-                            class = "tutorial-row", 
+                            class = "tutorial-row",
                             style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
-                            
-                            # Tutorial 3: PCAWG
+
+                            # Tutorial 3: Driver Mutations
                             tags$div(
                               class = "tutorial-card",
                               style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("3️⃣ PCAWG Whole Genome Analysis"), style = "color: #9b59b6;"),
-                              tags$div(
-                                style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc;",
-                                tags$span("📹 Video Placeholder", style = "color: #999; font-size: 18px;")
-                              ),
-                              tags$p("Master PCAWG whole genome data:", style = "font-size: 14px;"),
-                              tags$ul(
-                                style = "font-size: 13px; color: #555;",
-                                tags$li("Whole genome vs exome differences"),
-                                tags$li("Lambda parameter optimization"),
-                                tags$li("Large-scale genomic patterns")
-                              ),
-                              tags$p(tags$em("Target: 7-9 minutes"), style = "color: #7f8c8d; font-size: 12px;")
-                            ),
-                            
-                            # Tutorial 4: Driver Mutations
-                            tags$div(
-                              class = "tutorial-card",
-                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("4️⃣ Driver Mutation Analysis"), style = "color: #f39c12;"),
-                              tags$div(
-                                style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc;",
-                                tags$span("📹 Video Placeholder", style = "color: #999; font-size: 18px;")
+                              tags$h6(tags$b("3️⃣ Driver Mutation Analysis"), style = "color: #f39c12;"),
+                              tags$iframe(
+                                src = "https://www.youtube.com/embed/VIDEO_ID_3",
+                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
+                                frameborder = "0",
+                                allowfullscreen = TRUE
                               ),
                               tags$p("Analyze driver mutation subclonality:", style = "font-size: 14px;"),
                               tags$ul(
@@ -639,87 +621,19 @@ ui <- fluidPage(
                                 tags$li("Identifying key driver mutations"),
                                 tags$li("Clonal vs subclonal classification"),
                                 tags$li("VAF and cellular prevalence plots")
-                              ),
-                              tags$p(tags$em("Target: 6-8 minutes"), style = "color: #7f8c8d; font-size: 12px;")
-                            )
-                          ),
-                          
-                          # Row 3: Survival Analysis and Scatter Plots
-                          tags$div(
-                            class = "tutorial-row", 
-                            style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
-                            
-                            # Tutorial 5: Kaplan-Meier Survival
-                            tags$div(
-                              class = "tutorial-card",
-                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("5️⃣ Kaplan-Meier Survival Analysis"), style = "color: #27ae60;"),
-                              tags$div(
-                                style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc;",
-                                tags$span("📹 Video Placeholder", style = "color: #999; font-size: 18px;")
-                              ),
-                              tags$p("Connect mutations to patient outcomes:", style = "font-size: 14px;"),
-                              tags$ul(
-                                style = "font-size: 13px; color: #555;",
-                                tags$li("Subclonal mutational fraction (sMF)"),
-                                tags$li("Survival curve interpretation"),
-                                tags$li("Statistical significance testing")
-                              ),
-                              tags$p(tags$em("Target: 8-10 minutes"), style = "color: #7f8c8d; font-size: 12px;")
+                              )
                             ),
-                            
-                            # Tutorial 6: sMF Correlation Heatmap (replacing scatter plot)
+
+                            # Tutorial 4: Data Export
                             tags$div(
                               class = "tutorial-card",
                               style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("6️⃣ sMF Correlation Heatmap"), style = "color: #e67e22;"),
-                              tags$div(
-                                style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc;",
-                                tags$span("📹 Video Placeholder", style = "color: #999; font-size: 18px;")
-                              ),
-                              tags$p("Visualize correlation patterns with heatmaps:", style = "font-size: 14px;"),
-                              tags$ul(
-                                style = "font-size: 13px; color: #555;",
-                                tags$li("sMF vs TMB/NRPCC/Purity correlations"),
-                                tags$li("Multi-cohort comparison (TCGA, OCCAMS, mCRPC)"),
-                                tags$li("Interactive heatmap interpretation")
-                              ),
-                              tags$p(tags$em("Target: 4-6 minutes"), style = "color: #7f8c8d; font-size: 12px;")
-                            )
-                          ),
-                          
-                          # Row 4: Advanced Features
-                          tags$div(
-                            class = "tutorial-row", 
-                            style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
-                            
-                            # Tutorial 7: Parameter Tuning
-                            tags$div(
-                              class = "tutorial-card",
-                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("7️⃣ Advanced Parameter Tuning"), style = "color: #8e44ad;"),
-                              tags$div(
-                                style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc;",
-                                tags$span("📹 Video Placeholder", style = "color: #999; font-size: 18px;")
-                              ),
-                              tags$p("Optimize CliPP analysis parameters:", style = "font-size: 14px;"),
-                              tags$ul(
-                                style = "font-size: 13px; color: #555;",
-                                tags$li("Smoothing factor optimization"),
-                                tags$li("Handling low-purity samples"),
-                                tags$li("Multi-lambda parameter selection")
-                              ),
-                              tags$p(tags$em("Target: 9-12 minutes"), style = "color: #7f8c8d; font-size: 12px;")
-                            ),
-                            
-                            # Tutorial 8: Data Export
-                            tags$div(
-                              class = "tutorial-card",
-                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("8️⃣ Data Export & Downloads"), style = "color: #16a085;"),
-                              tags$div(
-                                style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc;",
-                                tags$span("📹 Video Placeholder", style = "color: #999; font-size: 18px;")
+                              tags$h6(tags$b("4️⃣ Data Export & Downloads"), style = "color: #16a085;"),
+                              tags$iframe(
+                                src = "https://www.youtube.com/embed/VIDEO_ID_4",
+                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
+                                frameborder = "0",
+                                allowfullscreen = TRUE
                               ),
                               tags$p("Export results for further analysis:", style = "font-size: 14px;"),
                               tags$ul(
@@ -727,23 +641,56 @@ ui <- fluidPage(
                                 tags$li("Plot downloads and customization"),
                                 tags$li("Data table exports"),
                                 tags$li("Accessing pre-computed datasets")
+                              )
+                            )
+                          ),
+                          
+                          # Row 3: Survival Analysis and Heatmaps
+                          tags$div(
+                            class = "tutorial-row",
+                            style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
+
+                            # Tutorial 5: Kaplan-Meier Survival
+                            tags$div(
+                              class = "tutorial-card",
+                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
+                              tags$h6(tags$b("5️⃣ Kaplan-Meier Survival Analysis"), style = "color: #27ae60;"),
+                              tags$iframe(
+                                src = "https://www.youtube.com/embed/VIDEO_ID_5",
+                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
+                                frameborder = "0",
+                                allowfullscreen = TRUE
                               ),
-                              tags$p(tags$em("Target: 4-6 minutes"), style = "color: #7f8c8d; font-size: 12px;")
+                              tags$p("Connect mutations to patient outcomes:", style = "font-size: 14px;"),
+                              tags$ul(
+                                style = "font-size: 13px; color: #555;",
+                                tags$li("Subclonal mutational fraction (sMF)"),
+                                tags$li("Survival curve interpretation"),
+                                tags$li("Statistical significance testing")
+                              )
+                            ),
+                            
+                            # Tutorial 6: sMF Correlation Heatmap (replacing scatter plot)
+                            tags$div(
+                              class = "tutorial-card",
+                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
+                              tags$h6(tags$b("6️⃣ sMF Correlation Heatmap"), style = "color: #e67e22;"),
+                              tags$iframe(
+                                src = "https://www.youtube.com/embed/VIDEO_ID_6",
+                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
+                                frameborder = "0",
+                                allowfullscreen = TRUE
+                              ),
+                              tags$p("Visualize correlation patterns with heatmaps:", style = "font-size: 14px;"),
+                              tags$ul(
+                                style = "font-size: 13px; color: #555;",
+                                tags$li("sMF vs TMB/NRPCC/Purity correlations"),
+                                tags$li("Multi-cohort comparison (TCGA, OCCAMS, mCRPC)"),
+                                tags$li("Interactive heatmap interpretation")
+                              )
                             )
                           ),
 
-                          tags$br(),
-                        
-                        # Tutorial Notes and Future Plans
-                        tags$div(
-                          style = "background-color: #e8f4f8; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; margin: 20px 0;",
-                          tags$h5(tags$b("📋 Tutorial Development Status"), style = "color: #2c3e50; margin-bottom: 15px;"),
-                          tags$p(tags$b("Current Status:"), " Feature-based tutorial videos are being developed to provide focused, bite-sized learning experiences."),
-                          tags$p(tags$b("Coming Soon:"), " Each tutorial will be 4-12 minutes long, focusing on specific functionality to help you master CliPP-on-Web efficiently."),
-                          tags$p(tags$b("For Now:"), " Watch the complete overview video above for comprehensive guidance, or explore the application directly using the sample data provided."),
-                          tags$hr(style = "border-color: #3498db; margin: 15px 0;"),
-                          tags$p(tags$b("Questions?"), " Contact our support team through the About page for assistance with specific features.")
-                        )
                       )
              ),
 
