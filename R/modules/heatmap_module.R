@@ -1,0 +1,210 @@
+library(shiny)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(ComplexHeatmap)
+library(circlize)
+library(data.table)
+library(grid)
+
+#' Load heatmap data
+#' @return Processed correlation data for heatmap visualization
+load_heatmap_data <- function() {
+  tryCatch({
+    global_TCGA_PCAWG <- "dataSource"
+
+    # Load main cohort data (TCGA)
+    final_cohort_file <- file.path(global_TCGA_PCAWG, "7279_final_cohort_result.txt")
+    if (!file.exists(final_cohort_file)) {
+      warning("Final cohort result file not found")
+      return(data.frame())
+    }
+
+    final_cohort_result <- data.table::fread(final_cohort_file)
+
+    # Calculate correlations for TCGA data
+    correlations <- final_cohort_result %>%
+      group_by(cancer_type) %>%
+      reframe(
+        TMB_cor = cor(sML, new_TMB, use = "complete.obs"),
+        nrpcc_cor = cor(sML, nrpcc, use = "complete.obs"),
+        purity_cor = cor(sML, purity, use = "complete.obs"),
+        cohort = "TCGA"
+      )
+
+    # Add OCCAMS data if available
+    occams_file <- file.path(global_TCGA_PCAWG, "OCCAMS_input_data.RData")
+    if (file.exists(occams_file)) {
+      load(occams_file)
+      if (exists("OCCAMS")) {
+        occams_cor <- data.frame(
+          cancer_type = "ESAD (OCCAMS)",
+          TMB_cor = cor(OCCAMS$sML, OCCAMS$cdsTMB, use = "complete.obs"),
+          nrpcc_cor = cor(OCCAMS$sML, OCCAMS$nrpcc, use = "complete.obs"),
+          purity_cor = cor(OCCAMS$sML, OCCAMS$purity, use = "complete.obs"),
+          cohort = "OCCAMS"
+        )
+        correlations <- correlations %>% bind_rows(occams_cor)
+      }
+    }
+
+    # Add mCRPC data if available
+    mcrpc_file <- file.path(global_TCGA_PCAWG, "mCRPC_21_summarytable.txt")
+    if (file.exists(mcrpc_file)) {
+      mCRPC <- data.table::fread(mcrpc_file)
+      mcrpc_cor <- data.frame(
+        cancer_type = "mCRPC (NCT02113657)",
+        TMB_cor = cor(mCRPC$sML, mCRPC$TMB, use = "complete.obs"),
+        nrpcc_cor = cor(mCRPC$sML, mCRPC$nrpcc, use = "complete.obs"),
+        purity_cor = cor(mCRPC$sML, mCRPC$purity, use = "complete.obs"),
+        cohort = "mCRPC"
+      )
+      correlations <- correlations %>% bind_rows(mcrpc_cor)
+    }
+
+    return(correlations)
+
+  }, error = function(e) {
+    warning("Error loading heatmap data: ", e$message)
+    return(data.frame())
+  })
+}
+
+#' Create heatmap plot
+#' @param data Data frame with correlation data
+#' @param selected_cohorts Vector of cohorts to include
+#' @param selected_cancer_types Vector of cancer types to include (optional)
+#' @param show_numbers Boolean to show correlation values on heatmap
+#' @return ComplexHeatmap object
+create_heatmap_plot <- function(data, selected_cohorts = NULL,
+                               selected_cancer_types = NULL,
+                               show_numbers = TRUE) {
+
+  if (nrow(data) == 0) {
+    # Create empty plot with message
+    return(grid::grid.newpage())
+  }
+
+  # Filter data based on selections
+  plot_data <- data
+
+  if (!is.null(selected_cohorts) && length(selected_cohorts) > 0) {
+    plot_data <- plot_data %>%
+      filter(cohort %in% selected_cohorts)
+  }
+
+  if (!is.null(selected_cancer_types) && length(selected_cancer_types) > 0) {
+    plot_data <- plot_data %>%
+      filter(cancer_type %in% selected_cancer_types)
+  }
+
+  if (nrow(plot_data) == 0) {
+    return(grid::grid.newpage())
+  }
+
+  # Create correlation matrix
+  cor_mat <- plot_data %>%
+    select(TMB_cor, nrpcc_cor, purity_cor) %>%
+    as.matrix() %>%
+    t()
+
+  colnames(cor_mat) <- plot_data$cancer_type
+  rownames(cor_mat) <- c("TMB", "NRPCC", "Purity")
+
+  # Format numbers for annotation
+  labels_mat <- matrix(sprintf("%.2f", cor_mat),
+                       nrow = nrow(cor_mat),
+                       dimnames = dimnames(cor_mat))
+
+  # Create the heatmap
+  ht <- Heatmap(
+    cor_mat,
+    name = "Correlation",
+    col = colorRamp2(c(-1, 0, 1), c("blue", "white", "red")),
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    row_title = "sMF correlations",
+    column_names_rot = 45,
+    heatmap_legend_param = list(
+      title = "Pearson\nCorrelation",
+      at = c(-1, -0.5, 0, 0.5, 1),
+      labels = c("-1", "-0.5", "0", "0.5", "1")
+    ),
+    cell_fun = if (show_numbers) {
+      function(j, i, x, y, width, height, fill) {
+        grid.text(labels_mat[i, j], x, y, gp = gpar(fontsize = 8))
+      }
+    } else {
+      NULL
+    }
+  )
+
+  return(ht)
+}
+
+#' Get available cohorts for heatmap analysis
+#' @param data Data frame with correlation data
+#' @return Vector of available cohorts
+get_available_cohorts_heatmap <- function(data) {
+  if (nrow(data) == 0) {
+    return(c("TCGA", "OCCAMS", "mCRPC"))
+  }
+
+  cohorts <- unique(data$cohort)
+  return(sort(cohorts))
+}
+
+#' Get available cancer types for heatmap analysis
+#' @param data Data frame with correlation data
+#' @return Vector of cancer types
+get_available_cancer_types_heatmap <- function(data) {
+  if (nrow(data) == 0) {
+    return(character(0))
+  }
+
+  cancer_types <- unique(data$cancer_type)
+  return(sort(cancer_types))
+}
+
+#' Create summary statistics for heatmap data
+#' @param data Data frame with correlation data
+#' @param selected_cohorts Vector of cohorts to include
+#' @return Data frame with summary statistics
+create_heatmap_summary <- function(data, selected_cohorts = NULL) {
+  if (nrow(data) == 0) {
+    return(data.frame(
+      statistic = character(0),
+      value = character(0)
+    ))
+  }
+
+  plot_data <- data
+  if (!is.null(selected_cohorts) && length(selected_cohorts) > 0) {
+    plot_data <- data %>%
+      filter(cohort %in% selected_cohorts)
+  }
+
+  # Calculate correlation ranges
+  tmb_range <- range(plot_data$TMB_cor, na.rm = TRUE)
+  nrpcc_range <- range(plot_data$nrpcc_cor, na.rm = TRUE)
+  purity_range <- range(plot_data$purity_cor, na.rm = TRUE)
+
+  summary_stats <- data.frame(
+    statistic = c(
+      "Cancer Types",
+      "Cohorts",
+      "TMB Correlation Range",
+      "NRPCC Correlation Range",
+      "Purity Correlation Range"
+    ),
+    value = c(
+      nrow(plot_data),
+      length(unique(plot_data$cohort)),
+      paste(sprintf("%.2f", tmb_range), collapse = " to "),
+      paste(sprintf("%.2f", nrpcc_range), collapse = " to "),
+      paste(sprintf("%.2f", purity_range), collapse = " to ")
+    )
+  )
+
+  return(summary_stats)
+}
