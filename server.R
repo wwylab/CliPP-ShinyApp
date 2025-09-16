@@ -1,5 +1,3 @@
-#Sys.setenv(PATH = paste("/usr/local/R/4.2.0/bin", old_path, sep = ":"))
-
 server <- function(input, output, session) {
   
   plots_ready_clipp <- reactiveVal(FALSE)
@@ -7,10 +5,10 @@ server <- function(input, output, session) {
   plots_ready_PCAWG <- reactiveVal(FALSE)
   
   tab_states <- reactiveValues(
-    clipp_web = FALSE,     
-    tcga = FALSE,         
-    pcawg = FALSE,         
-    driver = FALSE         
+    clipp_web = FALSE,
+    tcga = FALSE,
+    pcawg = FALSE,
+    driver = FALSE
   )
   
   observe({
@@ -1551,7 +1549,7 @@ server <- function(input, output, session) {
       return()
     }
     
-    analysis_result <- process_tcga_data_internal(file_data)
+    analysis_result <- process_tcga_data_internal(file_data, input$sample_name_TCGA, global_TCGA_PCAWG)
     
     if (is.null(analysis_result)) {
       showNotification("Error processing data", type = "error")
@@ -1638,7 +1636,7 @@ server <- function(input, output, session) {
       return()
     }
     
-    analysis_result <- process_pcawg_data_internal(file_data)
+    analysis_result <- process_pcawg_data_internal(file_data, input$sample_name_PCAWG, global_TCGA_PCAWG)
     
     if (is.null(analysis_result)) {
       shinyjs::show("submitPCAWG") 
@@ -2128,93 +2126,7 @@ server <- function(input, output, session) {
   
   
   # Function to count SNVs in a file
-  count_snvs <- function(file_path) {
-    if (!file.exists(file_path)) return(0)
-    df <- read.table(file_path, header = TRUE)
-    nrow(df)
-  }
   
-  read_tcga_files <- function(sample_dir) {
-    snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
-    cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
-    purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
-    
-    validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data
-  }
-  
-  # Helper function to read PCAWG files
-  read_pcawg_files <- function(sample_dir) {
-    snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
-    cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
-    purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
-    
-    validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data
-  }
-  
-  # Process TCGA data for plotting
-  process_tcga_data_internal <- function(file_data) {
-    
-    df_snv <- file_data$df_snv
-    df_cna <- file_data$df_cna
-    purity <- file_data$purity
-    
-    tryCatch({
-      result_path <- file.path(global_TCGA_PCAWG, "TCGA", input$sample_name_TCGA)
-      matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
-      matching_file2 <- list.files(result_path, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
-      
-      df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
-      df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
-      
-      df_snv_subset <- df_snv %>% 
-        select(chromosome_index, position)
-      
-      matching_rows <- suppressMessages(
-        inner_join(
-          df_snv_subset,
-          df_assigned %>% select(chromosome_index, position)
-        )
-      )
-      
-      df_snvcna <- df_snv %>%
-        mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
-          inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-          if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
-        }))
-      
-      df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
-      mean_rd <- mean(df_snvcna$sum_counts)
-      min_rd <- min(df_snvcna$sum_counts)
-      max_rd <- max(df_snvcna$sum_counts)
-      
-      merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-      merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
-      
-      merged_df$total_cn <- as.numeric(merged_df$total_cn)
-      merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
-      merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
-      merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
-      
-      merged_df <- merged_df %>%
-        mutate(Subclonality = ifelse(cluster_index == 0, "Clonal", "Subclonal"),
-               ReadDepth = sum_counts)
-      
-      subclonality_counts <- merged_df %>%
-        count(Subclonality) %>%
-        rename(n = n)
-      
-      total_SNVs <- sum(df_subc$num_SNV)
-      
-      return(list(
-        merged_data = merged_df,
-        purity = purity,
-        read_depth = mean_rd,
-        subclonality_counts = subclonality_counts,
-        subclonal_structure = df_subc,
-        total_mutations = total_SNVs
-      ))
-    })
-  }
   
   observeEvent(input$selectedSample, {
     if (!is.null(input$selectedSample) && plots_ready_clipp()) {
@@ -2233,155 +2145,6 @@ server <- function(input, output, session) {
     }
   }, ignoreInit = TRUE) 
   
-  # Process PCAWG data for plotting
-  process_pcawg_data_internal <- function(file_data) {
-    if (is.null(file_data)) return(NULL)
-    
-    df_snv <- file_data$df_snv
-    df_cna <- file_data$df_cna
-    purity <- file_data$purity
-    
-    tryCatch({
-      result_path <- file.path(global_TCGA_PCAWG, "PCAWG", input$sample_name_PCAWG)
-      matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
-      matching_file2 <- list.files(result_path, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
-      
-      df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t", 
-                                colClasses = c(chromosome_index = "character", position = "integer", 
-                                               cluster_index = "integer"))
-      df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
-      
-      df_snv$chromosome_index <- as.character(df_snv$chromosome_index)
-      df_snv$position <- as.integer(df_snv$position)
-      
-      df_snvcna <- df_snv %>%
-        mutate(
-          chromosome_index = as.character(chromosome_index),
-          total_cn = map2_chr(position, chromosome_index, function(x, y) {
-            inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-            if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
-          })
-        )
-      
-      df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
-      mean_rd <- mean(df_snvcna$sum_counts)
-      min_rd <- min(df_snvcna$sum_counts)
-      max_rd <- max(df_snvcna$sum_counts)
-      
-      df_assigned$chromosome_index <- as.character(df_assigned$chromosome_index)
-      merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-      
-      if (nrow(merged_df) == 0) {
-        df_snvcna$chromosome_index <- as.character(df_snvcna$chromosome_index)
-        df_assigned$chromosome_index <- as.character(df_assigned$chromosome_index)
-        df_snvcna$position <- as.integer(df_snvcna$position)
-        df_assigned$position <- as.integer(df_assigned$position)
-        
-        merged_df <- left_join(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-      }
-      
-      merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
-      
-      merged_df$total_cn <- as.numeric(merged_df$total_cn)
-      merged_df$b_i_V <- pmax(1, round(merged_df$AF * (1 / purity) * ((purity * merged_df$total_cn) + (2 * (1 - purity))), 0))
-      merged_df$CP_unpenalized <- (merged_df$alt_count * ((1 - purity) * 2 + purity * merged_df$total_cn)) / 
-        (merged_df$b_i_V * (merged_df$alt_count + merged_df$ref_count))
-      merged_df$CCF_unpenalized <- merged_df$CP_unpenalized / purity
-      
-      merged_df <- merged_df %>%
-        mutate(
-          Subclonality = factor(
-            ifelse(cluster_index == 0, "Clonal", "Subclonal"),
-            levels = c("Clonal", "Subclonal")
-          ),
-          ReadDepth = sum_counts
-        )
-      
-      if (!any(c("Clonal", "Subclonal") %in% merged_df$Subclonality)) {
-        if (nrow(merged_df) > 0) {
-          merged_df$Subclonality <- factor(
-            sample(c("Clonal", "Subclonal"), nrow(merged_df), replace = TRUE, 
-                   prob = c(0.7, 0.3)), 
-            levels = c("Clonal", "Subclonal")
-          )
-        }
-      }
-      
-      subclonality_counts <- merged_df %>%
-        count(Subclonality) %>%
-        rename(n = n)
-      
-      total_SNVs <- sum(df_subc$num_SNV)
-      
-      return(list(
-        merged_data = merged_df,
-        purity = purity,
-        read_depth = mean_rd,
-        subclonality_counts = subclonality_counts,
-        subclonal_structure = df_subc,
-        total_mutations = total_SNVs
-      ))
-    })
-  }
-  
-  # Function to consolidate driver mutations by sample
-  consolidate_driver_mutations <- function(driver_data, cancer_type) {
-    
-    filtered_data <- driver_data[driver_data$cancer == cancer_type, ]
-    
-    if (nrow(filtered_data) == 0) {
-      return(NULL)
-    }
-    
-    unique_samples <- unique(filtered_data$sample)
-    result <- data.frame(
-      sample = character(),
-      genes = character(),
-      proteins = character(),
-      consequences = character(),
-      Subclonality = character(),
-      VAF_range = character(),
-      CP_range = character(),
-      mutation_count = integer(),
-      stringsAsFactors = FALSE
-    )
-    
-    for (sample_name in unique_samples) {
-      sample_rows <- filtered_data[filtered_data$sample == sample_name, ]
-      
-      unique_genes <- paste(unique(sample_rows$gene), collapse = ", ")
-      unique_proteins <- paste(unique(sample_rows$protein), collapse = ", ")
-      unique_consequences <- paste(unique(sample_rows$consequence), collapse = ", ")
-      
-      unique_subclonality <- unique(sample_rows$Subclonality)
-      if (length(unique_subclonality) > 1) {
-        subclonality_status <- "Clonal, Subclonal"
-      } else {
-        subclonality_status <- unique_subclonality[1]
-      }
-      
-      vaf_values <- sample_rows$VAF
-      cp_values <- sample_rows$CP_unpenalized
-      vaf_range <- paste(sprintf("%.3f", range(vaf_values)), collapse = "-")
-      cp_range <- paste(sprintf("%.3f", range(cp_values)), collapse = "-")
-      
-      mutation_count <- nrow(sample_rows)
-      
-      result <- rbind(result, data.frame(
-        sample = sample_name,
-        genes = unique_genes,
-        proteins = unique_proteins,
-        consequences = unique_consequences,
-        Subclonality = subclonality_status,
-        VAF_range = vaf_range,
-        CP_range = cp_range,
-        mutation_count = mutation_count,
-        stringsAsFactors = FALSE
-      ))
-    }
-    
-    return(result)
-  }
   
   observeEvent(input$view_mode, {
     dataTableProxy("driverMutationTable") %>% selectRows(NULL)
@@ -2532,7 +2295,12 @@ server <- function(input, output, session) {
     gg_plot <- create_km_plot(df_data, input$survivalType, input$cancerType_survival)
     current_survival_plot(gg_plot)
   })
-  
+  # Reactive flag for survival plot generation
+  output$survivalPlotGenerated <- reactive({
+    !is.null(current_survival_plot())
+  })
+  outputOptions(output, "survivalPlotGenerated", suspendWhenHidden = FALSE)
+
   output$survivalPlot <- renderPlotly({
     plot_obj <- current_survival_plot()
     
@@ -2787,105 +2555,148 @@ server <- function(input, output, session) {
   )
 
   ## HEATMAP ANALYSIS FUNCTIONS - COMMENTED OUT FOR FUTURE USE ##
-  ## Uncomment and activate when Matthew provides heatmap figures ##
-  
-  # # UI for cancer type selection in heatmap analysis
-  # output$cancer_types_ui_heatmap <- renderUI({
-  #   req(input$selected_cohort_heatmap)
-  #   if (nrow(heatmap_data) == 0) {
-  #     return(tags$p("Heatmap data will be available when Matthew provides the figures."))
-  #   }
-  #   
-  #   available_types <- get_available_cancer_types_heatmap(heatmap_data)
-  #   if (length(available_types) == 0) {
-  #     return(tags$p("No cancer types available for heatmap analysis"))
-  #   
-  #   selectInput("selected_cancer_types_heatmap", 
-  #                     "Select Cancer Types:",
-  #                     choices = c(setNames(available_types, available_types)),
-  # current_heatmap_plot <- reactiveVal()
-  # current_heatmap_summary <- reactiveVal()
-  # # Generate heatmap plot
-  # observeEvent(input$generate_heatmap_plot, {
-  #   req(input$selected_cohort_heatmap)
-  #   if (nrow(heatmap_data) == 0) {
-  #     showNotification("Heatmap data not yet available. Will be updated when Matthew provides the figures.", type = "message")
-  #     placeholder_plot <- create_heatmap_plot(data.frame())
-  #     current_heatmap_plot(placeholder_plot)
-  #     return()
-  #   
-  #   if (!is.null(input$selected_cancer_types_heatmap) && length(input$selected_cancer_types_heatmap) > 0) {
-  #     selected_cancer_types <- input$selected_cancer_types_heatmap[input$selected_cancer_types_heatmap != ""]
-  #     if (length(selected_cancer_types) == 0) {
-  #       selected_cancer_types <- NULL
-  #     }
-  #   
-  #   plot_obj <- create_heatmap_plot(
-  #     data = heatmap_data,
-  #     selected_cohorts = c(input$selected_cohort_heatmap),
-  #     color_scale = input$color_scale_heatmap
-  #   )
-  #   current_heatmap_plot(plot_obj)
-  #   
-  #   summary_data <- create_heatmap_summary(heatmap_data, c(input$selected_cohort_heatmap))
-  #   current_heatmap_summary(summary_data)
-  # # Render heatmap plot
-  # output$heatmap_plot <- renderPlotly({
-  #   plot_obj <- current_heatmap_plot()
-  #   if (is.null(plot_obj)) {
-  #     return(plot_ly(type = "scatter", mode = "markers") %>%
-  #              add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
-  #              add_annotations(
-  #                text = "Click 'Generate Heatmap' to view the analysis",
-  #                font = list(size = 16)
-  #              ))
-  #   }
-  #   tryCatch({
-  #     if (inherits(plot_obj, "ggplot")) {
-  #           title = list(text = "Heatmap Analysis", font = list(size = 16)),
-  #           showlegend = TRUE
-  #       plot_obj
-  #     }
-  #   }, error = function(e) {
-  #       add_trace(x = c(0), y = c(0), mode = "markers", opacity = 0) %>%
-  #       add_annotations(
-  #         text = paste("Error generating heatmap:", e$message),
-  #         showarrow = FALSE,
-  #         font = list(size = 12)
-  # })
-  # 
-  # # Render heatmap summary table
-  # output$heatmap_summary_table <- renderDT({
-  #   summary_data <- current_heatmap_summary()
-  #                     options = list(dom = 't', pageLength = -1, ordering = FALSE, searching = FALSE),
-  #                     rownames = FALSE))
-  #   datatable(summary_data, 
-  #             options = list(
-  #               dom = 'Bfrtip'
-  #             rownames = FALSE)
-  # 
-  # # Display heatmap information
-  # output$heatmap_info <- renderUI({
-  #   req(current_heatmap_plot())
-  #   
-  #     tags$h5(tags$b("Analysis Information:")),
-  #     tags$p("This heatmap visualization will display patterns and correlations in cancer genomic data."),
-  #     tags$p("Features will include hierarchical clustering, interactive exploration, and detailed annotations."),
-  #     tags$p("Full functionality will be available when Matthew provides the heatmap figures.")
-  #   )
-  # # Download handler for heatmap plot
-  # output$download_heatmap_plot <- downloadHandler(
-  #   filename = function() {
-  #     cohorts_str <- input$selected_cohort_heatmap
-  #     paste0("heatmap_plot_", cohorts_str, "_", Sys.Date(), ".png")
-  #     plot_obj <- current_heatmap_plot()
-  #       ggsave(file, plot_obj, width = 12, height = 10, dpi = 300)
-  #   }
-  # 
-  # # Download handler for heatmap data
-  # output$download_heatmap_data <- downloadHandler(
-  #     cohorts_str <- input$selected_cohort_heatmap
-  #     paste0("heatmap_data_", cohorts_str, "_", Sys.Date(), ".csv")
-  #   },
+  ## sMF Correlation Heatmap Analysis ##
+
+  # UI for cohort selection in heatmap analysis
+  output$cohort_ui_heatmap <- renderUI({
+    available_cohorts <- get_available_cohorts_heatmap(heatmap_data)
+
+    selectInput("selected_cohorts_heatmap",
+                "Select Cohorts:",
+                choices = available_cohorts,
+                selected = available_cohorts,
+                multiple = TRUE)
+  })
+
+  # UI for cancer type selection in heatmap analysis
+  output$cancer_types_ui_heatmap <- renderUI({
+    req(input$selected_cohorts_heatmap)
+
+    available_types <- get_available_cancer_types_heatmap(heatmap_data)
+    if (length(available_types) == 0) {
+      return(tags$p("No cancer types available for heatmap analysis"))
+    }
+
+    selectInput("selected_cancer_types_heatmap",
+                "Select Cancer Types (optional):",
+                choices = c("All" = "", setNames(available_types, available_types)),
+                selected = "",
+                multiple = TRUE)
+  })
+
+  # Reactive values for heatmap
+  current_heatmap_plot <- reactiveVal()
+  current_heatmap_summary <- reactiveVal()
+
+  # Generate heatmap plot
+  observeEvent(input$generate_heatmap, {
+    req(input$selected_cohorts_heatmap)
+
+    if (nrow(heatmap_data) == 0) {
+      showNotification("Heatmap data not yet available.", type = "warning")
+      return()
+    }
+
+    selected_cancer_types <- NULL
+    if (!is.null(input$cancer_types_ui_heatmap) && length(input$cancer_types_ui_heatmap) > 0) {
+      selected_cancer_types <- input$cancer_types_ui_heatmap[input$cancer_types_ui_heatmap != ""]
+      if (length(selected_cancer_types) == 0) {
+        selected_cancer_types <- NULL
+      }
+    }
+
+    showNotification("Generating heatmap...", type = "message")
+
+    tryCatch({
+      plot_obj <- create_heatmap_plot(
+        data = heatmap_data,
+        selected_cohorts = input$selected_cohorts_heatmap,
+        selected_cancer_types = selected_cancer_types,
+        show_numbers = input$show_numbers_heatmap %||% TRUE
+      )
+      current_heatmap_plot(plot_obj)
+
+      summary_data <- create_heatmap_summary(heatmap_data, input$selected_cohorts_heatmap)
+      current_heatmap_summary(summary_data)
+
+      showNotification("Heatmap generated successfully!", type = "message")
+    }, error = function(e) {
+      showNotification(paste("Error creating heatmap:", e$message), type = "error")
+    })
+  })
+
+  # Reactive flag for heatmap generation
+  output$heatmapGenerated <- reactive({
+    !is.null(current_heatmap_plot())
+  })
+  outputOptions(output, "heatmapGenerated", suspendWhenHidden = FALSE)
+
+  # Render heatmap plot
+  output$heatmap_plot <- renderPlot({
+    plot_obj <- current_heatmap_plot()
+    if (is.null(plot_obj)) {
+      return(NULL)
+    }
+    draw(plot_obj)
+  })
+
+  # Render heatmap summary table
+  output$heatmap_summary_table <- renderDT({
+    summary_data <- current_heatmap_summary()
+    if (is.null(summary_data)) {
+      return(NULL)
+    }
+
+    datatable(summary_data,
+              options = list(dom = 't', pageLength = -1, ordering = FALSE, searching = FALSE),
+              rownames = FALSE)
+  })
+
+  # Display heatmap information
+  output$heatmap_info <- renderUI({
+    req(current_heatmap_plot())
+
+    tags$div(
+      tags$h5(tags$b("Analysis Information:")),
+      tags$p("This heatmap displays Pearson correlations between subclonal mutational fraction (sMF) and:"),
+      tags$ul(
+        tags$li(tags$b("TMB:"), " Tumor mutational burden"),
+        tags$li(tags$b("NRPCC:"), " Non-reference point clonal cluster"),
+        tags$li(tags$b("Purity:"), " Tumor purity estimates")
+      ),
+      tags$p("The correlation values range from -1 (perfect negative correlation) to +1 (perfect positive correlation)."),
+      tags$p("Colors: Blue = negative correlation, White = no correlation, Red = positive correlation.")
+    )
+  })
+
+  # Download handler for heatmap plot (fixed button name)
+  output$download_heatmap <- downloadHandler(
+    filename = function() {
+      cohorts_str <- paste(input$selected_cohorts_heatmap, collapse = "_")
+      paste0("sMF_correlation_heatmap_", cohorts_str, "_", Sys.Date(), ".png")
+    },
+    content = function(file) {
+      plot_obj <- current_heatmap_plot()
+      if (!is.null(plot_obj)) {
+        png(file, width = 12, height = 8, units = "in", res = 300)
+        draw(plot_obj)
+        dev.off()
+      }
+    }
+  )
+
+  # Download handler for heatmap data
+  output$download_heatmap_data <- downloadHandler(
+    filename = function() {
+      cohorts_str <- paste(input$selected_cohorts_heatmap, collapse = "_")
+      paste0("sMF_correlation_data_", cohorts_str, "_", Sys.Date(), ".csv")
+    },
+    content = function(file) {
+      summary_data <- current_heatmap_summary()
+      if (!is.null(summary_data)) {
+        write.csv(summary_data, file, row.names = FALSE)
+      }
+    }
+  )
   #     summary_data <- current_heatmap_summary()
 }
