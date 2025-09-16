@@ -57,22 +57,6 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
                             smoothing_factor, color_by = "clonality",
                             subclonality_counts, driver_mutations = NULL) {
   
-  merged_df <- merged_df %>%
-    filter(!is.na(AF)) %>%
-    filter(!is.infinite(AF)) %>%
-    filter(AF >= 0 & AF <= 1)
-  
-  if (nrow(merged_df) == 0) {
-    empty_plot <- ggplot() + 
-      geom_point(aes(x = 0.5, y = 0), alpha = 0) +
-      ggtitle(paste("No valid VAF data for", sample_name)) +
-      theme_pubr() +
-      xlab("Variant Allele Frequency (VAF)") + 
-      ylab("Density")
-    
-    return(ggplotly(empty_plot))
-  }
-  
   if (is.factor(merged_df$Subclonality)) {
     levels(merged_df$Subclonality) <- c("Clonal", "Subclonal")
   } else {
@@ -161,6 +145,7 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
       
       for (i in seq_along(p$x$data)) {
         if (!is.null(p$x$data[[i]]$showlegend) && p$x$data[[i]]$showlegend) {
+          # Hide duplicates
           if (p$x$data[[i]]$name == "Clonal" && !is.na(first_clonal) && i != first_clonal) {
             p$x$data[[i]]$showlegend <- FALSE
           } else if (p$x$data[[i]]$name == "Subclonal" && !is.na(first_subclonal) && i != first_subclonal) {
@@ -189,22 +174,6 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
                            color_by = "clonality",
                            subclonality_counts, df_subc,
                            driver_mutations = NULL) {
-  
-  merged_df <- merged_df %>%
-    filter(!is.na(CP_unpenalized)) %>%
-    filter(!is.infinite(CP_unpenalized)) %>%
-    filter(CP_unpenalized >= 0 & CP_unpenalized <= 1.5)
-  
-  if (nrow(merged_df) == 0) {
-    empty_plot <- ggplot() + 
-      geom_point(aes(x = 0.5, y = 0), alpha = 0) +
-      ggtitle(paste("No valid CP data for", sample_name)) +
-      theme_pubr() +
-      xlab("Cellular Prevalence (CP)") + 
-      ylab("Density")
-    
-    return(ggplotly(empty_plot))
-  }
   
   if (is.factor(merged_df$Subclonality)) {
     levels(merged_df$Subclonality) <- c("Clonal", "Subclonal")
