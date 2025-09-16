@@ -4,15 +4,11 @@ library(shinyjs)
 library(shinyWidgets)
 library(DT)
 
-# UI for the Shiny application
 ui <- fluidPage(
   tags$head(includeHTML("google-analytics.html")),
   shinyjs::useShinyjs(),
-  
-  # Basic CSS styling - simplified for functionality
   tags$head(
     tags$style(HTML("
-      /* Keep existing controls positioning */
       .controls-area {
         position: absolute;
         top: 28%;
@@ -31,83 +27,6 @@ ui <- fluidPage(
         top: -10%;
       }
       
-      /* Downloads Button - inline with navbar */
-      .navbar-downloads-btn {
-        background: #5bc0de;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 8px 16px;
-        font-size: 14px;
-        cursor: pointer;
-        margin: 8px 15px;
-        float: right;
-      }
-      
-      .navbar-downloads-btn:hover {
-        background: #46b8da;
-        color: white;
-      }
-      
-      /* Adjust navbar to accommodate inline button */
-      .navbar .navbar-nav {
-        max-width: calc(100% - 140px); /* Reduce navbar tabs width */
-      }
-      
-      .navbar .navbar-header {
-        float: left;
-      }
-      
-      .navbar .navbar-collapse {
-        padding-right: 0;
-      }
-      
-      /* Downloads Modal - keep functional */
-      .downloads-modal {
-        display: none;
-        position: fixed;
-        z-index: 1001;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        overflow-y: auto;
-      }
-      
-      .downloads-modal-content {
-        background: white;
-        margin: 5% auto;
-        padding: 0;
-        border-radius: 5px;
-        width: 90%;
-        max-width: 1200px;
-        max-height: 80vh;
-        overflow-y: auto;
-      }
-      
-      .downloads-modal-header {
-        background: #f5f5f5;
-        padding: 15px 20px;
-        border-bottom: 1px solid #ddd;
-      }
-      
-      .downloads-modal-body {
-        padding: 20px;
-      }
-      
-      .downloads-close {
-        float: right;
-        font-size: 24px;
-        cursor: pointer;
-        color: #999;
-      }
-      
-      .downloads-close:hover {
-        color: #333;
-      }
-      
-      /* Data Exploration Page Styling */
       .info-panel {
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         border-left: 4px solid #3498db;
@@ -211,7 +130,6 @@ ui <- fluidPage(
         margin-right: 8px;
       }
 
-      /* Downloads Tab Specific Styling */
       .downloads-tab-container {
         position: relative;
         min-height: 100vh;
@@ -219,24 +137,24 @@ ui <- fluidPage(
         padding-right: 20px;
       }
 
-      /* Floating Vertical Navigation */
       .vertical-nav-floating {
         position: fixed;
         top: 50%;
         left: 20px;
         transform: translateY(-50%);
         width: 200px;
-        background: linear-gradient(135deg, #2c3e50, #3498db);
-        border-radius: 10px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
         padding: 20px;
         z-index: 1000;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
       }
 
       .vertical-nav-floating:hover {
-        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
-        transform: translateY(-50%) scale(1.02);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+        transform: translateY(-50%) translateX(2px);
       }
 
       .vertical-nav-floating .nav-list {
@@ -249,12 +167,18 @@ ui <- fluidPage(
         margin-bottom: 12px;
       }
 
+      .vertical-nav-floating h5 {
+        color: #495057;
+        margin-bottom: 15px;
+        font-weight: 600;
+      }
+
       .vertical-nav-floating .nav-link {
         display: block;
-        color: white;
+        color: #495057;
         text-decoration: none;
         padding: 12px 16px;
-        border-radius: 8px;
+        border-radius: 6px;
         transition: all 0.3s ease;
         font-weight: 500;
         font-size: 14px;
@@ -262,21 +186,20 @@ ui <- fluidPage(
       }
 
       .vertical-nav-floating .nav-link:hover {
-        background: rgba(255, 255, 255, 0.15);
-        border-left: 3px solid #f39c12;
-        transform: translateX(8px);
-        color: white;
+        background: #e9ecef;
+        border-left: 3px solid #6c757d;
+        transform: translateX(4px);
+        color: #212529;
         text-decoration: none;
       }
 
       .vertical-nav-floating .nav-link:active,
       .vertical-nav-floating .nav-link.active {
-        background: rgba(255, 255, 255, 0.2);
-        border-left: 3px solid #f39c12;
-        color: white;
+        background: #dee2e6;
+        border-left: 3px solid #495057;
+        color: #212529;
       }
 
-      /* Main Downloads Content Area */
       .downloads-main-content {
         margin-left: 260px;
         padding: 30px;
@@ -284,17 +207,18 @@ ui <- fluidPage(
       }
 
       .download-section {
-        margin-bottom: 50px;
+        margin-bottom: 40px;
         padding: 30px;
         background: #ffffff;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
       }
 
       .download-section:hover {
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
       }
 
       .download-section h3 {
@@ -303,17 +227,15 @@ ui <- fluidPage(
         font-weight: 600;
       }
 
-      /* Metadata Cards */
       .metadata-card {
-        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-        border-left: 4px solid #3498db;
-        border-radius: 8px;
+        background: #f8f9fa;
+        border-left: 4px solid #6c757d;
+        border-radius: 6px;
         padding: 20px;
         margin: 20px 0;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e9ecef;
       }
 
-      /* Enhanced Download Tables */
       .download-table-styled {
         width: 100%;
         border-collapse: collapse;
@@ -325,7 +247,7 @@ ui <- fluidPage(
       }
 
       .download-table-styled thead tr {
-        background: linear-gradient(135deg, #3498db, #2980b9);
+        background: #495057;
         color: white;
         text-align: left;
         font-weight: 600;
@@ -347,9 +269,9 @@ ui <- fluidPage(
       }
 
       .download-table-styled tbody tr:hover {
-        background: linear-gradient(135deg, #e8f4f8, #d6eaf8);
-        transform: scale(1.02);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        background: #e9ecef;
+        transform: scale(1.01);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       }
 
       .download-table-styled tbody tr:last-of-type {
@@ -361,20 +283,18 @@ ui <- fluidPage(
         color: #2c3e50;
       }
 
-      /* File Type Badges */
       .file-type-badge {
         display: inline-block;
-        background: linear-gradient(135deg, #3498db, #2980b9);
+        background: #6c757d;
         color: white;
         padding: 6px 12px;
-        border-radius: 20px;
+        border-radius: 12px;
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
 
-      /* Download and Browse Buttons */
       .download-btn, .browse-btn {
         display: inline-block;
         padding: 10px 20px;
@@ -389,29 +309,29 @@ ui <- fluidPage(
       }
 
       .download-btn {
-        background: linear-gradient(135deg, #27ae60, #2ecc71);
+        background: #28a745;
         color: white;
-        box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        border: 1px solid #28a745;
       }
 
       .download-btn:hover {
-        background: linear-gradient(135deg, #219653, #27ae60);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+        background: #218838;
+        border-color: #1e7e34;
+        transform: translateY(-1px);
         color: white;
         text-decoration: none;
       }
 
       .browse-btn {
-        background: linear-gradient(135deg, #f39c12, #e67e22);
+        background: #6c757d;
         color: white;
-        box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+        border: 1px solid #6c757d;
       }
 
       .browse-btn:hover {
-        background: linear-gradient(135deg, #d68910, #f39c12);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+        background: #545b62;
+        border-color: #4e555b;
+        transform: translateY(-1px);
         color: white;
         text-decoration: none;
       }
@@ -423,16 +343,15 @@ ui <- fluidPage(
         margin-left: 10px;
       }
 
-      /* Citation Section */
       .citation-section {
-        background: linear-gradient(135deg, #ecf0f1, #bdc3c7);
-        border-radius: 12px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
         padding: 30px;
         margin-top: 40px;
-        border-left: 5px solid #34495e;
+        border-left: 4px solid #6c757d;
       }
 
-      /* Responsive Design for Downloads */
       @media (max-width: 1200px) {
         .vertical-nav-floating {
           width: 180px;
@@ -477,7 +396,6 @@ ui <- fluidPage(
         }
       }
 
-      /* Sample Count Display Styling */
       .sample-count-info {
         background: linear-gradient(135deg, #e8f5e8, #d4edda);
         border: 1px solid #c3e6cb;
@@ -496,8 +414,8 @@ ui <- fluidPage(
       }
 
       .sample-count-number {
-        font-size: 24px;
-        font-weight: bold;
+        font-size: 18px;
+        font-weight: 600;
         color: #155724;
         margin-bottom: 5px;
         display: block;
@@ -546,283 +464,54 @@ ui <- fluidPage(
         adjustControlPosition('#colorByPCAWG', ['.plot-container .controls-area']);
         
         adjustControlPosition('#colorByDriver', ['.plot-container .controls-area']);
-        
-        // Downloads modal functionality - use event delegation for dynamically added button
-        $(document).on('click', '#floating-downloads-btn', function() {
-          $('#downloads-modal').show();
-        });
-        
-        $('.downloads-close').click(function() {
-          $('#downloads-modal').hide();
-        });
-        
-        $(window).click(function(event) {
-          if (event.target.id === 'downloads-modal') {
-            $('#downloads-modal').hide();
-          }
-        });
 
         // Floating vertical navigation smooth scrolling
         $(document).on('click', '.vertical-nav-floating .nav-link', function(e) {
           e.preventDefault();
-          var target = $($(this).attr('href'));
+          var href = $(this).attr('href');
+          var target = $(href);
+
           if (target.length) {
             $('.vertical-nav-floating .nav-link').removeClass('active');
             $(this).addClass('active');
 
             $('html, body').animate({
-              scrollTop: target.offset().top - 100
-            }, 800, 'easeInOutCubic');
+              scrollTop: target.offset().top - 120
+            }, 800);
           }
         });
 
         // Highlight active section in navigation based on scroll position
         $(window).scroll(function() {
-          var scrollPos = $(window).scrollTop() + 150;
+          if ($('.downloads-tab-container').length > 0 && $('.downloads-tab-container').is(':visible')) {
+            var scrollPos = $(window).scrollTop() + 150;
 
-          $('.download-section').each(function() {
-            var section = $(this);
-            var sectionTop = section.offset().top;
-            var sectionBottom = sectionTop + section.outerHeight();
-            var sectionId = section.attr('id');
+            $('.download-section').each(function() {
+              var section = $(this);
+              if (section.offset()) {
+                var sectionTop = section.offset().top;
+                var sectionBottom = sectionTop + section.outerHeight();
+                var sectionId = section.attr('id');
 
-            if (scrollPos >= sectionTop && scrollPos < sectionBottom) {
-              $('.vertical-nav-floating .nav-link').removeClass('active');
-              $('.vertical-nav-floating .nav-link[href=\"#' + sectionId + '\"]').addClass('active');
-            }
-          });
+                if (scrollPos >= sectionTop && scrollPos < sectionBottom) {
+                  $('.vertical-nav-floating .nav-link').removeClass('active');
+                  $('.vertical-nav-floating .nav-link[href=\"#' + sectionId + '\"]').addClass('active');
+                }
+              }
+            });
+          }
         });
       });
     "))
   ),
   
-  # Title and attribution for research purposes
   titlePanel("CliPP-on-Web: Scalable Subclonal Reconstruction for Cancer Research"),
   div(p("Copyright ", HTML("&copy;"), " 2025 The University of Texas MD Anderson Cancer Center. All rights reserved.")),
   
-  # Downloads modal
-  tags$div(id = "downloads-modal", class = "downloads-modal",
-           tags$div(class = "downloads-modal-content",
-                    tags$div(class = "downloads-modal-header",
-                             tags$span(class = "downloads-close", HTML("&times;")),
-                             tags$h3("CliPP Data Downloads")
-                    ),
-                    tags$div(class = "downloads-modal-body",
-                             # Downloads content will be inserted here
-                             div(class = "download-container",
-                                 # Quick navigation
-                                 div(class = "download-nav",
-                                     tags$ul(
-                                       tags$li(tags$a(href = "#overview", "Overview")),
-                                       tags$li(tags$a(href = "#simulation", "Simulation Data")),
-                                       tags$li(tags$a(href = "#tcga", "TCGA Data")),
-                                       tags$li(tags$a(href = "#pcawg", "PCAWG Data")),
-                                       tags$li(tags$a(href = "#tools", "Analysis Tools"))
-                                     )
-                                 ),
-                                 
-                                 # Overview section
-                                 div(id = "overview", class = "download-intro",
-                                     p(tags$b("CliPP (Clonal structure Identification through Penalizing Pairwise differences)"), 
-                                       " provides comprehensive datasets for cancer genomic analysis. Download processed data from major cancer genomic consortiums and simulation data:"),
-                                     tags$ul(
-                                       tags$li(tags$b("Simulation (CliPPSim4k)"), " - Simulated cancer genomic data for testing and validation"),
-                                       tags$li(tags$b("TCGA (The Cancer Genome Atlas)"), " - Multi-platform genomic data"),
-                                       tags$li(tags$b("PCAWG (Pan-Cancer Analysis of Whole Genomes)"), " - Whole genome sequencing data")
-                                     ),
-                                     p("All datasets include clonal structure analysis results, mutation assignments, and sample metadata.")
-                                 ),
-                                 
-                                 # Simulation section
-                                 div(id = "simulation", class = "data-section",
-                                     tags$h4(tags$b("Simulation Dataset Downloads (CliPPSim4k)")),
-                                     
-                                     div(class = "metadata",
-                                         tags$b("Dataset Information:"),
-                                         tags$ul(
-                                           tags$li("Sample count: 4,000 simulated cancer genomes"),
-                                           tags$li("Simulation types: Various clonal architectures and mutation patterns"),
-                                           tags$li("Data processing: CliPP clonal structure analysis"),
-                                           tags$li("File formats: TSV, TXT")
-                                         )
-                                     ),
-                                     
-                                     tags$table(class = "download-table",
-                                                tags$thead(
-                                                  tags$tr(
-                                                    tags$th("Dataset"),
-                                                    tags$th("Description"),
-                                                    tags$th("File Type"),
-                                                    tags$th("Download")
-                                                  )
-                                                ),
-                                                tags$tbody(
-                                                  tags$tr(
-                                                    tags$td(class = "cancer-type", "CliPPSim4k Summary"),
-                                                    tags$td(class = "description", "Comprehensive simulation results for 4,000 samples with known ground truth"),
-                                                    tags$td("TSV"),
-                                                    tags$td(a(href = "dataSource/CliPPSim4k.tsv", class = "download-link", download = "CliPPSim4k.tsv", "Download"), 
-                                                            tags$span(class = "file-size", " (~2MB)"))
-                                                  ),
-                                                  tags$tr(
-                                                    tags$td(class = "cancer-type", "Individual Simulation Data"),
-                                                    tags$td(class = "description", "Per-sample simulation files with ground truth clonal structure"),
-                                                    tags$td("Multiple TXT files"),
-                                                    tags$td(a(href = "dataSource/Simulation/", class = "download-link", "Browse Folder"))
-                                                  )
-                                                )
-                                     )
-                                 ),
-                                 
-                                 # TCGA section
-                                 div(id = "tcga", class = "data-section",
-                                     tags$h4(tags$b("TCGA Dataset Downloads")),
-                                     
-                                     div(class = "metadata",
-                                         tags$b("Dataset Information:"),
-                                         tags$ul(
-                                           tags$li("Sample count: ~10,000+ cancer samples"),
-                                           tags$li("Cancer types: 33 cancer types"),
-                                           tags$li("Data types: Multi-platform genomic data with CliPP analysis"),
-                                           tags$li("File formats: TSV, TXT")
-                                         )
-                                     ),
-                                     
-                                     tags$table(class = "download-table",
-                                                tags$thead(
-                                                  tags$tr(
-                                                    tags$th("Dataset"),
-                                                    tags$th("Description"),
-                                                    tags$th("File Type"),
-                                                    tags$th("Download")
-                                                  )
-                                                ),
-                                                tags$tbody(
-                                                  tags$tr(
-                                                    tags$td(class = "cancer-type", "CliPP TCGA Summary"),
-                                                    tags$td(class = "description", "Comprehensive CliPP analysis results for all TCGA samples"),
-                                                    tags$td("TSV"),
-                                                    tags$td(a(href = "dataSource/CliPP_TCGA.tsv", class = "download-link", download = "CliPP_TCGA.tsv", "Download"), 
-                                                            tags$span(class = "file-size", " (~5MB)"))
-                                                  ),
-                                                  tags$tr(
-                                                    tags$td(class = "cancer-type", "Individual Sample Data"),
-                                                    tags$td(class = "description", "Per-sample mutation assignments and clonal structure"),
-                                                    tags$td("Multiple TXT files"),
-                                                    tags$td(a(href = "dataSource/TCGA/", class = "download-link", "Browse Folder"))
-                                                  )
-                                                )
-                                     )
-                                 ),
-                                 
-                                 # PCAWG section
-                                 div(id = "pcawg", class = "data-section",
-                                     tags$h4(tags$b("PCAWG Dataset Downloads")),
-                                     
-                                     div(class = "metadata",
-                                         tags$b("Dataset Information:"),
-                                         tags$ul(
-                                           tags$li("Sample count: ~2,600 cancer whole genomes"),
-                                           tags$li("Cancer types: 38 tumor types across multiple sites"),
-                                           tags$li("Data processing: CliPP clonal structure analysis with multiple λ parameters"),
-                                           tags$li("File formats: TSV, TXT")
-                                         )
-                                     ),
-                                     
-                                     tags$table(class = "download-table",
-                                                tags$thead(
-                                                  tags$tr(
-                                                    tags$th("Dataset"),
-                                                    tags$th("Description"),
-                                                    tags$th("File Type"),
-                                                    tags$th("Download")
-                                                  )
-                                                ),
-                                                tags$tbody(
-                                                  tags$tr(
-                                                    tags$td(class = "cancer-type", "CliPP PCAWG Summary"),
-                                                    tags$td(class = "description", "Comprehensive CliPP analysis results for all PCAWG samples"),
-                                                    tags$td("TSV"),
-                                                    tags$td(a(href = "dataSource/CliPP_PCAWG.tsv", class = "download-link", download = "CliPP_PCAWG.tsv", "Download"), 
-                                                            tags$span(class = "file-size", " (~2.5MB)"))
-                                                  ),
-                                                  tags$tr(
-                                                    tags$td(class = "cancer-type", "Individual Sample Data"),
-                                                    tags$td(class = "description", "Per-sample mutation assignments and clonal structure"),
-                                                    tags$td("Multiple TXT files"),
-                                                    tags$td(a(href = "dataSource/PCAWG/", class = "download-link", "Browse Folder"))
-                                                  )
-                                                )
-                                     ),
-                                     
-                                 ),
-                                 
-                                 # Analysis Tools section
-                                 div(id = "tools", class = "data-section",
-                                     tags$h4(tags$b("Analysis Tools & Software")),
-                                     
-                                     tags$table(class = "download-table",
-                                                tags$thead(
-                                                  tags$tr(
-                                                    tags$th("Tool"),
-                                                    tags$th("Description"),
-                                                    tags$th("Platform"),
-                                                    tags$th("Access")
-                                                  )
-                                                ),
-                                                tags$tbody(
-                                                  tags$tr(
-                                                    tags$td(class = "cancer-type", "CliPP Python Package"),
-                                                    tags$td(class = "description", "Command-line interface for CliPP analysis"),
-                                                    tags$td("Python"),
-                                                    tags$td(a(href = "forCliPP/CliPP/", class = "download-link", "Browse Source"))
-                                                  ),
-                                                  tags$tr(
-                                                    tags$td(class = "cancer-type", "Github Repository"),
-                                                    tags$td(class = "description", "Source code and documentation"),
-                                                    tags$td("Git"),
-                                                    tags$td(a(href = "https://github.com/your-repo/CliPP", class = "download-link", "View on Github"))
-                                                  ),
-                                                  tags$tr(
-                                                    tags$td(class = "cancer-type", "CliPP Docker"),
-                                                    tags$td(class = "description", "Containerized CliPP environment"),
-                                                    tags$td("Docker"),
-                                                    tags$td(a(href = "forCliPP/CliPP/Dockerfile", class = "download-link", "View Dockerfile"))
-                                                  )
-                                                )
-                                     )
-                                 ),
-                                 
-                                 # Usage and Citation
-                                 div(class = "metadata",
-                                     tags$h5(tags$b("Data Usage & Citation")),
-                                     p(tags$b("If you use this data in your research, please cite:")),
-                                     tags$ul(
-                                       tags$li("CliPP methodology and software publication"),
-                                       tags$li("PCAWG Consortium publications for PCAWG data"),
-                                       tags$li("TCGA Research Network publications for TCGA data")
-                                     ),
-                                     p(tags$b("Data Usage:"), " All data is provided for research purposes. Please follow the data usage policies of the respective consortiums."),
-                                     p(tags$b("Last Updated:"), " August 2025"),
-                                     p(tags$b("Contact:"), " For questions about the datasets, please contact the development team via the About page.")
-                                 )
-                             )
-                    )
-           )
-  ),
   
-  # Multi-page navigation structure
   navbarPage("",
-             header = tags$script(HTML("
-               $(document).ready(function() {
-                 $('.navbar .container-fluid').append('<button id=\"floating-downloads-btn\" class=\"navbar-downloads-btn\">Downloads</button>');
-               });
-             ")),
-             # Page 1: About section with application description and contact info
              tabPanel("About",
                       tags$div(
-                        #tags$h4(tags$b(tags$span("Description"))),
-                        #p("CliPP-on-Web: Scalable Subclonal Reconstruction for Cancer Research"),
                         p(tags$b("Advancing Tumor Evolution Studies with Efficient Analysis")),
                         p("CliPP (Clonal structure identification through Pairwise Penalization) is an advanced computational framework for identifying clonal and subclonal mutations using a regularized likelihood model. Designed for researchers investigating tumor heterogeneity, CliPP-on-Web provides rapid and accurate subclonal reconstruction without requiring programming expertise."),
                         p(tags$b("Addressing Computational Challenges in Subclonal Analysis")),
@@ -844,28 +533,26 @@ ui <- fluidPage(
                         p("Quang Tran - ", a(href = "mailto:qmtran@mdanderson.org", "qmtran@mdanderson.org"))
                       )
              ),
-             
-             # Page 2: Feature-Based Video Tutorials
+
              tabPanel("Tutorial",
                       tags$div(
                         tags$h4(tags$b("CliPP-on-Web Video Tutorials")),
                         tags$p("Learn CliPP-on-Web through focused, feature-specific video tutorials. Each video covers a specific aspect of the application."),
                         
                         # Overall Introduction
-                        tags$div(
-                          class = "tutorial-section",
-                          style = "border: 2px solid #3498db; border-radius: 8px; padding: 15px; margin: 15px 0; background-color: #f8f9fa;",
-                          tags$h5(tags$b("🎬 Complete Overview"), style = "color: #2c3e50;"),
-                          tags$p("Start here for a comprehensive introduction to CliPP-on-Web:"),
-                          tags$iframe(src="https://www.youtube.com/embed/NTJX33csjwA",
-                                      style="width:100%; height:400px; border:none; border-radius: 5px;"),
-                          tags$p(tags$em("Duration: ~15 minutes"), style = "color: #7f8c8d; margin-top: 10px;")
-                        ),
-                        
-                        tags$hr(),
-                        
-                        # Feature-specific tutorials (hidden for now)
                         hidden(
+                          tags$div(
+                            class = "tutorial-section",
+                            style = "border: 2px solid #3498db; border-radius: 8px; padding: 15px; margin: 15px 0; background-color: #f8f9fa;",
+                            tags$h5(tags$b("🎬 Complete Overview"), style = "color: #2c3e50;"),
+                            tags$p("Start here for a comprehensive introduction to CliPP-on-Web:"),
+                            tags$iframe(src="https://www.youtube.com/embed/NTJX33csjwA",
+                                        style="width:100%; height:400px; border:none; border-radius: 5px;"),
+                            tags$p(tags$em("Duration: ~15 minutes"), style = "color: #7f8c8d; margin-top: 10px;")
+                          )
+                        ),
+
+                        # Feature-specific tutorials
                           tags$h4(tags$b("Feature-Specific Tutorials")),
                           tags$p("Deep dive into individual features with these focused tutorials:"),
                           
@@ -981,23 +668,23 @@ ui <- fluidPage(
                               tags$p(tags$em("Target: 8-10 minutes"), style = "color: #7f8c8d; font-size: 12px;")
                             ),
                             
-                            # Tutorial 6: Scatter Plot Analysis
+                            # Tutorial 6: sMF Correlation Heatmap (replacing scatter plot)
                             tags$div(
                               class = "tutorial-card",
                               style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("6️⃣ TMB vs sMF Scatter Analysis"), style = "color: #e67e22;"),
+                              tags$h6(tags$b("6️⃣ sMF Correlation Heatmap"), style = "color: #e67e22;"),
                               tags$div(
                                 style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0; height: 120px; display: flex; align-items: center; justify-content: center; border: 2px dashed #ccc;",
                                 tags$span("📹 Video Placeholder", style = "color: #999; font-size: 18px;")
                               ),
-                              tags$p("Explore TMB and subclonality relationships:", style = "font-size: 14px;"),
+                              tags$p("Visualize correlation patterns with heatmaps:", style = "font-size: 14px;"),
                               tags$ul(
                                 style = "font-size: 13px; color: #555;",
-                                tags$li("Tumor mutational burden patterns"),
-                                tags$li("Correlation analysis across cohorts"),
-                                tags$li("2x2 grid visualization optimization")
+                                tags$li("sMF vs TMB/NRPCC/Purity correlations"),
+                                tags$li("Multi-cohort comparison (TCGA, OCCAMS, mCRPC)"),
+                                tags$li("Interactive heatmap interpretation")
                               ),
-                              tags$p(tags$em("Target: 5-7 minutes"), style = "color: #7f8c8d; font-size: 12px;")
+                              tags$p(tags$em("Target: 4-6 minutes"), style = "color: #7f8c8d; font-size: 12px;")
                             )
                           ),
                           
@@ -1044,9 +731,8 @@ ui <- fluidPage(
                               tags$p(tags$em("Target: 4-6 minutes"), style = "color: #7f8c8d; font-size: 12px;")
                             )
                           ),
-                          
-                          tags$br()
-                        ), # End of hidden feature-specific tutorials
+
+                          tags$br(),
                         
                         # Tutorial Notes and Future Plans
                         tags$div(
@@ -1060,8 +746,7 @@ ui <- fluidPage(
                         )
                       )
              ),
-             
-             # Page 3: Main functionality for uploading and analyzing data with CliPP-on-Web
+
              tabPanel("CliPP-on-Web",
                       tags$div(
                         tags$h4(tags$b("Upload Files")),
@@ -1095,10 +780,8 @@ ui <- fluidPage(
                                                selected = "clonality")),
                             hidden(actionButton("clear", "Clear", class = "btn-danger"))
                           ),
-                          
-                          # Main panel to display plots and analysis output
+
                           mainPanel(
-                            # First plot - VAF plot
                             div(class = "plot-container",
                                 div(class = "plot-area",
                                     plotlyOutput("plot1")
@@ -1117,8 +800,7 @@ ui <- fluidPage(
                                     uiOutput("caption1")
                                 )
                             ),
-                            
-                            # Second plot - CP plot
+
                             div(class = "plot-container",
                                 div(class = "plot-area",
                                     plotlyOutput("plot2")
@@ -1152,12 +834,10 @@ ui <- fluidPage(
                         )
                       )
              ),
-             
-             # Page 4: CliPP Data Resources with automatic data loading and visualization
+
              tabPanel("CliPP Data Resources",
                       tags$div(
                         tabsetPanel(id = "tabset",
-                                    # Subsection for TCGA data selection and analysis
                                     tabPanel("TCGA",
                                              tags$div(
                                                tags$h4(tags$b("TCGA Select")),
@@ -1167,7 +847,6 @@ ui <- fluidPage(
                                                    checkboxInput("disable_select_TCGA", "Deactivate Cancer Type Selection", value = FALSE),
                                                    uiOutput("cancer_type_ui_TCGA"),
 
-                                                   # Sample count display
                                                    div(id = "sample_count_display_TCGA", class = "sample-count-info",
                                                        uiOutput("sample_count_TCGA")
                                                    ),
@@ -1227,8 +906,7 @@ ui <- fluidPage(
                                                )
                                              )
                                     ),
-                                    
-                                    # Subsection for PCAWG data selection and analysis
+
                                     tabPanel("PCAWG",
                                              tags$div(
                                                tags$h4(tags$b("PCAWG Select")),
@@ -1301,8 +979,7 @@ ui <- fluidPage(
                         )
                       )
              ),
-             
-             # Page 5: Driver Mutation analysis tool
+
              tabPanel("Driver Mutation",
                       sidebarLayout(
                         sidebarPanel(
@@ -1373,12 +1050,10 @@ ui <- fluidPage(
                         )
                       )
              ),
-             
-             # Page 6: Data Exploration
+
              tabPanel("Data Exploration",
                       tags$div(class = "data-exploration-main",
                                tabsetPanel(id = "analysis_tabset",
-                                           # Sub-tab for Kaplan-Meier survival plots
                                            tabPanel("Kaplan–Meier",
                                                     tags$div(
                                                       tags$h3(tags$b("Kaplan-Meier Survival Analysis"), style = "color: #2c3e50; margin-bottom: 10px;"),
@@ -1451,27 +1126,32 @@ ui <- fluidPage(
                                                                         plotlyOutput("survivalPlot", height = "600px")
                                                                ),
                                                                
-                                                               # Analysis Results
-                                                               tags$div(class = "analysis-summary",
-                                                                        uiOutput("survivalPlotInfo")
+                                                               # Analysis Results (only show when plot exists)
+                                                               conditionalPanel(
+                                                                 condition = "output.survivalPlotGenerated == true",
+                                                                 tags$div(class = "analysis-summary",
+                                                                          uiOutput("survivalPlotInfo")
+                                                                 )
                                                                ),
-                                                               
-                                                               # Sample Information
-                                                               tags$div(class = "sample-info-card",
-                                                                        uiOutput("survivalSampleInfo")
+
+                                                               # Sample Information (only show when plot exists)
+                                                               conditionalPanel(
+                                                                 condition = "output.survivalPlotGenerated == true",
+                                                                 tags$div(class = "sample-info-card",
+                                                                          uiOutput("survivalSampleInfo")
+                                                                 )
                                                                )
                                                         )
                                                       )
                                                     )
                                            ),
-                                           
-                                           # Sub-tab for TMB vs sMF scatter plots
-                                           tabPanel("Scatter Plot",
+
+                                           tabPanel("Heatmap",
                                                     tags$div(
-                                                      tags$h3(tags$b("TMB vs Subclonal Mutational Fraction"), style = "color: #2c3e50; margin-bottom: 10px;"),
-                                                      tags$p("Explore relationships between tumor mutational burden and subclonal mutations across different cohorts and cancer types.", 
+                                                      tags$h3(tags$b("sMF Correlation Heatmap"), style = "color: #2c3e50; margin-bottom: 10px;"),
+                                                      tags$p("Explore correlations between subclonal mutational fraction (sMF) and key genomic features across different cancer types and cohorts.",
                                                              style = "color: #7f8c8d; font-size: 16px; margin-bottom: 30px;"),
-                                                      
+
                                                       # Instructions panel
                                                       tags$div(
                                                         class = "instructions-card",
@@ -1479,78 +1159,82 @@ ui <- fluidPage(
                                                         tags$div(
                                                           style = "display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;",
                                                           tags$div(
-                                                            tags$p("1. Select a cohort to analyze", style = "margin: 5px 0;"),
-                                                            tags$p("2. Choose cancer types (optional)", style = "margin: 5px 0;")
+                                                            tags$p("1. Select cohorts to include in analysis", style = "margin: 5px 0;"),
+                                                            tags$p("2. Choose specific cancer types (optional)", style = "margin: 5px 0;")
                                                           ),
                                                           tags$div(
-                                                            tags$p("3. Toggle log scale if needed", style = "margin: 5px 0;"),
-                                                            tags$p("4. Generate plots and view correlations", style = "margin: 5px 0;")
+                                                            tags$p("3. Toggle correlation values display", style = "margin: 5px 0;"),
+                                                            tags$p("4. View correlation patterns and summary", style = "margin: 5px 0;")
                                                           )
                                                         )
                                                       ),
-                                                      
+
                                                       # Controls and Plot Layout
                                                       fluidRow(
                                                         column(3,
                                                                tags$div(class = "legend-panel",
-                                                                        selectInput("selected_cohort_tmb", "Select Cohort:",
-                                                                                    choices = list(
-                                                                                      "TCGA" = "TCGA",
-                                                                                      "PCAWG" = "PCAWG", 
-                                                                                      "OCCAMS" = "OCCAMS",
-                                                                                      "NCT02113657 (IPI)" = "NCT02113657 (IPI)",
-                                                                                      "NCT02703623 (ARPi+IPI)" = "NCT02703623 (ARPi+IPI)"
-                                                                                    ),
-                                                                                    selected = "TCGA"),
-                                                                        
-                                                                        uiOutput("cancer_types_ui_tmb"),
-                                                                        
-                                                                        checkboxInput("log_scale_tmb", "Use log scale for TMB", value = TRUE),
-                                                                        
+                                                                        checkboxGroupInput("selected_cohorts_heatmap", "Select Cohorts:",
+                                                                                          choices = list(
+                                                                                            "TCGA" = "TCGA",
+                                                                                            "OCCAMS" = "OCCAMS",
+                                                                                            "mCRPC" = "mCRPC"
+                                                                                          ),
+                                                                                          selected = c("TCGA", "OCCAMS", "mCRPC")),
+
+                                                                        uiOutput("cancer_types_ui_heatmap"),
+
+                                                                        checkboxInput("show_numbers_heatmap", "Show correlation values", value = TRUE),
+
                                                                         div(style = "text-align: center; margin: 20px 0;",
-                                                                            actionButton("generate_tmb_plot", "Generate Plot", class = "btn-primary", style = "width: 100%; margin-bottom: 10px;"),
-                                                                            downloadButton("download_tmb_plot", "Download Plot", class = "btn-secondary", style = "width: 100%; margin-bottom: 5px;"),
-                                                                            downloadButton("download_correlation_table", "Download Data", class = "btn-secondary", style = "width: 100%;")
+                                                                            actionButton("generate_heatmap", "Generate Heatmap", class = "btn-primary", style = "width: 100%; margin-bottom: 10px;"),
+                                                                            downloadButton("download_heatmap", "Download Plot", class = "btn-secondary", style = "width: 100%; margin-bottom: 5px;"),
+                                                                            downloadButton("download_heatmap_data", "Download Data", class = "btn-secondary", style = "width: 100%;")
                                                                         )
                                                                ),
-                                                               
+
                                                                # Legend Panel
                                                                tags$div(class = "legend-panel",
-                                                                        tags$h5(tags$b("Legend & Metrics")),
+                                                                        tags$h5(tags$b("Legend & Interpretation")),
+                                                                        tags$div(class = "legend-item",
+                                                                                 tags$div(class = "legend-symbol", style = "background: linear-gradient(90deg, blue, white, red);"),
+                                                                                 tags$div(class = "legend-text", "Correlation scale: -1 (blue) to +1 (red)")
+                                                                        ),
                                                                         tags$div(class = "legend-item",
                                                                                  tags$div(class = "legend-symbol", style = "background: #3498db;"),
-                                                                                 tags$div(class = "legend-text", "TMB: Tumor Mutational Burden (mutations/Mb)")
+                                                                                 tags$div(class = "legend-text", "TMB: Tumor Mutational Burden")
                                                                         ),
                                                                         tags$div(class = "legend-item",
                                                                                  tags$div(class = "legend-symbol", style = "background: #e74c3c;"),
-                                                                                 tags$div(class = "legend-text", "sMF: Subclonal Mutational Fraction")
+                                                                                 tags$div(class = "legend-text", "NRPCC: Non-reference ploidy corrected copy number")
                                                                         ),
                                                                         tags$div(class = "legend-item",
                                                                                  tags$div(class = "legend-symbol", style = "background: #27ae60;"),
-                                                                                 tags$div(class = "legend-text", "R: Spearman correlation coefficient")
-                                                                        ),
-                                                                        tags$div(class = "legend-item",
-                                                                                 tags$div(class = "legend-symbol", style = "background: linear-gradient(45deg, #3498db, transparent); border: 1px solid #3498db;"),
-                                                                                 tags$div(class = "legend-text", "Blue line: Regression with confidence interval")
+                                                                                 tags$div(class = "legend-text", "Purity: Tumor purity estimates")
                                                                         )
                                                                )
                                                         ),
-                                                        
+
                                                         column(9,
                                                                # Plot Section
                                                                tags$div(class = "plot-section",
-                                                                        plotlyOutput("tmb_smf_plot", height = "800px")
+                                                                        plotOutput("heatmap_plot", height = "600px")
                                                                ),
-                                                               
-                                                               # Correlation Summary Table
-                                                               tags$div(class = "correlation-table-container",
-                                                                        tags$h4(tags$b("Correlation Summary"), style = "color: #2c3e50; margin-bottom: 15px;"),
-                                                                        DT::DTOutput("correlation_table")
+
+                                                               # Summary Statistics Table (only show when heatmap exists)
+                                                               conditionalPanel(
+                                                                 condition = "output.heatmapGenerated == true",
+                                                                 tags$div(class = "correlation-table-container",
+                                                                          tags$h4(tags$b("Summary Statistics"), style = "color: #2c3e50; margin-bottom: 15px;"),
+                                                                          DT::DTOutput("heatmap_summary_table")
+                                                                 )
                                                                ),
-                                                               
-                                                               # Additional Analysis Information
-                                                               tags$div(class = "analysis-summary",
-                                                                        uiOutput("tmb_smf_info")
+
+                                                               # Additional Analysis Information (only show when heatmap exists)
+                                                               conditionalPanel(
+                                                                 condition = "output.heatmapGenerated == true",
+                                                                 tags$div(class = "analysis-summary",
+                                                                          uiOutput("heatmap_info")
+                                                                 )
                                                                )
                                                         )
                                                       )
@@ -1559,27 +1243,22 @@ ui <- fluidPage(
                                )
                       )
              ),
-             
-             # Page 7: Downloads tab with embedded content and floating vertical navigation
+
              tabPanel("Downloads",
                       tags$div(class = "downloads-tab-container",
-                               # Floating vertical navigation
                                tags$div(id = "downloads-vertical-nav", class = "vertical-nav-floating",
-                                        tags$h5("Navigate", style = "color: white; margin-bottom: 15px; font-weight: bold;"),
+                                        tags$h5("Navigate", style = "margin-bottom: 15px; font-weight: 600;"),
                                         tags$ul(class = "nav-list",
                                                 tags$li(tags$a(href = "#overview-section", class = "nav-link", "Overview")),
                                                 tags$li(tags$a(href = "#simulation-section", class = "nav-link", "Simulation Data")),
                                                 tags$li(tags$a(href = "#tcga-section", class = "nav-link", "TCGA Data")),
-                                                tags$li(tags$a(href = "#pcawg-section", class = "nav-link", "PCAWG Data")),
-                                                tags$li(tags$a(href = "#tools-section", class = "nav-link", "Analysis Tools"))
+                                                tags$li(tags$a(href = "#pcawg-section", class = "nav-link", "PCAWG Data"))
                                         )
                                ),
 
-                               # Main downloads content area
                                tags$div(class = "downloads-main-content",
                                         tags$h2("CliPP Data Downloads", style = "color: #2c3e50; margin-bottom: 20px;"),
 
-                                        # Overview section
                                         div(id = "overview-section", class = "download-section",
                                             tags$h3(tags$b("Overview"), style = "color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 10px;"),
                                             p(tags$b("CliPP (Clonal structure Identification through Penalizing Pairwise differences)"),
@@ -1715,42 +1394,6 @@ ui <- fluidPage(
                                             )
                                         ),
 
-                                        # Analysis Tools section
-                                        div(id = "tools-section", class = "download-section",
-                                            tags$h3(tags$b("Analysis Tools & Software"), style = "color: #f39c12; border-bottom: 2px solid #f39c12; padding-bottom: 10px;"),
-
-                                            tags$table(class = "download-table-styled",
-                                                       tags$thead(
-                                                         tags$tr(
-                                                           tags$th("Tool"),
-                                                           tags$th("Description"),
-                                                           tags$th("Platform"),
-                                                           tags$th("Access")
-                                                         )
-                                                       ),
-                                                       tags$tbody(
-                                                         tags$tr(
-                                                           tags$td(class = "dataset-name", "CliPP Python Package"),
-                                                           tags$td("Command-line interface for CliPP analysis"),
-                                                           tags$td(tags$span(class = "file-type-badge", "Python")),
-                                                           tags$td(a(href = "forCliPP/CliPP/", class = "browse-btn", "Browse Source"))
-                                                         ),
-                                                         tags$tr(
-                                                           tags$td(class = "dataset-name", "Github Repository"),
-                                                           tags$td("Source code and documentation"),
-                                                           tags$td(tags$span(class = "file-type-badge", "Git")),
-                                                           tags$td(a(href = "https://github.com/your-repo/CliPP", class = "browse-btn", "View on Github"))
-                                                         ),
-                                                         tags$tr(
-                                                           tags$td(class = "dataset-name", "CliPP Docker"),
-                                                           tags$td("Containerized CliPP environment"),
-                                                           tags$td(tags$span(class = "file-type-badge", "Docker")),
-                                                           tags$td(a(href = "forCliPP/CliPP/Dockerfile", class = "browse-btn", "View Dockerfile"))
-                                                         )
-                                                       )
-                                            )
-                                        ),
-
                                         # Usage and Citation
                                         div(class = "citation-section",
                                             tags$h4(tags$b("Data Usage & Citation"), style = "color: #2c3e50; margin-top: 40px;"),
@@ -1761,14 +1404,13 @@ ui <- fluidPage(
                                               tags$li("TCGA Research Network publications for TCGA data")
                                             ),
                                             p(tags$b("Data Usage:"), " All data is provided for research purposes. Please follow the data usage policies of the respective consortiums."),
-                                            p(tags$b("Last Updated:"), " August 2025"),
+                                            p(tags$b("Last Updated:"), " September 2025"),
                                             p(tags$b("Contact:"), " For questions about the datasets, please contact the development team via the About page.")
                                         )
                                )
                       )
              ),
 
-             # Page 8: Citations for related studies and resources
              tabPanel("Citations",
                       tags$div(
                         tags$h4(tags$b(tags$span("Manuscript under preparation:"))),
