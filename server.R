@@ -1349,28 +1349,11 @@ server <- function(input, output, session) {
     )
   })
   
-  output$cohort_ui_TCGA <- renderUI({
-    selectInput("cohort_TCGA", "Select Cohort:",
-                choices = get_available_cohorts(),
-                selected = "TCGA")
-  })
-  
   output$cancer_type_ui_TCGA <- renderUI({
-    req(input$cohort_TCGA)
-    
-    cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_TCGA)
-    
-    available_cancer_types <- intersect(cohort_cancer_types, unique(sample_TCGA$cancer_type))
-    
-    if (length(available_cancer_types) == 0) {
-      available_cancer_types <- sort(unique(sample_TCGA$cancer_type))
-    }
-    
-    disabled <- isTRUE(input$disable_select_TCGA)
-    
-    conditional_select_input("cancer_type_TCGA", "Select Cancer Type:",
-                           choices = sort(available_cancer_types),
-                           disabled = disabled)
+    available_cancer_types <- sort(unique(sample_TCGA$cancer_type))
+
+    selectInput("cancer_type_TCGA", "Select Cancer Type:",
+                choices = available_cancer_types)
   })
   
   output$sample_name_ui_TCGA <- renderUI({
@@ -1382,59 +1365,34 @@ server <- function(input, output, session) {
 
   # Sample count display for TCGA
   output$sample_count_TCGA <- renderUI({
-    req(input$cohort_TCGA)
+    # Show count by cancer type for all available cancer types
+    available_cancer_types <- unique(sample_TCGA$cancer_type)
 
-    if (input$disable_select_TCGA || is.null(input$cancer_type_TCGA)) {
-      # Show total count for cohort when cancer type selection is disabled or no cancer type selected
-      cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_TCGA)
-      available_cancer_types <- intersect(cohort_cancer_types, unique(sample_TCGA$cancer_type))
+    # Create a list of cancer types with their sample counts
+    cancer_type_counts <- sapply(available_cancer_types, function(ct) {
+      sum(sample_TCGA$cancer_type == ct)
+    })
 
-      if (length(available_cancer_types) == 0) {
-        available_cancer_types <- unique(sample_TCGA$cancer_type)
-      }
-
-      total_samples <- sum(sample_TCGA$cancer_type %in% available_cancer_types)
-      cancer_type_count <- length(available_cancer_types)
-
-      tagList(
-        tags$span(paste("n =", total_samples), class = "sample-count-number"),
-        tags$div("Total Samples", class = "sample-count-label"),
-        tags$div(paste(cancer_type_count, "cancer types available"), class = "sample-count-details")
+    # Create display elements for each cancer type
+    count_elements <- mapply(function(cancer_type, count) {
+      tags$div(
+        class = "cancer-type-count",
+        style = "margin: 2px 0; font-size: 12px;",
+        paste(cancer_type, ": n =", count)
       )
-    } else {
-      # Show count for specific cancer type
-      cancer_type_samples <- sum(sample_TCGA$cancer_type == input$cancer_type_TCGA)
+    }, names(cancer_type_counts), cancer_type_counts, SIMPLIFY = FALSE)
 
-      tagList(
-        tags$span(paste("n =", cancer_type_samples), class = "sample-count-number"),
-        tags$div(paste(input$cancer_type_TCGA, "Samples"), class = "sample-count-label"),
-        tags$div(paste("from", input$cohort_TCGA, "cohort"), class = "sample-count-details")
-      )
-    }
-  })
-  
-  output$cohort_ui_PCAWG <- renderUI({
-    selectInput("cohort_PCAWG", "Select Cohort:",
-                choices = get_available_cohorts(),
-                selected = "TCGA")
+    tagList(
+      tags$div("TCGA Cancer Types:", class = "sample-count-label", style = "font-weight: bold; margin-bottom: 5px;"),
+      count_elements
+    )
   })
   
   output$cancer_type_ui_PCAWG <- renderUI({
-    req(input$cohort_PCAWG)
-    
-    cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_PCAWG)
-    
-    available_cancer_types <- intersect(cohort_cancer_types, unique(sample_PCAWG$cancer_type))
-    
-    if (length(available_cancer_types) == 0) {
-      available_cancer_types <- sort(unique(sample_PCAWG$cancer_type))
-    }
-    
-    disabled <- isTRUE(input$disable_select_PCAWG)
-    
-    conditional_select_input("cancer_type_PCAWG", "Select Cancer Type:",
-                           choices = sort(available_cancer_types),
-                           disabled = disabled)
+    available_cancer_types <- sort(unique(sample_PCAWG$cancer_type))
+
+    selectInput("cancer_type_PCAWG", "Select Cancer Type:",
+                choices = available_cancer_types)
   })
   
   output$sample_name_ui_PCAWG <- renderUI({
@@ -1446,79 +1404,29 @@ server <- function(input, output, session) {
 
   # Sample count display for PCAWG
   output$sample_count_PCAWG <- renderUI({
-    req(input$cohort_PCAWG)
+    # Show count by cancer type for all available cancer types
+    available_cancer_types <- unique(sample_PCAWG$cancer_type)
 
-    if (input$disable_select_PCAWG || is.null(input$cancer_type_PCAWG)) {
-      # Show total count for cohort when cancer type selection is disabled or no cancer type selected
-      cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_PCAWG)
-      available_cancer_types <- intersect(cohort_cancer_types, unique(sample_PCAWG$cancer_type))
+    # Create a list of cancer types with their sample counts
+    cancer_type_counts <- sapply(available_cancer_types, function(ct) {
+      sum(sample_PCAWG$cancer_type == ct)
+    })
 
-      if (length(available_cancer_types) == 0) {
-        available_cancer_types <- unique(sample_PCAWG$cancer_type)
-      }
-
-      total_samples <- sum(sample_PCAWG$cancer_type %in% available_cancer_types)
-      cancer_type_count <- length(available_cancer_types)
-
-      tagList(
-        tags$span(paste("n =", total_samples), class = "sample-count-number"),
-        tags$div("Total Samples", class = "sample-count-label"),
-        tags$div(paste(cancer_type_count, "cancer types available"), class = "sample-count-details")
+    # Create display elements for each cancer type
+    count_elements <- mapply(function(cancer_type, count) {
+      tags$div(
+        class = "cancer-type-count",
+        style = "margin: 2px 0; font-size: 12px;",
+        paste(cancer_type, ": n =", count)
       )
-    } else {
-      # Show count for specific cancer type
-      cancer_type_samples <- sum(sample_PCAWG$cancer_type == input$cancer_type_PCAWG)
+    }, names(cancer_type_counts), cancer_type_counts, SIMPLIFY = FALSE)
 
-      tagList(
-        tags$span(paste("n =", cancer_type_samples), class = "sample-count-number"),
-        tags$div(paste(input$cancer_type_PCAWG, "Samples"), class = "sample-count-label"),
-        tags$div(paste("from", input$cohort_PCAWG, "cohort"), class = "sample-count-details")
-      )
-    }
+    tagList(
+      tags$div("PCAWG Cancer Types:", class = "sample-count-label", style = "font-weight: bold; margin-bottom: 5px;"),
+      count_elements
+    )
   })
   
-  # Observer for TCGA disable select checkbox
-  observeEvent(input$disable_select_TCGA, {
-    output$cancer_type_ui_TCGA <- renderUI({
-      req(input$cohort_TCGA)
-      
-      cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_TCGA)
-      
-      available_cancer_types <- intersect(cohort_cancer_types, unique(sample_TCGA$cancer_type))
-      
-      # If no cohort-specific types available, fall back to all available types
-      if (length(available_cancer_types) == 0) {
-        available_cancer_types <- sort(unique(sample_TCGA$cancer_type))
-      }
-      
-      disabled <- isTRUE(input$disable_select_TCGA)
-      
-      conditional_select_input("cancer_type_TCGA", "Select Cancer Type:",
-                             choices = sort(available_cancer_types),
-                             disabled = disabled)
-    })
-  })
-  
-  observeEvent(input$disable_select_PCAWG, {
-    # Trigger re-rendering of cancer type UI when checkbox changes
-    output$cancer_type_ui_PCAWG <- renderUI({
-      req(input$cohort_PCAWG)
-      
-      cohort_cancer_types <- get_cancer_types_for_cohort(input$cohort_PCAWG)
-      
-      available_cancer_types <- intersect(cohort_cancer_types, unique(sample_PCAWG$cancer_type))
-      
-      if (length(available_cancer_types) == 0) {
-        available_cancer_types <- sort(unique(sample_PCAWG$cancer_type))
-      }
-      
-      disabled <- isTRUE(input$disable_select_PCAWG)
-      
-      conditional_select_input("cancer_type_PCAWG", "Select Cancer Type:",
-                             choices = sort(available_cancer_types),
-                             disabled = disabled)
-    })
-  })
   
   observeEvent(input$submitTCGA, {
     
@@ -2606,13 +2514,13 @@ server <- function(input, output, session) {
     tryCatch({
       plot_obj <- create_heatmap_plot(
         data = heatmap_data,
-        selected_cohorts = input$selected_cohorts_heatmap,
+        selected_cohorts = c(input$selected_cohorts_heatmap),
         selected_cancer_types = selected_cancer_types,
         show_numbers = input$show_numbers_heatmap %||% TRUE
       )
       current_heatmap_plot(plot_obj)
 
-      summary_data <- create_heatmap_summary(heatmap_data, input$selected_cohorts_heatmap)
+      summary_data <- create_heatmap_summary(heatmap_data, c(input$selected_cohorts_heatmap))
       current_heatmap_summary(summary_data)
 
       showNotification("Heatmap generated successfully!", type = "message")
