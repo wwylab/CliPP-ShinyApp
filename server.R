@@ -28,7 +28,7 @@ server <- function(input, output, session) {
             sample_name = input$sample_name_TCGA,
             purity = current_analysis$purity,
             read_depth = list(
-              mean = current_analysis$read_depth,
+              mean = current_analysis$read_depth$mean,
               min = min(current_analysis$merged_data$sum_counts, na.rm = TRUE),
               max = max(current_analysis$merged_data$sum_counts, na.rm = TRUE)
             ),
@@ -119,7 +119,7 @@ server <- function(input, output, session) {
             sample_name = input$sample_name_PCAWG,
             purity = current_analysis$purity,
             read_depth = list(
-              mean = current_analysis$read_depth,
+              mean = current_analysis$read_depth$mean,
               min = ifelse(!is.null(current_analysis$merged_data$sum_counts) && length(current_analysis$merged_data$sum_counts) > 0,
                            min(current_analysis$merged_data$sum_counts, na.rm = TRUE), 0),
               max = ifelse(!is.null(current_analysis$merged_data$sum_counts) && length(current_analysis$merged_data$sum_counts) > 0,
@@ -1784,11 +1784,7 @@ server <- function(input, output, session) {
         merged_df = current_analysis$merged_data,
         sample_name = input$sample_name_TCGA,
         purity = current_analysis$purity,
-        read_depth = list(
-          mean = current_analysis$read_depth,
-          min = min(current_analysis$merged_data$sum_counts, na.rm = TRUE),
-          max = max(current_analysis$merged_data$sum_counts, na.rm = TRUE)
-        ),
+        read_depth = current_analysis$read_depth,
         smoothing_factor = input$smoothingFactor1_TCGA %||% 0.5,
         color_by = input$colorByTCGA %||% "clonality",
         subclonality_counts = current_analysis$subclonality_counts
@@ -1888,7 +1884,7 @@ server <- function(input, output, session) {
         sample_name = input$sample_name_PCAWG,
         purity = current_analysis$purity,
         read_depth = list(
-          mean = current_analysis$read_depth,
+          mean = current_analysis$read_depth$mean,
           min = ifelse(!is.null(current_analysis$merged_data$sum_counts) && length(current_analysis$merged_data$sum_counts) > 0,
                        min(current_analysis$merged_data$sum_counts, na.rm = TRUE), 0),
           max = ifelse(!is.null(current_analysis$merged_data$sum_counts) && length(current_analysis$merged_data$sum_counts) > 0,
