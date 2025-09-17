@@ -744,8 +744,6 @@ ui <- fluidPage(
                                                tags$h4(tags$b("TCGA Select")),
                                                sidebarLayout(
                                                  sidebarPanel(
-                                                   uiOutput("cohort_ui_TCGA"),
-                                                   checkboxInput("disable_select_TCGA", "Deactivate Cancer Type Selection", value = FALSE),
                                                    uiOutput("cancer_type_ui_TCGA"),
 
                                                    div(id = "sample_count_display_TCGA", class = "sample-count-info",
@@ -809,8 +807,6 @@ ui <- fluidPage(
                                                tags$h4(tags$b("PCAWG Select")),
                                                sidebarLayout(
                                                  sidebarPanel(
-                                                   uiOutput("cohort_ui_PCAWG"),
-                                                   checkboxInput("disable_select_PCAWG", "Deactivate Cancer Type Selection", value = FALSE),
                                                    uiOutput("cancer_type_ui_PCAWG"),
 
                                                    # Sample count display
@@ -1066,13 +1062,13 @@ ui <- fluidPage(
                                                       fluidRow(
                                                         column(3,
                                                                tags$div(class = "legend-panel",
-                                                                        checkboxGroupInput("selected_cohorts_heatmap", "Select Cohorts:",
-                                                                                          choices = list(
-                                                                                            "TCGA" = "TCGA",
-                                                                                            "OCCAMS" = "OCCAMS",
-                                                                                            "mCRPC" = "mCRPC"
-                                                                                          ),
-                                                                                          selected = c("TCGA", "OCCAMS", "mCRPC")),
+                                                                        selectInput("selected_cohorts_heatmap", "Select Cohort:",
+                                                                                   choices = list(
+                                                                                     "TCGA" = "TCGA",
+                                                                                     "OCCAMS" = "OCCAMS",
+                                                                                     "mCRPC" = "mCRPC"
+                                                                                   ),
+                                                                                   selected = "TCGA"),
 
                                                                         uiOutput("cancer_types_ui_heatmap"),
 
@@ -1192,14 +1188,14 @@ ui <- fluidPage(
                                                            tags$td(class = "dataset-name", "CliPPSim4k Summary"),
                                                            tags$td("Comprehensive simulation results for 4,000 samples with known ground truth"),
                                                            tags$td(tags$span(class = "file-type-badge", "TSV")),
-                                                           tags$td(a(href = "dataSource/CliPPSim4k.tsv", class = "download-btn", download = "CliPPSim4k.tsv", "Download"),
+                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/Sim4kdata.html", class = "download-btn", target = "_blank", "Download"),
                                                                    tags$span(class = "file-size", " (~2MB)"))
                                                          ),
                                                          tags$tr(
                                                            tags$td(class = "dataset-name", "Individual Simulation Data"),
                                                            tags$td("Per-sample simulation files with ground truth clonal structure"),
                                                            tags$td(tags$span(class = "file-type-badge", "TXT Files")),
-                                                           tags$td(a(href = "dataSource/Simulation/", class = "browse-btn", "Browse Folder"))
+                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/Sim4kdata.html", class = "browse-btn", target = "_blank", "Browse Data"))
                                                          )
                                                        )
                                             )
@@ -1233,14 +1229,14 @@ ui <- fluidPage(
                                                            tags$td(class = "dataset-name", "CliPP TCGA Summary"),
                                                            tags$td("Comprehensive CliPP analysis results for all TCGA samples"),
                                                            tags$td(tags$span(class = "file-type-badge", "TSV")),
-                                                           tags$td(a(href = "dataSource/CliPP_TCGA.tsv", class = "download-btn", download = "CliPP_TCGA.tsv", "Download"),
+                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/TCGAdata.html", class = "download-btn", target = "_blank", "Download"),
                                                                    tags$span(class = "file-size", " (~5MB)"))
                                                          ),
                                                          tags$tr(
                                                            tags$td(class = "dataset-name", "Individual Sample Data"),
                                                            tags$td("Per-sample mutation assignments and clonal structure"),
                                                            tags$td(tags$span(class = "file-type-badge", "TXT Files")),
-                                                           tags$td(a(href = "dataSource/TCGA/", class = "browse-btn", "Browse Folder"))
+                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/TCGAdata.html", class = "browse-btn", target = "_blank", "Browse Data"))
                                                          )
                                                        )
                                             )
@@ -1274,14 +1270,14 @@ ui <- fluidPage(
                                                            tags$td(class = "dataset-name", "CliPP PCAWG Summary"),
                                                            tags$td("Comprehensive CliPP analysis results for all PCAWG samples"),
                                                            tags$td(tags$span(class = "file-type-badge", "TSV")),
-                                                           tags$td(a(href = "dataSource/CliPP_PCAWG.tsv", class = "download-btn", download = "CliPP_PCAWG.tsv", "Download"),
+                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/PCAWGdata.html", class = "download-btn", target = "_blank", "Download"),
                                                                    tags$span(class = "file-size", " (~2.5MB)"))
                                                          ),
                                                          tags$tr(
                                                            tags$td(class = "dataset-name", "Individual Sample Data"),
                                                            tags$td("Per-sample mutation assignments and clonal structure"),
                                                            tags$td(tags$span(class = "file-type-badge", "TXT Files")),
-                                                           tags$td(a(href = "dataSource/PCAWG/", class = "browse-btn", "Browse Folder"))
+                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/PCAWGdata.html", class = "browse-btn", target = "_blank", "Browse Data"))
                                                          )
                                                        )
                                             )
