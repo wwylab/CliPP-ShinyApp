@@ -265,17 +265,23 @@ create_km_plot <- function(df_data, survival_type, cancer_type) {
       ) +
       labs(subtitle = "", caption = "", tag = "") +
       annotate("text",
-               x = x_max * 0.75, y = 0.95,
+               x = if (cancer_type == "KICH") x_max * 0.25 else x_max * 0.75,
+               y = if (cancer_type == "KICH") 0.25 else 0.95,
                label = paste0("High sMF (≥", sprintf("%.3f", cutoff), ", n=", n_high, ")"),
-               hjust = 1, vjust = 1, size = 5, color = "#63A299", fontface = "bold") +
+               hjust = if (cancer_type == "KICH") 0 else 1,
+               vjust = 1, size = 5, color = "#63A299", fontface = "bold") +
       annotate("text",
-               x = x_max * 0.75, y = 0.90,
+               x = if (cancer_type == "KICH") x_max * 0.25 else x_max * 0.75,
+               y = if (cancer_type == "KICH") 0.20 else 0.90,
                label = paste0("Low sMF (<", sprintf("%.3f", cutoff), ", n=", n_low, ")"),
-               hjust = 1, vjust = 1, size = 5, color = "#D6ACC0", fontface = "bold") +
+               hjust = if (cancer_type == "KICH") 0 else 1,
+               vjust = 1, size = 5, color = "#D6ACC0", fontface = "bold") +
       annotate("text",
-               x = x_max * 0.75, y = 0.85,
+               x = if (cancer_type == "KICH") x_max * 0.25 else x_max * 0.75,
+               y = if (cancer_type == "KICH") 0.15 else 0.85,
                label = p_text,
-               hjust = 1, vjust = 1, size = 5, fontface = "bold")
+               hjust = if (cancer_type == "KICH") 0 else 1,
+               vjust = 1, size = 5, fontface = "bold")
 
     final_plot$labels$subtitle <- NULL
     final_plot$labels$caption <- NULL
