@@ -525,8 +525,8 @@ ui <- fluidPage(
                           tags$li("Driver Mutation Subclonality: Investigate the clonal architecture of key driver mutations in TCGA.")
                         ),
                         p("For detailed methodology, refer to our BioRxiv preprint: ",
-                          a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1",
-                            "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"), "."),
+                          a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v2",
+                            "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v2"), "."),
                         tags$br(),
                         p(tags$b(tags$span(style = "color: #D22B2B;", "For issues with the app, please contact:"))),
                         p("Aaron Wu - ", a(href = "mailto:aw80@rice.edu", "aw80@rice.edu")),
@@ -578,28 +578,28 @@ ui <- fluidPage(
                               )
                             ),
                             
-                            # Tutorial 2: TCGA Resources
+                            # Tutorial 2: CliPP Data Resources (TCGA + PCAWG)
                             tags$div(
                               class = "tutorial-card",
                               style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("2️⃣ TCGA Data Exploration"), style = "color: #3498db;"),
+                              tags$h6(tags$b("2️⃣ CliPP Data Resources"), style = "color: #3498db;"),
                               tags$iframe(
                                 src = "https://www.youtube.com/embed/VIDEO_ID_2",
                                 style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
                                 frameborder = "0",
                                 allowfullscreen = TRUE
                               ),
-                              tags$p("Navigate TCGA datasets effectively:", style = "font-size: 14px;"),
+                              tags$p("Navigate TCGA and PCAWG datasets:", style = "font-size: 14px;"),
                               tags$ul(
                                 style = "font-size: 13px; color: #555;",
-                                tags$li("Cancer type and cohort selection"),
-                                tags$li("Sample filtering and comparison"),
-                                tags$li("Visualization customization")
+                                tags$li("TCGA multi-platform genomic data"),
+                                tags$li("PCAWG whole-genome datasets"),
+                                tags$li("Cancer type and cohort selection")
                               )
                             )
                           ),
                           
-                          # Row 2: Driver Mutations and PCAWG
+                          # Row 2: Driver Mutations and Data Exploration
                           tags$div(
                             class = "tutorial-row",
                             style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
@@ -624,69 +624,23 @@ ui <- fluidPage(
                               )
                             ),
 
-                            # Tutorial 4: Data Export
+                            # Tutorial 4: Data Exploration (KM + Heatmap)
                             tags$div(
                               class = "tutorial-card",
                               style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("4️⃣ Data Export & Downloads"), style = "color: #16a085;"),
+                              tags$h6(tags$b("4️⃣ Data Exploration"), style = "color: #27ae60;"),
                               tags$iframe(
                                 src = "https://www.youtube.com/embed/VIDEO_ID_4",
                                 style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
                                 frameborder = "0",
                                 allowfullscreen = TRUE
                               ),
-                              tags$p("Export results for further analysis:", style = "font-size: 14px;"),
+                              tags$p("Advanced analysis and visualization:", style = "font-size: 14px;"),
                               tags$ul(
                                 style = "font-size: 13px; color: #555;",
-                                tags$li("Plot downloads and customization"),
-                                tags$li("Data table exports"),
-                                tags$li("Accessing pre-computed datasets")
-                              )
-                            )
-                          ),
-                          
-                          # Row 3: Survival Analysis and Heatmaps
-                          tags$div(
-                            class = "tutorial-row",
-                            style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
-
-                            # Tutorial 5: Kaplan-Meier Survival
-                            tags$div(
-                              class = "tutorial-card",
-                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("5️⃣ Kaplan-Meier Survival Analysis"), style = "color: #27ae60;"),
-                              tags$iframe(
-                                src = "https://www.youtube.com/embed/VIDEO_ID_5",
-                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
-                                frameborder = "0",
-                                allowfullscreen = TRUE
-                              ),
-                              tags$p("Connect mutations to patient outcomes:", style = "font-size: 14px;"),
-                              tags$ul(
-                                style = "font-size: 13px; color: #555;",
-                                tags$li("Subclonal mutational fraction (sMF)"),
-                                tags$li("Survival curve interpretation"),
-                                tags$li("Statistical significance testing")
-                              )
-                            ),
-                            
-                            # Tutorial 6: sMF Correlation Heatmap (replacing scatter plot)
-                            tags$div(
-                              class = "tutorial-card",
-                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("6️⃣ sMF Correlation Heatmap"), style = "color: #e67e22;"),
-                              tags$iframe(
-                                src = "https://www.youtube.com/embed/VIDEO_ID_6",
-                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
-                                frameborder = "0",
-                                allowfullscreen = TRUE
-                              ),
-                              tags$p("Visualize correlation patterns with heatmaps:", style = "font-size: 14px;"),
-                              tags$ul(
-                                style = "font-size: 13px; color: #555;",
-                                tags$li("sMF vs TMB/NRPCC/Purity correlations"),
-                                tags$li("Multi-cohort comparison (TCGA, OCCAMS, mCRPC)"),
-                                tags$li("Interactive heatmap interpretation")
+                                tags$li("Kaplan-Meier survival analysis"),
+                                tags$li("sMF correlation heatmaps"),
+                                tags$li("Multi-cohort comparison tools")
                               )
                             )
                           ),
@@ -801,6 +755,22 @@ ui <- fluidPage(
                                                    uiOutput("sample_name_ui_TCGA"),
                                                    actionButton("submitTCGA", "Submit", class = "btn-primary"),
                                                    hidden(actionButton("clearTCGA", "Clear", class = "btn-danger")),
+
+                                                   # Smoothing factor controls for TCGA
+                                                   conditionalPanel(
+                                                     condition = "output.plotsReadyTCGA == true",
+                                                     sliderInput("smoothingFactor1_TCGA", "Smoothing Factor (VAF Plot):",
+                                                                 min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                     div(class = "recommended-smoothing",
+                                                         uiOutput("smoothingExplanation1_TCGA")
+                                                     ),
+                                                     sliderInput("smoothingFactor2_TCGA", "Smoothing Factor (CP Plot):",
+                                                                 min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                     div(class = "recommended-smoothing",
+                                                         uiOutput("smoothingExplanation2_TCGA")
+                                                     )
+                                                   ),
+
                                                    hidden(selectInput("colorByTCGA", "Color points by:",
                                                                       choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
                                                                       selected = "clonality"))
@@ -809,17 +779,7 @@ ui <- fluidPage(
                                                    # First TCGA plot
                                                    div(class = "plot-container",
                                                        div(class = "plot-area",
-                                                           plotlyOutput("plot1TCGA") 
-                                                       ),
-                                                       conditionalPanel(
-                                                         condition = "output.plotsReadyTCGA == true",
-                                                         div(class = "controls-area",
-                                                             sliderInput("smoothingFactor1_TCGA", "Smoothing Factor:",
-                                                                         min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                             div(class = "recommended-smoothing",
-                                                                 uiOutput("smoothingExplanation1_TCGA")
-                                                             )
-                                                         )
+                                                           plotlyOutput("plot1TCGA")
                                                        ),
                                                        div(class = "caption-area",
                                                            uiOutput("caption1TCGA")
@@ -829,17 +789,7 @@ ui <- fluidPage(
                                                    # Second TCGA plot
                                                    div(class = "plot-container",
                                                        div(class = "plot-area",
-                                                           plotlyOutput("plot2TCGA") 
-                                                       ),
-                                                       conditionalPanel(
-                                                         condition = "output.plotsReadyTCGA == true",
-                                                         div(class = "controls-area",
-                                                             sliderInput("smoothingFactor2_TCGA", "Smoothing Factor:",
-                                                                         min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                             div(class = "recommended-smoothing",
-                                                                 uiOutput("smoothingExplanation2_TCGA")
-                                                             )
-                                                         )
+                                                           plotlyOutput("plot2TCGA")
                                                        ),
                                                        div(class = "caption-area",
                                                            uiOutput("caption2TCGA")
@@ -871,6 +821,22 @@ ui <- fluidPage(
                                                    uiOutput("sample_name_ui_PCAWG"),
                                                    actionButton("submitPCAWG", "Submit", class = "btn-primary"),
                                                    hidden(actionButton("clearPCAWG", "Clear", class = "btn-danger")),
+
+                                                   # Smoothing factor controls for PCAWG
+                                                   conditionalPanel(
+                                                     condition = "output.plotsReadyPCAWG == true",
+                                                     sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor (VAF Plot):",
+                                                                 min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                     div(class = "recommended-smoothing",
+                                                         uiOutput("smoothingExplanation1_PCAWG")
+                                                     ),
+                                                     sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor (CP Plot):",
+                                                                 min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                                                     div(class = "recommended-smoothing",
+                                                         uiOutput("smoothingExplanation2_PCAWG")
+                                                     )
+                                                   ),
+
                                                    hidden(selectInput("colorByPCAWG", "Color points by:",
                                                                       choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
                                                                       selected = "clonality"))
@@ -881,16 +847,6 @@ ui <- fluidPage(
                                                        div(class = "plot-area",
                                                            plotlyOutput("plot1PCAWG")
                                                        ),
-                                                       conditionalPanel(
-                                                         condition = "output.plotsReadyPCAWG == true",
-                                                         div(class = "controls-area",
-                                                             sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor:",
-                                                                         min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                             div(class = "recommended-smoothing",
-                                                                 uiOutput("smoothingExplanation1_PCAWG")
-                                                             )
-                                                         )
-                                                       ),
                                                        div(class = "caption-area",
                                                            uiOutput("caption1PCAWG")
                                                        )
@@ -899,17 +855,7 @@ ui <- fluidPage(
                                                    # Second PCAWG plot
                                                    div(class = "plot-container",
                                                        div(class = "plot-area",
-                                                           plotlyOutput("plot2PCAWG") 
-                                                       ),
-                                                       conditionalPanel(
-                                                         condition = "output.plotsReadyPCAWG == true",
-                                                         div(class = "controls-area",
-                                                             sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor:",
-                                                                         min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                             div(class = "recommended-smoothing",
-                                                                 uiOutput("smoothingExplanation2_PCAWG")
-                                                             )
-                                                         )
+                                                           plotlyOutput("plot2PCAWG")
                                                        ),
                                                        div(class = "caption-area",
                                                            uiOutput("caption2PCAWG")
@@ -1372,12 +1318,6 @@ ui <- fluidPage(
                           a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1",
                             "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"),"."),
 
-                        tags$br(),
-                        tags$h4(tags$b(tags$span("TMB vs sMF Analysis:"))),
-                        p("The TMB vs sMF analysis module in this application reproduces the analysis shown in Supplementary Figure 12 of the above manuscript.
-                        This feature enables researchers to explore the relationship between tumor mutational burden (TMB) and subclonal mutational fraction (sMF)
-                        across different cohorts including TCGA, PCAWG, OCCAMS, NCT02113657 (IPI), and NCT02703623 (ARPi+IPI).
-                        The analysis includes Spearman correlation coefficients, statistical significance testing, and interactive visualization capabilities.")
                       )
              )
   ))
