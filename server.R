@@ -1365,26 +1365,21 @@ server <- function(input, output, session) {
 
   # Sample count display for TCGA
   output$sample_count_TCGA <- renderUI({
-    # Show count by cancer type for all available cancer types
-    available_cancer_types <- unique(sample_TCGA$cancer_type)
+    # Show count only for the selected cancer type
+    req(input$cancer_type_TCGA)
 
-    # Create a list of cancer types with their sample counts
-    cancer_type_counts <- sapply(available_cancer_types, function(ct) {
-      sum(sample_TCGA$cancer_type == ct)
-    })
+    selected_cancer_type <- input$cancer_type_TCGA
+    count <- sum(sample_TCGA$cancer_type == selected_cancer_type)
 
-    # Create display elements for each cancer type
-    count_elements <- mapply(function(cancer_type, count) {
+    tags$div(
+      class = "sample-count-number",
+      style = "font-size: 18px; font-weight: 600; color: #155724; text-align: center;",
+      paste("n =", count),
       tags$div(
-        class = "cancer-type-count",
-        style = "margin: 2px 0; font-size: 12px;",
-        paste(cancer_type, ": n =", count)
+        class = "sample-count-details",
+        style = "font-size: 12px; color: #6c757d; margin-top: 5px;",
+        paste("samples in", selected_cancer_type)
       )
-    }, names(cancer_type_counts), cancer_type_counts, SIMPLIFY = FALSE)
-
-    tagList(
-      tags$div("TCGA Cancer Types:", class = "sample-count-label", style = "font-weight: bold; margin-bottom: 5px;"),
-      count_elements
     )
   })
   
@@ -1404,26 +1399,21 @@ server <- function(input, output, session) {
 
   # Sample count display for PCAWG
   output$sample_count_PCAWG <- renderUI({
-    # Show count by cancer type for all available cancer types
-    available_cancer_types <- unique(sample_PCAWG$cancer_type)
+    # Show count only for the selected cancer type
+    req(input$cancer_type_PCAWG)
 
-    # Create a list of cancer types with their sample counts
-    cancer_type_counts <- sapply(available_cancer_types, function(ct) {
-      sum(sample_PCAWG$cancer_type == ct)
-    })
+    selected_cancer_type <- input$cancer_type_PCAWG
+    count <- sum(sample_PCAWG$cancer_type == selected_cancer_type)
 
-    # Create display elements for each cancer type
-    count_elements <- mapply(function(cancer_type, count) {
+    tags$div(
+      class = "sample-count-number",
+      style = "font-size: 18px; font-weight: 600; color: #155724; text-align: center;",
+      paste("n =", count),
       tags$div(
-        class = "cancer-type-count",
-        style = "margin: 2px 0; font-size: 12px;",
-        paste(cancer_type, ": n =", count)
+        class = "sample-count-details",
+        style = "font-size: 12px; color: #6c757d; margin-top: 5px;",
+        paste("samples in", selected_cancer_type)
       )
-    }, names(cancer_type_counts), cancer_type_counts, SIMPLIFY = FALSE)
-
-    tagList(
-      tags$div("PCAWG Cancer Types:", class = "sample-count-label", style = "font-weight: bold; margin-bottom: 5px;"),
-      count_elements
     )
   })
   
@@ -2465,11 +2455,40 @@ server <- function(input, output, session) {
   output$cohort_ui_heatmap <- renderUI({
     available_cohorts <- get_available_cohorts_heatmap(heatmap_data)
 
-    selectInput("selected_cohorts_heatmap",
-                "Select Cohorts:",
-                choices = available_cohorts,
-                selected = available_cohorts,
-                multiple = TRUE)
+    tags$div(
+      class = "cohort-display",
+      style = "padding: 15px; background: #f8f9fa; border-radius: 5px; margin-bottom: 15px;",
+      tags$h6("Cohorts Included:", style = "margin-bottom: 10px; font-weight: bold;"),
+      tags$div(
+        style = "display: flex; flex-direction: column; gap: 5px;",
+        tags$div(
+          style = "display: flex; align-items: center; padding: 3px 0;",
+          tags$span("✓", style = "color: #28a745; margin-right: 8px; font-weight: bold;"),
+          tags$span("TCGA", style = "color: #495057;"),
+          tags$span("(filtered by cancer type selection)", style = "color: #6c757d; font-size: 11px; margin-left: 8px; font-style: italic;")
+        ),
+        tags$div(
+          style = "display: flex; align-items: center; padding: 3px 0;",
+          tags$span("✓", style = "color: #28a745; margin-right: 8px; font-weight: bold;"),
+          tags$span("OCCAMS", style = "color: #495057;"),
+          tags$span("(oesophageal, always included)", style = "color: #6c757d; font-size: 11px; margin-left: 8px; font-style: italic;")
+        ),
+        tags$div(
+          style = "display: flex; align-items: center; padding: 3px 0;",
+          tags$span("✓", style = "color: #28a745; margin-right: 8px; font-weight: bold;"),
+          tags$span("mCRPC", style = "color: #495057;"),
+          tags$span("(prostate, always included)", style = "color: #6c757d; font-size: 11px; margin-left: 8px; font-style: italic;")
+        )
+      ),
+      # Hidden input to maintain the selected cohorts for server logic
+      shinyjs::hidden(
+        selectInput("selected_cohorts_heatmap",
+                    "Hidden cohorts:",
+                    choices = available_cohorts,
+                    selected = available_cohorts,
+                    multiple = TRUE)
+      )
+    )
   })
 
   # UI for cancer type selection in heatmap analysis
@@ -2481,11 +2500,17 @@ server <- function(input, output, session) {
       return(tags$p("No cancer types available for heatmap analysis"))
     }
 
-    selectInput("selected_cancer_types_heatmap",
-                "Select Cancer Types (optional):",
-                choices = c("All" = "", setNames(available_types, available_types)),
-                selected = "",
-                multiple = TRUE)
+    tags$div(
+      tags$label("Filter TCGA Cancer Types:",
+                 style = "font-weight: bold; margin-bottom: 5px; display: block;"),
+      tags$p("Note: OCCAMS (oesophageal) and mCRPC (prostate) are always included",
+             style = "font-size: 12px; color: #6c757d; margin: 5px 0;"),
+      selectInput("selected_cancer_types_heatmap",
+                  NULL,  # No label since we have custom label above
+                  choices = c("All TCGA cancer types" = "", setNames(available_types, available_types)),
+                  selected = "",
+                  multiple = TRUE)
+    )
   })
 
   # Reactive values for heatmap
@@ -2502,8 +2527,9 @@ server <- function(input, output, session) {
     }
 
     selected_cancer_types <- NULL
-    if (!is.null(input$cancer_types_ui_heatmap) && length(input$cancer_types_ui_heatmap) > 0) {
-      selected_cancer_types <- input$cancer_types_ui_heatmap[input$cancer_types_ui_heatmap != ""]
+    if (!is.null(input$selected_cancer_types_heatmap) && length(input$selected_cancer_types_heatmap) > 0) {
+      # Filter out empty string (which represents "All TCGA cancer types")
+      selected_cancer_types <- input$selected_cancer_types_heatmap[input$selected_cancer_types_heatmap != ""]
       if (length(selected_cancer_types) == 0) {
         selected_cancer_types <- NULL
       }
