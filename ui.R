@@ -1048,8 +1048,8 @@ ui <- fluidPage(
                                                         tags$div(
                                                           style = "display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;",
                                                           tags$div(
-                                                            tags$p("1. Select cohorts to include in analysis", style = "margin: 5px 0;"),
-                                                            tags$p("2. Choose specific cancer types (optional)", style = "margin: 5px 0;")
+                                                            tags$p("1. All cohorts (TCGA, OCCAMS, mCRPC) are included", style = "margin: 5px 0;"),
+                                                            tags$p("2. Filter TCGA cancer types (optional)", style = "margin: 5px 0;")
                                                           ),
                                                           tags$div(
                                                             tags$p("3. Toggle correlation values display", style = "margin: 5px 0;"),
@@ -1062,13 +1062,7 @@ ui <- fluidPage(
                                                       fluidRow(
                                                         column(3,
                                                                tags$div(class = "legend-panel",
-                                                                        selectInput("selected_cohorts_heatmap", "Select Cohort:",
-                                                                                   choices = list(
-                                                                                     "TCGA" = "TCGA",
-                                                                                     "OCCAMS" = "OCCAMS",
-                                                                                     "mCRPC" = "mCRPC"
-                                                                                   ),
-                                                                                   selected = "TCGA"),
+                                                                        uiOutput("cohort_ui_heatmap"),
 
                                                                         uiOutput("cancer_types_ui_heatmap"),
 
