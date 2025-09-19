@@ -98,9 +98,9 @@ load_heatmap_data <- function() {
             }
           }
         } else {
-          # Direct mCRPC file
+          # Direct mCRPC file (from IPI trial)
           mcrpc_cor <- data.frame(
-            cancer_type = "mCRPC (NCT02113657)",
+            cancer_type = "mCRPC (IPI trial)",
             TMB_cor = cor(mcrpc_data$sML, mcrpc_data$TMB, use = "complete.obs"),
             nrpcc_cor = cor(mcrpc_data$sML, mcrpc_data$nrpcc, use = "complete.obs"),
             purity_cor = cor(mcrpc_data$sML, mcrpc_data$purity, use = "complete.obs"),
@@ -144,8 +144,12 @@ create_heatmap_plot <- function(data, selected_cohorts = NULL,
   }
 
   if (!is.null(selected_cancer_types) && length(selected_cancer_types) > 0) {
+    # Always include OCCAMS and mCRPC, plus selected TCGA cancer types
     plot_data <- plot_data %>%
-      filter(cancer_type %in% selected_cancer_types)
+      filter(
+        cohort %in% c("OCCAMS", "mCRPC") |
+        (cohort == "TCGA" & cancer_type %in% selected_cancer_types)
+      )
   }
 
   if (nrow(plot_data) == 0) {
@@ -177,6 +181,10 @@ create_heatmap_plot <- function(data, selected_cohorts = NULL,
                        nrow = nrow(cor_mat),
                        dimnames = dimnames(cor_mat))
 
+  # Determine if we need to rotate text based on number of cancer types
+  num_cancer_types <- ncol(cor_mat)
+  rotate_text <- num_cancer_types > 20
+
   # Create the heatmap
   ht <- Heatmap(
     cor_mat,
@@ -193,7 +201,9 @@ create_heatmap_plot <- function(data, selected_cohorts = NULL,
     ),
     cell_fun = if (show_numbers) {
       function(j, i, x, y, width, height, fill) {
-        grid.text(labels_mat[i, j], x, y, gp = gpar(fontsize = 8))
+        grid.text(labels_mat[i, j], x, y,
+                  gp = gpar(fontsize = 14, fontface = "bold"),
+                  rot = if (rotate_text) 90 else 0)
       }
     } else {
       NULL
@@ -215,16 +225,17 @@ get_available_cohorts_heatmap <- function(data) {
   return(sort(cohorts))
 }
 
-#' Get available cancer types for heatmap analysis
+#' Get available cancer types for heatmap analysis (TCGA only)
 #' @param data Data frame with correlation data
-#' @return Vector of cancer types
+#' @return Vector of TCGA cancer types only
 get_available_cancer_types_heatmap <- function(data) {
   if (nrow(data) == 0) {
     return(character(0))
   }
 
-  cancer_types <- unique(data$cancer_type)
-  return(sort(cancer_types))
+  # Only return cancer types from TCGA cohort
+  tcga_cancer_types <- unique(data$cancer_type[data$cohort == "TCGA"])
+  return(sort(tcga_cancer_types))
 }
 
 #' Create summary statistics for heatmap data
