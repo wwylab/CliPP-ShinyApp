@@ -46,6 +46,25 @@ if (!dir.exists(global_TCGA_PCAWG)) {
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+# Configuration for external data download links
+DOWNLOAD_CONFIG <- list(
+  password = "wwylab_CliPP",
+  base_url = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share",
+  urls = list(
+    simulation = "Sim4kdata.html",
+    tcga = "TCGAdata.html",
+    pcawg = "PCAWGdata.html"
+  )
+)
+
+# Helper function to get full download URL
+get_download_url <- function(dataset) {
+  if (dataset %in% names(DOWNLOAD_CONFIG$urls)) {
+    return(paste0(DOWNLOAD_CONFIG$base_url, "/", DOWNLOAD_CONFIG$urls[[dataset]]))
+  }
+  return(NULL)
+}
+
 driver_mutation_data <- tryCatch({
   file_path <- file.path(global_TCGA_PCAWG, "driver_mut_data.tsv")
   if (!file.exists(file_path)) {
@@ -142,19 +161,19 @@ get_available_cohorts <- function() {
 }
 
 conditional_select_input <- function(inputId, label, choices = NULL, selected = NULL, 
-                                   multiple = FALSE, selectize = TRUE, width = NULL, 
-                                   size = NULL, disabled = FALSE) {
+                                     multiple = FALSE, selectize = TRUE, width = NULL, 
+                                     size = NULL, disabled = FALSE) {
   if (disabled) {
     div(
       style = "opacity: 0.6; pointer-events: none;",
       selectInput(inputId = inputId, label = label, choices = choices, 
-                 selected = selected, multiple = multiple, selectize = selectize, 
-                 width = width, size = size)
+                  selected = selected, multiple = multiple, selectize = selectize, 
+                  width = width, size = size)
     )
   } else {
     selectInput(inputId = inputId, label = label, choices = choices, 
-               selected = selected, multiple = multiple, selectize = selectize, 
-               width = width, size = size)
+                selected = selected, multiple = multiple, selectize = selectize, 
+                width = width, size = size)
   }
 }
 
