@@ -1351,7 +1351,7 @@ server <- function(input, output, session) {
   
   output$cancer_type_ui_TCGA <- renderUI({
     available_cancer_types <- sort(unique(sample_TCGA$cancer_type))
-
+    
     selectInput("cancer_type_TCGA", "Select Cancer Type:",
                 choices = available_cancer_types)
   })
@@ -1362,15 +1362,15 @@ server <- function(input, output, session) {
     selectInput("sample_name_TCGA", "Select Sample Name:",
                 choices = sort(filtered_samples))
   })
-
+  
   # Sample count display for TCGA
   output$sample_count_TCGA <- renderUI({
     # Show count only for the selected cancer type
     req(input$cancer_type_TCGA)
-
+    
     selected_cancer_type <- input$cancer_type_TCGA
     count <- sum(sample_TCGA$cancer_type == selected_cancer_type)
-
+    
     tags$div(
       class = "sample-count-number",
       style = "font-size: 18px; font-weight: 600; color: #155724; text-align: center;",
@@ -1385,7 +1385,7 @@ server <- function(input, output, session) {
   
   output$cancer_type_ui_PCAWG <- renderUI({
     available_cancer_types <- sort(unique(sample_PCAWG$cancer_type))
-
+    
     selectInput("cancer_type_PCAWG", "Select Cancer Type:",
                 choices = available_cancer_types)
   })
@@ -1396,15 +1396,15 @@ server <- function(input, output, session) {
     selectInput("sample_name_PCAWG", "Select Sample Name:",
                 choices = sort(filtered_samples))
   })
-
+  
   # Sample count display for PCAWG
   output$sample_count_PCAWG <- renderUI({
     # Show count only for the selected cancer type
     req(input$cancer_type_PCAWG)
-
+    
     selected_cancer_type <- input$cancer_type_PCAWG
     count <- sum(sample_PCAWG$cancer_type == selected_cancer_type)
-
+    
     tags$div(
       class = "sample-count-number",
       style = "font-size: 18px; font-weight: 600; color: #155724; text-align: center;",
@@ -2194,7 +2194,7 @@ server <- function(input, output, session) {
     !is.null(current_survival_plot())
   })
   outputOptions(output, "survivalPlotGenerated", suspendWhenHidden = FALSE)
-
+  
   output$survivalPlot <- renderPlotly({
     plot_obj <- current_survival_plot()
     
@@ -2258,7 +2258,7 @@ server <- function(input, output, session) {
     }
   )
   
-
+  
   output$cancer_types_ui_tmb <- renderUI({
     req(input$selected_cohort_tmb)
     
@@ -2277,10 +2277,10 @@ server <- function(input, output, session) {
     }
     
     selectInput("selected_cancer_types_tmb", 
-                      "Select Cancer Types:",
-                      choices = c(setNames(available_types, available_types)),
-                      selected = NULL,
-                      multiple = TRUE)
+                "Select Cancer Types:",
+                choices = c(setNames(available_types, available_types)),
+                selected = NULL,
+                multiple = TRUE)
   })
   
   current_tmb_plot <- reactiveVal()
@@ -2447,14 +2447,14 @@ server <- function(input, output, session) {
       }
     }
   )
-
+  
   ## HEATMAP ANALYSIS FUNCTIONS - COMMENTED OUT FOR FUTURE USE ##
   ## sMF Correlation Heatmap Analysis ##
-
+  
   # UI for cohort selection in heatmap analysis
   output$cohort_ui_heatmap <- renderUI({
     available_cohorts <- get_available_cohorts_heatmap(heatmap_data)
-
+    
     tags$div(
       class = "cohort-display",
       style = "padding: 15px; background: #f8f9fa; border-radius: 5px; margin-bottom: 15px;",
@@ -2490,16 +2490,16 @@ server <- function(input, output, session) {
       )
     )
   })
-
+  
   # UI for cancer type selection in heatmap analysis
   output$cancer_types_ui_heatmap <- renderUI({
     req(input$selected_cohorts_heatmap)
-
+    
     available_types <- get_available_cancer_types_heatmap(heatmap_data)
     if (length(available_types) == 0) {
       return(tags$p("No cancer types available for heatmap analysis"))
     }
-
+    
     tags$div(
       tags$label("Filter TCGA Cancer Types:",
                  style = "font-weight: bold; margin-bottom: 5px; display: block;"),
@@ -2512,20 +2512,20 @@ server <- function(input, output, session) {
                   multiple = TRUE)
     )
   })
-
+  
   # Reactive values for heatmap
   current_heatmap_plot <- reactiveVal()
   current_heatmap_summary <- reactiveVal()
-
+  
   # Generate heatmap plot
   observeEvent(input$generate_heatmap, {
     req(input$selected_cohorts_heatmap)
-
+    
     if (nrow(heatmap_data) == 0) {
       showNotification("Heatmap data not yet available.", type = "warning")
       return()
     }
-
+    
     selected_cancer_types <- NULL
     if (!is.null(input$selected_cancer_types_heatmap) && length(input$selected_cancer_types_heatmap) > 0) {
       # Filter out empty string (which represents "All TCGA cancer types")
@@ -2534,9 +2534,7 @@ server <- function(input, output, session) {
         selected_cancer_types <- NULL
       }
     }
-
-    showNotification("Generating heatmap...", type = "message")
-
+    
     tryCatch({
       plot_obj <- create_heatmap_plot(
         data = heatmap_data,
@@ -2549,18 +2547,17 @@ server <- function(input, output, session) {
       summary_data <- create_heatmap_summary(heatmap_data, c(input$selected_cohorts_heatmap))
       current_heatmap_summary(summary_data)
 
-      showNotification("Heatmap generated successfully!", type = "message")
     }, error = function(e) {
-      showNotification(paste("Error creating heatmap:", e$message), type = "error")
+      warning(paste("Error creating heatmap:", e$message))
     })
   })
-
+  
   # Reactive flag for heatmap generation
   output$heatmapGenerated <- reactive({
     !is.null(current_heatmap_plot())
   })
   outputOptions(output, "heatmapGenerated", suspendWhenHidden = FALSE)
-
+  
   # Render heatmap plot
   output$heatmap_plot <- renderPlot({
     plot_obj <- current_heatmap_plot()
@@ -2569,23 +2566,23 @@ server <- function(input, output, session) {
     }
     draw(plot_obj)
   })
-
+  
   # Render heatmap summary table
   output$heatmap_summary_table <- renderDT({
     summary_data <- current_heatmap_summary()
     if (is.null(summary_data)) {
       return(NULL)
     }
-
+    
     datatable(summary_data,
               options = list(dom = 't', pageLength = -1, ordering = FALSE, searching = FALSE),
               rownames = FALSE)
   })
-
+  
   # Display heatmap information
   output$heatmap_info <- renderUI({
     req(current_heatmap_plot())
-
+    
     tags$div(
       tags$h5(tags$b("Analysis Information:")),
       tags$p("This heatmap displays Pearson correlations between subclonal mutational fraction (sMF) and:"),
@@ -2598,7 +2595,7 @@ server <- function(input, output, session) {
       tags$p("Colors: Blue = negative correlation, White = no correlation, Red = positive correlation.")
     )
   })
-
+  
   # Download handler for heatmap plot (fixed button name)
   output$download_heatmap <- downloadHandler(
     filename = function() {
@@ -2614,7 +2611,7 @@ server <- function(input, output, session) {
       }
     }
   )
-
+  
   # Download handler for heatmap data
   output$download_heatmap_data <- downloadHandler(
     filename = function() {
@@ -2628,5 +2625,41 @@ server <- function(input, output, session) {
       }
     }
   )
-  #     summary_data <- current_heatmap_summary()
+
+  # External link handlers - force opening in default browser with password info
+  observeEvent(input$downloadSim4k, {
+    url <- get_download_url("simulation")
+    browseURL(url)
+    showNotification(paste("Password:", DOWNLOAD_CONFIG$password), type = "message", duration = 10)
+  })
+
+  observeEvent(input$browseSim4k, {
+    url <- get_download_url("simulation")
+    browseURL(url)
+    showNotification(paste("Password:", DOWNLOAD_CONFIG$password), type = "message", duration = 10)
+  })
+
+  observeEvent(input$downloadTCGA, {
+    url <- get_download_url("tcga")
+    browseURL(url)
+    showNotification(paste("Password:", DOWNLOAD_CONFIG$password), type = "message", duration = 10)
+  })
+
+  observeEvent(input$browseTCGA, {
+    url <- get_download_url("tcga")
+    browseURL(url)
+    showNotification(paste("Password:", DOWNLOAD_CONFIG$password), type = "message", duration = 10)
+  })
+
+  observeEvent(input$downloadPCAWG, {
+    url <- get_download_url("pcawg")
+    browseURL(url)
+    showNotification(paste("Password:", DOWNLOAD_CONFIG$password), type = "message", duration = 10)
+  })
+
+  observeEvent(input$browsePCAWG, {
+    url <- get_download_url("pcawg")
+    browseURL(url)
+    showNotification(paste("Password:", DOWNLOAD_CONFIG$password), type = "message", duration = 10)
+  })
 }
