@@ -533,7 +533,7 @@ ui <- fluidPage(
                         p("Quang Tran - ", a(href = "mailto:qmtran@mdanderson.org", "qmtran@mdanderson.org"))
                       )
              ),
-
+             
              tabPanel("Tutorial",
                       tags$div(
                         tags$h4(tags$b("CliPP-on-Web Video Tutorials")),
@@ -551,103 +551,103 @@ ui <- fluidPage(
                             tags$p(tags$em("Duration: ~15 minutes"), style = "color: #7f8c8d; margin-top: 10px;")
                           )
                         ),
-
+                        
+                        
+                        # Row 1: Data Upload and Resources
+                        tags$div(
+                          class = "tutorial-row", 
+                          style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
                           
-                          # Row 1: Data Upload and Resources
+                          # Tutorial 1: Data Upload
                           tags$div(
-                            class = "tutorial-row", 
-                            style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
-                            
-                            # Tutorial 1: Data Upload
-                            tags$div(
-                              class = "tutorial-card",
-                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("1️⃣ Data Upload & File Formats"), style = "color: #e74c3c;"),
-                              tags$iframe(
-                                src = "https://www.youtube.com/embed/VIDEO_ID_1",
-                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
-                                frameborder = "0",
-                                allowfullscreen = TRUE
-                              ),
-                              tags$p("Learn to upload and validate your data files:", style = "font-size: 14px;"),
-                              tags$ul(
-                                style = "font-size: 13px; color: #555;",
-                                tags$li("SNV, CNA, and purity file requirements"),
-                                tags$li("File validation and error handling"),
-                                tags$li("Multiple sample upload modes")
-                              )
+                            class = "tutorial-card",
+                            style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
+                            tags$h6(tags$b("1️⃣ Data Upload & File Formats"), style = "color: #e74c3c;"),
+                            tags$iframe(
+                              src = "https://www.youtube.com/embed/J6wOEK8iznY",
+                              style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
+                              frameborder = "0",
+                              allowfullscreen = TRUE
                             ),
-                            
-                            # Tutorial 2: CliPP Data Resources (TCGA + PCAWG)
-                            tags$div(
-                              class = "tutorial-card",
-                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("2️⃣ CliPP Data Resources"), style = "color: #3498db;"),
-                              tags$iframe(
-                                src = "https://www.youtube.com/embed/VIDEO_ID_2",
-                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
-                                frameborder = "0",
-                                allowfullscreen = TRUE
-                              ),
-                              tags$p("Navigate TCGA and PCAWG datasets:", style = "font-size: 14px;"),
-                              tags$ul(
-                                style = "font-size: 13px; color: #555;",
-                                tags$li("TCGA multi-platform genomic data"),
-                                tags$li("PCAWG whole-genome datasets"),
-                                tags$li("Cancer type and cohort selection")
-                              )
+                            tags$p("Learn to upload and validate your data files:", style = "font-size: 14px;"),
+                            tags$ul(
+                              style = "font-size: 13px; color: #555;",
+                              tags$li("SNV, CNA, and purity file requirements"),
+                              tags$li("File validation and error handling"),
+                              tags$li("Multiple sample upload modes")
                             )
                           ),
                           
-                          # Row 2: Driver Mutations and Data Exploration
+                          # Tutorial 2: CliPP Data Resources (TCGA + PCAWG)
                           tags$div(
-                            class = "tutorial-row",
-                            style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
-
-                            # Tutorial 3: Driver Mutations
-                            tags$div(
-                              class = "tutorial-card",
-                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("3️⃣ Driver Mutation Analysis"), style = "color: #f39c12;"),
-                              tags$iframe(
-                                src = "https://www.youtube.com/embed/VIDEO_ID_3",
-                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
-                                frameborder = "0",
-                                allowfullscreen = TRUE
-                              ),
-                              tags$p("Analyze driver mutation subclonality:", style = "font-size: 14px;"),
-                              tags$ul(
-                                style = "font-size: 13px; color: #555;",
-                                tags$li("Identifying key driver mutations"),
-                                tags$li("Clonal vs subclonal classification"),
-                                tags$li("VAF and cellular prevalence plots")
-                              )
+                            class = "tutorial-card",
+                            style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
+                            tags$h6(tags$b("2️⃣ CliPP Data Resources"), style = "color: #3498db;"),
+                            tags$iframe(
+                              src = "https://www.youtube.com/embed/eOPzoNAjae8",
+                              style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
+                              frameborder = "0",
+                              allowfullscreen = TRUE
                             ),
-
-                            # Tutorial 4: Data Exploration (KM + Heatmap)
-                            tags$div(
-                              class = "tutorial-card",
-                              style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                              tags$h6(tags$b("4️⃣ Data Exploration"), style = "color: #27ae60;"),
-                              tags$iframe(
-                                src = "https://www.youtube.com/embed/VIDEO_ID_4",
-                                style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
-                                frameborder = "0",
-                                allowfullscreen = TRUE
-                              ),
-                              tags$p("Advanced analysis and visualization:", style = "font-size: 14px;"),
-                              tags$ul(
-                                style = "font-size: 13px; color: #555;",
-                                tags$li("Kaplan-Meier survival analysis"),
-                                tags$li("sMF correlation heatmaps"),
-                                tags$li("Multi-cohort comparison tools")
-                              )
+                            tags$p("Navigate TCGA and PCAWG datasets:", style = "font-size: 14px;"),
+                            tags$ul(
+                              style = "font-size: 13px; color: #555;",
+                              tags$li("TCGA multi-platform genomic data"),
+                              tags$li("PCAWG whole-genome datasets"),
+                              tags$li("Cancer type and cohort selection")
+                            )
+                          )
+                        ),
+                        
+                        # Row 2: Driver Mutations and Data Exploration
+                        tags$div(
+                          class = "tutorial-row",
+                          style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
+                          
+                          # Tutorial 3: Driver Mutations
+                          tags$div(
+                            class = "tutorial-card",
+                            style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
+                            tags$h6(tags$b("3️⃣ Driver Mutation Analysis"), style = "color: #f39c12;"),
+                            tags$iframe(
+                              src = "https://www.youtube.com/embed/ZmFQxehEKL4",
+                              style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
+                              frameborder = "0",
+                              allowfullscreen = TRUE
+                            ),
+                            tags$p("Analyze driver mutation subclonality:", style = "font-size: 14px;"),
+                            tags$ul(
+                              style = "font-size: 13px; color: #555;",
+                              tags$li("Identifying key driver mutations"),
+                              tags$li("Clonal vs subclonal classification"),
+                              tags$li("VAF and cellular prevalence plots")
                             )
                           ),
-
+                          
+                          # Tutorial 4: Data Exploration (KM + Heatmap)
+                          tags$div(
+                            class = "tutorial-card",
+                            style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
+                            tags$h6(tags$b("4️⃣ Data Exploration"), style = "color: #27ae60;"),
+                            tags$iframe(
+                              src = "https://www.youtube.com/embed/_AtFySOoC2g",
+                              style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
+                              frameborder = "0",
+                              allowfullscreen = TRUE
+                            ),
+                            tags$p("Advanced analysis and visualization:", style = "font-size: 14px;"),
+                            tags$ul(
+                              style = "font-size: 13px; color: #555;",
+                              tags$li("Kaplan-Meier survival analysis"),
+                              tags$li("sMF correlation heatmaps"),
+                              tags$li("Multi-cohort comparison tools")
+                            )
+                          )
+                        ),
+                        
                       )
              ),
-
+             
              tabPanel("CliPP-on-Web",
                       tags$div(
                         tags$h4(tags$b("Upload Files")),
@@ -679,42 +679,38 @@ ui <- fluidPage(
                             hidden(selectInput("colorBy", "Color points by:",
                                                choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
                                                selected = "clonality")),
+
+                            # Smoothing factor controls for CliPP-on-Web
+                            conditionalPanel(
+                              condition = "output.plotsReadyCliPP == true",
+                              sliderInput("smoothingFactor1", "Smoothing Factor (VAF Plot):",
+                                          min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                              div(class = "recommended-smoothing",
+                                  uiOutput("smoothingExplanation1")
+                              ),
+                              sliderInput("smoothingFactor2", "Smoothing Factor (CP Plot):",
+                                          min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                              div(class = "recommended-smoothing",
+                                  uiOutput("smoothingExplanation2")
+                              )
+                            ),
+
                             hidden(actionButton("clear", "Clear", class = "btn-danger"))
                           ),
-
+                          
                           mainPanel(
                             div(class = "plot-container",
                                 div(class = "plot-area",
                                     plotlyOutput("plot1")
                                 ),
-                                conditionalPanel(
-                                  condition = "output.plotsReadyCliPP == true",
-                                  div(class = "controls-area",
-                                      sliderInput("smoothingFactor1", "Smoothing Factor:",
-                                                  min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                      div(class = "recommended-smoothing",
-                                          uiOutput("smoothingExplanation1")
-                                      )
-                                  )
-                                ),
                                 div(class = "caption-area",
                                     uiOutput("caption1")
                                 )
                             ),
-
+                            
                             div(class = "plot-container",
                                 div(class = "plot-area",
                                     plotlyOutput("plot2")
-                                ),
-                                conditionalPanel(
-                                  condition = "output.plotsReadyCliPP == true",
-                                  div(class = "controls-area",
-                                      sliderInput("smoothingFactor2", "Smoothing Factor:",
-                                                  min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                      div(class = "recommended-smoothing",
-                                          uiOutput("smoothingExplanation2")
-                                      )
-                                  )
                                 ),
                                 div(class = "caption-area",
                                     uiOutput("caption2")
@@ -735,7 +731,7 @@ ui <- fluidPage(
                         )
                       )
              ),
-
+             
              tabPanel("CliPP Data Resources",
                       tags$div(
                         tabsetPanel(id = "tabset",
@@ -745,15 +741,15 @@ ui <- fluidPage(
                                                sidebarLayout(
                                                  sidebarPanel(
                                                    uiOutput("cancer_type_ui_TCGA"),
-
+                                                   
                                                    div(id = "sample_count_display_TCGA", class = "sample-count-info",
                                                        uiOutput("sample_count_TCGA")
                                                    ),
-
+                                                   
                                                    uiOutput("sample_name_ui_TCGA"),
                                                    actionButton("submitTCGA", "Submit", class = "btn-primary"),
                                                    hidden(actionButton("clearTCGA", "Clear", class = "btn-danger")),
-
+                                                   
                                                    # Smoothing factor controls for TCGA
                                                    conditionalPanel(
                                                      condition = "output.plotsReadyTCGA == true",
@@ -768,7 +764,7 @@ ui <- fluidPage(
                                                          uiOutput("smoothingExplanation2_TCGA")
                                                      )
                                                    ),
-
+                                                   
                                                    hidden(selectInput("colorByTCGA", "Color points by:",
                                                                       choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
                                                                       selected = "clonality"))
@@ -801,23 +797,23 @@ ui <- fluidPage(
                                                )
                                              )
                                     ),
-
+                                    
                                     tabPanel("PCAWG",
                                              tags$div(
                                                tags$h4(tags$b("PCAWG Select")),
                                                sidebarLayout(
                                                  sidebarPanel(
                                                    uiOutput("cancer_type_ui_PCAWG"),
-
+                                                   
                                                    # Sample count display
                                                    div(id = "sample_count_display_PCAWG", class = "sample-count-info",
                                                        uiOutput("sample_count_PCAWG")
                                                    ),
-
+                                                   
                                                    uiOutput("sample_name_ui_PCAWG"),
                                                    actionButton("submitPCAWG", "Submit", class = "btn-primary"),
                                                    hidden(actionButton("clearPCAWG", "Clear", class = "btn-danger")),
-
+                                                   
                                                    # Smoothing factor controls for PCAWG
                                                    conditionalPanel(
                                                      condition = "output.plotsReadyPCAWG == true",
@@ -832,7 +828,7 @@ ui <- fluidPage(
                                                          uiOutput("smoothingExplanation2_PCAWG")
                                                      )
                                                    ),
-
+                                                   
                                                    hidden(selectInput("colorByPCAWG", "Color points by:",
                                                                       choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
                                                                       selected = "clonality"))
@@ -868,7 +864,7 @@ ui <- fluidPage(
                         )
                       )
              ),
-
+             
              tabPanel("Driver Mutation",
                       sidebarLayout(
                         sidebarPanel(
@@ -888,7 +884,22 @@ ui <- fluidPage(
                                          "Consolidated by Sample" = "consolidated",
                                          "Individual Mutations" = "individual"
                                        ),
-                                       selected = "consolidated")
+                                       selected = "consolidated"),
+
+                          # Smoothing factor controls for Driver Mutation
+                          conditionalPanel(
+                            condition = "output.driverRowSelected == true",
+                            sliderInput("smoothingFactor1_driver", "Smoothing Factor (VAF Plot):",
+                                        min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                            div(class = "recommended-smoothing",
+                                uiOutput("smoothingExplanation1_driver")
+                            ),
+                            sliderInput("smoothingFactor2_driver", "Smoothing Factor (CP Plot):",
+                                        min = 0.2, max = 0.7, value = 0.45, width = "100%"),
+                            div(class = "recommended-smoothing",
+                                uiOutput("smoothingExplanation2_driver")
+                            )
+                          )
                         ),
                         mainPanel(
                           DT::DTOutput("driverMutationTable"),
@@ -900,17 +911,7 @@ ui <- fluidPage(
                           # Driver plot 1
                           div(class = "plot-container",
                               div(class = "plot-area",
-                                  plotlyOutput("driverPlot1") 
-                              ),
-                              conditionalPanel(
-                                condition = "output.driverRowSelected == true",
-                                div(class = "controls-area",
-                                    sliderInput("smoothingFactor1_driver", "Smoothing Factor:",
-                                                min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                    div(class = "recommended-smoothing",
-                                        uiOutput("smoothingExplanation1_driver")
-                                    )
-                                )
+                                  plotlyOutput("driverPlot1")
                               ),
                               div(class = "caption-area",
                                   hidden(uiOutput("driverCaption1"))
@@ -920,17 +921,7 @@ ui <- fluidPage(
                           # Driver plot 2
                           div(class = "plot-container",
                               div(class = "plot-area",
-                                  plotlyOutput("driverPlot2") 
-                              ),
-                              conditionalPanel(
-                                condition = "output.driverRowSelected == true",
-                                div(class = "controls-area",
-                                    sliderInput("smoothingFactor2_driver", "Smoothing Factor:",
-                                                min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                    div(class = "recommended-smoothing",
-                                        uiOutput("smoothingExplanation2_driver")
-                                    )
-                                )
+                                  plotlyOutput("driverPlot2")
                               ),
                               div(class = "caption-area",
                                   hidden(uiOutput("driverCaption2"))
@@ -939,7 +930,7 @@ ui <- fluidPage(
                         )
                       )
              ),
-
+             
              tabPanel("Data Exploration",
                       tags$div(class = "data-exploration-main",
                                tabsetPanel(id = "analysis_tabset",
@@ -1022,7 +1013,7 @@ ui <- fluidPage(
                                                                           uiOutput("survivalPlotInfo")
                                                                  )
                                                                ),
-
+                                                               
                                                                # Sample Information (only show when plot exists)
                                                                conditionalPanel(
                                                                  condition = "output.survivalPlotGenerated == true",
@@ -1034,13 +1025,13 @@ ui <- fluidPage(
                                                       )
                                                     )
                                            ),
-
+                                           
                                            tabPanel("Heatmap",
                                                     tags$div(
                                                       tags$h3(tags$b("sMF Correlation Heatmap"), style = "color: #2c3e50; margin-bottom: 10px;"),
                                                       tags$p("Explore correlations between subclonal mutational fraction (sMF) and key genomic features across different cancer types and cohorts.",
                                                              style = "color: #7f8c8d; font-size: 16px; margin-bottom: 30px;"),
-
+                                                      
                                                       # Instructions panel
                                                       tags$div(
                                                         class = "instructions-card",
@@ -1057,24 +1048,24 @@ ui <- fluidPage(
                                                           )
                                                         )
                                                       ),
-
+                                                      
                                                       # Controls and Plot Layout
                                                       fluidRow(
                                                         column(3,
                                                                tags$div(class = "legend-panel",
                                                                         uiOutput("cohort_ui_heatmap"),
-
+                                                                        
                                                                         uiOutput("cancer_types_ui_heatmap"),
-
+                                                                        
                                                                         checkboxInput("show_numbers_heatmap", "Show correlation values", value = TRUE),
-
+                                                                        
                                                                         div(style = "text-align: center; margin: 20px 0;",
                                                                             actionButton("generate_heatmap", "Generate Heatmap", class = "btn-primary", style = "width: 100%; margin-bottom: 10px;"),
                                                                             downloadButton("download_heatmap", "Download Plot", class = "btn-secondary", style = "width: 100%; margin-bottom: 5px;"),
                                                                             downloadButton("download_heatmap_data", "Download Data", class = "btn-secondary", style = "width: 100%;")
                                                                         )
                                                                ),
-
+                                                               
                                                                # Legend Panel
                                                                tags$div(class = "legend-panel",
                                                                         tags$h5(tags$b("Legend & Interpretation")),
@@ -1096,13 +1087,13 @@ ui <- fluidPage(
                                                                         )
                                                                )
                                                         ),
-
+                                                        
                                                         column(9,
                                                                # Plot Section
                                                                tags$div(class = "plot-section",
                                                                         plotOutput("heatmap_plot", height = "600px")
                                                                ),
-
+                                                               
                                                                # Summary Statistics Table (only show when heatmap exists)
                                                                conditionalPanel(
                                                                  condition = "output.heatmapGenerated == true",
@@ -1111,7 +1102,7 @@ ui <- fluidPage(
                                                                           DT::DTOutput("heatmap_summary_table")
                                                                  )
                                                                ),
-
+                                                               
                                                                # Additional Analysis Information (only show when heatmap exists)
                                                                conditionalPanel(
                                                                  condition = "output.heatmapGenerated == true",
@@ -1126,7 +1117,7 @@ ui <- fluidPage(
                                )
                       )
              ),
-
+             
              tabPanel("Downloads",
                       tags$div(class = "downloads-tab-container",
                                tags$div(id = "downloads-vertical-nav", class = "vertical-nav-floating",
@@ -1138,10 +1129,8 @@ ui <- fluidPage(
                                                 tags$li(tags$a(href = "#pcawg-section", class = "nav-link", "PCAWG Data"))
                                         )
                                ),
-
+                               
                                tags$div(class = "downloads-main-content",
-                                        tags$h2("CliPP Data Downloads", style = "color: #2c3e50; margin-bottom: 20px;"),
-
                                         div(id = "overview-section", class = "download-section",
                                             tags$h3(tags$b("Overview"), style = "color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 10px;"),
                                             p(tags$b("CliPP (Clonal structure Identification through Penalizing Pairwise differences)"),
@@ -1151,13 +1140,29 @@ ui <- fluidPage(
                                               tags$li(tags$b("TCGA (The Cancer Genome Atlas)"), " - Multi-platform genomic data"),
                                               tags$li(tags$b("PCAWG (Pan-Cancer Analysis of Whole Genomes)"), " - Whole genome sequencing data")
                                             ),
-                                            p("All datasets include clonal structure analysis results, mutation assignments, and sample metadata.")
-                                        ),
+                                            p("All datasets include clonal structure analysis results, mutation assignments, and sample metadata."),
 
+                                            div(class = "metadata-card", style = "background: #e1f5fe; border-left: 4px solid #0288d1;",
+                                                tags$b("🔐 Authentication Required:"),
+                                                p("These downloads require password authentication. When prompted, use:"),
+                                                p(tags$b("Password: "), tags$code("wwylab_CliPP", style = "background: #f5f5f5; padding: 2px 6px; font-family: monospace; color: #d32f2f;")),
+                                                p(tags$em("Note: The password prompt will appear after clicking the download links."))
+                                            ),
+
+                                            div(class = "metadata-card", style = "background: #fff3cd; border-left: 4px solid #ffc107;",
+                                                tags$b("Access Issues?"),
+                                                p("If you encounter problems, contact ",
+                                                  a(href = "mailto:aw80@rice.edu", "aw80@rice.edu"),
+                                                  " or ",
+                                                  a(href = "mailto:qmtran@mdanderson.org", "qmtran@mdanderson.org"),
+                                                  " for assistance.")
+                                            )
+                                        ),
+                                        
                                         # Simulation section
                                         div(id = "simulation-section", class = "download-section",
                                             tags$h3(tags$b("Simulation Dataset Downloads (CliPPSim4k)"), style = "color: #e74c3c; border-bottom: 2px solid #e74c3c; padding-bottom: 10px;"),
-
+                                            
                                             div(class = "metadata-card",
                                                 tags$b("Dataset Information:"),
                                                 tags$ul(
@@ -1167,7 +1172,7 @@ ui <- fluidPage(
                                                   tags$li("File formats: TSV, TXT")
                                                 )
                                             ),
-
+                                            
                                             tags$table(class = "download-table-styled",
                                                        tags$thead(
                                                          tags$tr(
@@ -1182,23 +1187,25 @@ ui <- fluidPage(
                                                            tags$td(class = "dataset-name", "CliPPSim4k Summary"),
                                                            tags$td("Comprehensive simulation results for 4,000 samples with known ground truth"),
                                                            tags$td(tags$span(class = "file-type-badge", "TSV")),
-                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/Sim4kdata.html", class = "download-btn", target = "_blank", "Download"),
-                                                                   tags$span(class = "file-size", " (~2MB)"))
+                                                           tags$td(
+                                                             actionButton("downloadSim4k", "Download", class = "download-btn"),
+                                                             tags$span(class = "file-size", " (~2MB)")
+                                                           )
                                                          ),
                                                          tags$tr(
                                                            tags$td(class = "dataset-name", "Individual Simulation Data"),
                                                            tags$td("Per-sample simulation files with ground truth clonal structure"),
                                                            tags$td(tags$span(class = "file-type-badge", "TXT Files")),
-                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/Sim4kdata.html", class = "browse-btn", target = "_blank", "Browse Data"))
+                                                           tags$td(actionButton("browseSim4k", "Browse Data", class = "browse-btn"))
                                                          )
                                                        )
                                             )
                                         ),
-
+                                        
                                         # TCGA section
                                         div(id = "tcga-section", class = "download-section",
                                             tags$h3(tags$b("TCGA Dataset Downloads"), style = "color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 10px;"),
-
+                                            
                                             div(class = "metadata-card",
                                                 tags$b("Dataset Information:"),
                                                 tags$ul(
@@ -1208,7 +1215,7 @@ ui <- fluidPage(
                                                   tags$li("File formats: TSV, TXT")
                                                 )
                                             ),
-
+                                            
                                             tags$table(class = "download-table-styled",
                                                        tags$thead(
                                                          tags$tr(
@@ -1223,23 +1230,25 @@ ui <- fluidPage(
                                                            tags$td(class = "dataset-name", "CliPP TCGA Summary"),
                                                            tags$td("Comprehensive CliPP analysis results for all TCGA samples"),
                                                            tags$td(tags$span(class = "file-type-badge", "TSV")),
-                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/TCGAdata.html", class = "download-btn", target = "_blank", "Download"),
-                                                                   tags$span(class = "file-size", " (~5MB)"))
+                                                           tags$td(
+                                                             actionButton("downloadTCGA", "Download", class = "download-btn"),
+                                                             tags$span(class = "file-size", " (~5MB)")
+                                                           )
                                                          ),
                                                          tags$tr(
                                                            tags$td(class = "dataset-name", "Individual Sample Data"),
                                                            tags$td("Per-sample mutation assignments and clonal structure"),
                                                            tags$td(tags$span(class = "file-type-badge", "TXT Files")),
-                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/TCGAdata.html", class = "browse-btn", target = "_blank", "Browse Data"))
+                                                           tags$td(actionButton("browseTCGA", "Browse Data", class = "browse-btn"))
                                                          )
                                                        )
                                             )
                                         ),
-
+                                        
                                         # PCAWG section
                                         div(id = "pcawg-section", class = "download-section",
                                             tags$h3(tags$b("PCAWG Dataset Downloads"), style = "color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 10px;"),
-
+                                            
                                             div(class = "metadata-card",
                                                 tags$b("Dataset Information:"),
                                                 tags$ul(
@@ -1249,7 +1258,7 @@ ui <- fluidPage(
                                                   tags$li("File formats: TSV, TXT")
                                                 )
                                             ),
-
+                                            
                                             tags$table(class = "download-table-styled",
                                                        tags$thead(
                                                          tags$tr(
@@ -1264,19 +1273,21 @@ ui <- fluidPage(
                                                            tags$td(class = "dataset-name", "CliPP PCAWG Summary"),
                                                            tags$td("Comprehensive CliPP analysis results for all PCAWG samples"),
                                                            tags$td(tags$span(class = "file-type-badge", "TSV")),
-                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/PCAWGdata.html", class = "download-btn", target = "_blank", "Download"),
-                                                                   tags$span(class = "file-size", " (~2.5MB)"))
+                                                           tags$td(
+                                                             actionButton("downloadPCAWG", "Download", class = "download-btn"),
+                                                             tags$span(class = "file-size", " (~2.5MB)")
+                                                           )
                                                          ),
                                                          tags$tr(
                                                            tags$td(class = "dataset-name", "Individual Sample Data"),
                                                            tags$td("Per-sample mutation assignments and clonal structure"),
                                                            tags$td(tags$span(class = "file-type-badge", "TXT Files")),
-                                                           tags$td(a(href = "https://odin.mdacc.tmc.edu/~wwang7/CliPP_data_share/PCAWGdata.html", class = "browse-btn", target = "_blank", "Browse Data"))
+                                                           tags$td(actionButton("browsePCAWG", "Browse Data", class = "browse-btn"))
                                                          )
                                                        )
                                             )
                                         ),
-
+                                        
                                         # Usage and Citation
                                         div(class = "citation-section",
                                             tags$h4(tags$b("Data Usage & Citation"), style = "color: #2c3e50; margin-top: 40px;"),
@@ -1293,7 +1304,7 @@ ui <- fluidPage(
                                )
                       )
              ),
-
+             
              tabPanel("Citations",
                       tags$div(
                         tags$h4(tags$b(tags$span("Manuscript under preparation:"))),
@@ -1307,7 +1318,7 @@ ui <- fluidPage(
                         in cancers with low to moderate TMB.",
                           a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1",
                             "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"),"."),
-
+                        
                       )
              )
   ))
