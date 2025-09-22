@@ -552,7 +552,7 @@ ui <- fluidPage(
                           )
                         ),
                         
-                        
+                      
                         # Row 1: Data Upload and Resources
                         tags$div(
                           class = "tutorial-row", 
@@ -1144,9 +1144,13 @@ ui <- fluidPage(
 
                                             div(class = "metadata-card", style = "background: #e1f5fe; border-left: 4px solid #0288d1;",
                                                 tags$b("🔐 Authentication Required:"),
-                                                p("These downloads require password authentication. When prompted, use:"),
-                                                p(tags$b("Password: "), tags$code("wwylab_CliPP", style = "background: #f5f5f5; padding: 2px 6px; font-family: monospace; color: #d32f2f;")),
-                                                p(tags$em("Note: The password prompt will appear after clicking the download links."))
+                                                p("These downloads require password authentication. When you click a download button:"),
+                                                tags$ul(
+                                                  tags$li("The link will open in your default browser"),
+                                                  tags$li("A notification with the password will appear in this app"),
+                                                  tags$li("Enter the password when prompted by the website")
+                                                ),
+                                                p(tags$em("Note: Password is only provided when you attempt to download."))
                                             ),
 
                                             div(class = "metadata-card", style = "background: #fff3cd; border-left: 4px solid #ffc107;",
