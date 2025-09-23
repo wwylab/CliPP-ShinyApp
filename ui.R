@@ -1320,8 +1320,8 @@ ui <- fluidPage(
                         Jennifer R. Wang, Maxime Tarabichi, Rebecca Fitzgerald, Peter Van Loo, Hongtu Zhu,
                         Wenyi Wang. Subclonal mutational load predicts survival and response to immunotherapy
                         in cancers with low to moderate TMB.",
-                          a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1",
-                            "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v1"),"."),
+                          a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v2",
+                            "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v2"),"."),
                         
                       )
              )
