@@ -657,11 +657,11 @@ ui <- fluidPage(
                               p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
                               Please check the three links below to download the example files:"),
                               p(a("SNV file", href="sample.snv.txt", download="sample.snv.txt"),
-                                "A tab separated text file with columns: chromosome_index, position, ref_count, alt_count", br(),
+                                "A tab-separated text file (.txt) with columns: chromosome_index, position, ref_count, alt_count", br(),
                                 a("CNA file", href="sample.cna.txt", download="sample.cna.txt"),
-                                "A tab separated text file with columns: chromosome_index, start_position, end_position, major_cn, minor_cn, and total_cn", br(),
+                                "A tab-separated text file (.txt) with columns: chromosome_index, start_position, end_position, major_cn, minor_cn, and total_cn", br(),
                                 a("Purity file", href="sample.purity.txt", download="sample.purity.txt"),
-                                "File storing a scalar purity value between 0 and 1"
+                                "A text file (.txt) storing a scalar purity value between 0 and 1"
                               )
                             ),
                             radioButtons("uploadMode", "Choose your upload method:",
@@ -1040,7 +1040,7 @@ ui <- fluidPage(
                                                           style = "display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;",
                                                           tags$div(
                                                             tags$p("1. All cohorts (TCGA, OCCAMS, mCRPC) are included", style = "margin: 5px 0;"),
-                                                            tags$p("2. Filter TCGA cancer types (optional)", style = "margin: 5px 0;")
+                                                            tags$p("2. Filter cancer types", style = "margin: 5px 0;")
                                                           ),
                                                           tags$div(
                                                             tags$p("3. Toggle correlation values display", style = "margin: 5px 0;"),
@@ -1073,17 +1073,10 @@ ui <- fluidPage(
                                                                                  tags$div(class = "legend-symbol", style = "background: linear-gradient(90deg, blue, white, red);"),
                                                                                  tags$div(class = "legend-text", "Correlation scale: -1 (blue) to +1 (red)")
                                                                         ),
-                                                                        tags$div(class = "legend-item",
-                                                                                 tags$div(class = "legend-symbol", style = "background: #3498db;"),
-                                                                                 tags$div(class = "legend-text", "TMB: Tumor Mutational Burden")
-                                                                        ),
-                                                                        tags$div(class = "legend-item",
-                                                                                 tags$div(class = "legend-symbol", style = "background: #e74c3c;"),
-                                                                                 tags$div(class = "legend-text", "NRPCC: Non-reference ploidy corrected copy number")
-                                                                        ),
-                                                                        tags$div(class = "legend-item",
-                                                                                 tags$div(class = "legend-symbol", style = "background: #27ae60;"),
-                                                                                 tags$div(class = "legend-text", "Purity: Tumor purity estimates")
+                                                                        tags$ul(style = "margin-top: 10px;",
+                                                                                tags$li("TMB: Tumor Mutational Burden"),
+                                                                                tags$li("NRPCC: Non-reference ploidy corrected copy number"),
+                                                                                tags$li("Purity: Tumor purity estimates")
                                                                         )
                                                                )
                                                         ),
