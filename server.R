@@ -2464,20 +2464,17 @@ server <- function(input, output, session) {
         tags$div(
           style = "display: flex; align-items: center; padding: 3px 0;",
           tags$span("✓", style = "color: #28a745; margin-right: 8px; font-weight: bold;"),
-          tags$span("TCGA", style = "color: #495057;"),
-          tags$span("(filtered by cancer type selection)", style = "color: #6c757d; font-size: 11px; margin-left: 8px; font-style: italic;")
+          tags$span("TCGA", style = "color: #495057;")
         ),
         tags$div(
           style = "display: flex; align-items: center; padding: 3px 0;",
           tags$span("✓", style = "color: #28a745; margin-right: 8px; font-weight: bold;"),
-          tags$span("OCCAMS", style = "color: #495057;"),
-          tags$span("(oesophageal, always included)", style = "color: #6c757d; font-size: 11px; margin-left: 8px; font-style: italic;")
+          tags$span("OCCAMS", style = "color: #495057;")
         ),
         tags$div(
           style = "display: flex; align-items: center; padding: 3px 0;",
           tags$span("✓", style = "color: #28a745; margin-right: 8px; font-weight: bold;"),
-          tags$span("mCRPC", style = "color: #495057;"),
-          tags$span("(prostate, always included)", style = "color: #6c757d; font-size: 11px; margin-left: 8px; font-style: italic;")
+          tags$span("mCRPC", style = "color: #495057;")
         )
       ),
       # Hidden input to maintain the selected cohorts for server logic
@@ -2503,8 +2500,6 @@ server <- function(input, output, session) {
     tags$div(
       tags$label("Filter TCGA Cancer Types:",
                  style = "font-weight: bold; margin-bottom: 5px; display: block;"),
-      tags$p("Note: OCCAMS (oesophageal) and mCRPC (prostate) are always included",
-             style = "font-size: 12px; color: #6c757d; margin: 5px 0;"),
       selectInput("selected_cancer_types_heatmap",
                   NULL,  # No label since we have custom label above
                   choices = c("All TCGA cancer types" = "", setNames(available_types, available_types)),
