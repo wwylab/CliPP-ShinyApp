@@ -517,12 +517,13 @@ ui <- fluidPage(
                         p(tags$b("Addressing Computational Challenges in Subclonal Analysis")),
                         p("Intra-tumor heterogeneity plays a critical role in tumor evolution and therapeutic resistance. However, large-scale subclonal reconstruction has traditionally been constrained by computational limitations. CliPP-on-Web overcomes these challenges by enabling high-throughput, efficient analysis of sequencing data at scale."),
                         p(tags$b("Efficient, Large-Scale Analysis")),
-                        p("Leveraging an optimized likelihood-based clustering model, CliPP has successfully processed whole-genome and whole-exome sequencing data from over 10,000 tumor samples across TCGA and PCAWG. These datasets are accessible for further exploration in the Data Resources tab."),
+                        p("Leveraging an optimized likelihood-based clustering model, CliPP has successfully processed whole-genome and whole-exome sequencing data from over 10,000 tumor samples across TCGA and PCAWG. These datasets are accessible for further exploration in the CliPP Data Resources tab."),
                         p(tags$b("Key Features")),
                         tags$ul(
                           tags$li("Analyze Your Own Data: Upload tumor sequencing data and obtain rapid subclonal reconstruction results."),
                           tags$li("Access Curated Datasets: Explore pre-processed subclonal analyses from PCAWG and TCGA."),
-                          tags$li("Driver Mutation Subclonality: Investigate the clonal architecture of key driver mutations in TCGA.")
+                          tags$li("Driver Mutation Subclonality: Investigate the clonal architecture of key driver mutations in TCGA."),
+                          tags$li("Data Exploration: Perform Kaplan-Meier survival analysis and sMF correlation heatmaps.")
                         ),
                         p("For detailed methodology, refer to our BioRxiv preprint: ",
                           a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v2",
@@ -654,14 +655,22 @@ ui <- fluidPage(
                         sidebarLayout(
                           sidebarPanel(
                             tags$div(
-                              p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
-                              Please check the three links below to download the example files:"),
+                              p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File."),
+                              p(tags$b(tags$span(style = "color: #D22B2B;", "Important:")),
+                                " File extensions are case-sensitive. Files MUST end with ",
+                                tags$code(".snv.txt"), ", ",
+                                tags$code(".cna.txt"), ", and ",
+                                tags$code(".purity.txt"), " respectively."),
+                              p("Download example files below:"),
                               p(a("SNV file", href="sample.snv.txt", download="sample.snv.txt"),
-                                "A tab-separated text file (.txt) with columns: chromosome_index, position, ref_count, alt_count", br(),
+                                " - Tab-separated file (must end with ", tags$code(".snv.txt"),
+                                ") with columns: chromosome_index, position, ref_count, alt_count", br(),
                                 a("CNA file", href="sample.cna.txt", download="sample.cna.txt"),
-                                "A tab-separated text file (.txt) with columns: chromosome_index, start_position, end_position, major_cn, minor_cn, and total_cn", br(),
+                                " - Tab-separated file (must end with ", tags$code(".cna.txt"),
+                                ") with columns: chromosome_index, start_position, end_position, major_cn, minor_cn, and total_cn", br(),
                                 a("Purity file", href="sample.purity.txt", download="sample.purity.txt"),
-                                "A text file (.txt) storing a scalar purity value between 0 and 1"
+                                " - Text file (must end with ", tags$code(".purity.txt"),
+                                ") storing a scalar purity value between 0 and 1"
                               )
                             ),
                             radioButtons("uploadMode", "Choose your upload method:",
@@ -988,14 +997,6 @@ ui <- fluidPage(
                                                                         tags$div(class = "legend-item",
                                                                                  tags$div(class = "legend-symbol", style = "background: #D6ACC0;"),
                                                                                  tags$div(class = "legend-text", "Low sMF: Lower subclonal mutation burden")
-                                                                        ),
-                                                                        tags$div(class = "legend-item",
-                                                                                 tags$div(class = "legend-symbol", style = "background: transparent; border: 1px solid #666;"),
-                                                                                 tags$div(class = "legend-text", "sMF: Subclonal Mutational Fraction")
-                                                                        ),
-                                                                        tags$div(class = "legend-item",
-                                                                                 tags$div(class = "legend-symbol", style = "background: #f39c12;"),
-                                                                                 tags$div(class = "legend-text", "P-value: Log-rank test significance")
                                                                         )
                                                                )
                                                         ),
@@ -1003,7 +1004,7 @@ ui <- fluidPage(
                                                         column(9,
                                                                # Plot Section
                                                                tags$div(class = "plot-section",
-                                                                        plotlyOutput("survivalPlot", height = "600px")
+                                                                        plotlyOutput("survivalPlot", height = "450px")
                                                                ),
                                                                
                                                                # Analysis Results (only show when plot exists)
@@ -1031,52 +1032,21 @@ ui <- fluidPage(
                                                       tags$h3(tags$b("sMF Correlation Heatmap"), style = "color: #2c3e50; margin-bottom: 10px;"),
                                                       tags$p("Explore correlations between subclonal mutational fraction (sMF) and key genomic features across different cancer types and cohorts.",
                                                              style = "color: #7f8c8d; font-size: 16px; margin-bottom: 30px;"),
-                                                      
-                                                      # Instructions panel
-                                                      tags$div(
-                                                        class = "instructions-card",
-                                                        tags$h5(tags$b("Analysis Instructions"), style = "color: #2c3e50; margin-bottom: 15px;"),
-                                                        tags$div(
-                                                          style = "display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;",
-                                                          tags$div(
-                                                            tags$p("1. All cohorts (TCGA, OCCAMS, mCRPC) are included", style = "margin: 5px 0;"),
-                                                            tags$p("2. Filter cancer types", style = "margin: 5px 0;")
-                                                          ),
-                                                          tags$div(
-                                                            tags$p("3. Toggle correlation values display", style = "margin: 5px 0;"),
-                                                            tags$p("4. View correlation patterns and summary", style = "margin: 5px 0;")
-                                                          )
-                                                        )
-                                                      ),
-                                                      
+
                                                       # Controls and Plot Layout
                                                       fluidRow(
                                                         column(3,
                                                                tags$div(class = "legend-panel",
                                                                         uiOutput("cohort_ui_heatmap"),
-                                                                        
+
                                                                         uiOutput("cancer_types_ui_heatmap"),
-                                                                        
+
                                                                         checkboxInput("show_numbers_heatmap", "Show correlation values", value = TRUE),
-                                                                        
+
                                                                         div(style = "text-align: center; margin: 20px 0;",
                                                                             actionButton("generate_heatmap", "Generate Heatmap", class = "btn-primary", style = "width: 100%; margin-bottom: 10px;"),
                                                                             downloadButton("download_heatmap", "Download Plot", class = "btn-secondary", style = "width: 100%; margin-bottom: 5px;"),
                                                                             downloadButton("download_heatmap_data", "Download Data", class = "btn-secondary", style = "width: 100%;")
-                                                                        )
-                                                               ),
-                                                               
-                                                               # Legend Panel
-                                                               tags$div(class = "legend-panel",
-                                                                        tags$h5(tags$b("Legend & Interpretation")),
-                                                                        tags$div(class = "legend-item",
-                                                                                 tags$div(class = "legend-symbol", style = "background: linear-gradient(90deg, blue, white, red);"),
-                                                                                 tags$div(class = "legend-text", "Correlation scale: -1 (blue) to +1 (red)")
-                                                                        ),
-                                                                        tags$ul(style = "margin-top: 10px;",
-                                                                                tags$li("TMB: Tumor Mutational Burden"),
-                                                                                tags$li("NRPCC: Non-reference ploidy corrected copy number"),
-                                                                                tags$li("Purity: Tumor purity estimates")
                                                                         )
                                                                )
                                                         ),
