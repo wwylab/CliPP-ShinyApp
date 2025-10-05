@@ -2611,12 +2611,39 @@ server <- function(input, output, session) {
   output$download_heatmap_data <- downloadHandler(
     filename = function() {
       cohorts_str <- paste(input$selected_cohorts_heatmap, collapse = "_")
-      paste0("sMF_correlation_data_", cohorts_str, "_", Sys.Date(), ".csv")
+      cancer_types <- if (!is.null(input$selected_cancer_types_heatmap) && length(input$selected_cancer_types_heatmap) > 0) {
+        paste0("_", paste(input$selected_cancer_types_heatmap, collapse = "_"))
+      } else {
+        ""
+      }
+      paste0("sMF_correlation_data_", cohorts_str, cancer_types, "_", Sys.Date(), ".csv")
     },
     content = function(file) {
-      summary_data <- current_heatmap_summary()
-      if (!is.null(summary_data)) {
-        write.csv(summary_data, file, row.names = FALSE)
+      req(input$selected_cohorts_heatmap)
+
+      # Get the filtered heatmap data
+      selected_cancer_types <- input$selected_cancer_types_heatmap
+      if (is.null(selected_cancer_types) || length(selected_cancer_types) == 0 || "" %in% selected_cancer_types) {
+        selected_cancer_types <- NULL
+      }
+
+      heatmap_data <- load_heatmap_data()
+
+      # Filter data based on selections
+      plot_data <- heatmap_data
+
+      if (!is.null(input$selected_cohorts_heatmap) && length(input$selected_cohorts_heatmap) > 0) {
+        plot_data <- plot_data %>%
+          filter(cohort %in% input$selected_cohorts_heatmap)
+      }
+
+      if (!is.null(selected_cancer_types) && length(selected_cancer_types) > 0) {
+        plot_data <- plot_data %>%
+          filter(cancer_type %in% selected_cancer_types)
+      }
+
+      if (nrow(plot_data) > 0) {
+        write.csv(plot_data, file, row.names = FALSE)
       }
     }
   )
