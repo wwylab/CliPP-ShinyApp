@@ -23,7 +23,9 @@ load_heatmap_data <- function() {
     final_cohort_result <- data.table::fread(final_cohort_file)
 
     # Calculate correlations for TCGA data
+    # Exclude PRAD from TCGA since it will be represented separately as mCRPC
     correlations <- final_cohort_result %>%
+      filter(cancer_type != "PRAD") %>%
       group_by(cancer_type) %>%
       reframe(
         TMB_cor = cor(sML, new_TMB, use = "complete.obs"),
@@ -41,7 +43,7 @@ load_heatmap_data <- function() {
         occams_data <- OCCAMS_with_SI[!is.na(OCCAMS_with_SI$sML), ]
         if (nrow(occams_data) > 0) {
           occams_cor <- data.frame(
-            cancer_type = "ESAD (OCCAMS)",
+            cancer_type = "OCCAMS",
             TMB_cor = cor(occams_data$sML, occams_data$cdsTMB, use = "complete.obs"),
             nrpcc_cor = cor(occams_data$sML, occams_data$nrpcc, use = "complete.obs"),
             purity_cor = cor(occams_data$sML, occams_data$purity, use = "complete.obs"),
@@ -87,7 +89,7 @@ load_heatmap_data <- function() {
               # Only add if correlations are valid (not NA)
               if (!is.na(tmb_cor) && !is.na(nrpcc_cor) && !is.na(purity_cor)) {
                 mcrpc_cor <- data.frame(
-                  cancer_type = "PRAD (PCAWG)",
+                  cancer_type = "mCRPC",
                   TMB_cor = tmb_cor,
                   nrpcc_cor = nrpcc_cor,
                   purity_cor = purity_cor,
@@ -111,6 +113,7 @@ load_heatmap_data <- function() {
         break  # Use first available file
       }
     }
+
 
     return(correlations)
 
@@ -144,12 +147,9 @@ create_heatmap_plot <- function(data, selected_cohorts = NULL,
   }
 
   if (!is.null(selected_cancer_types) && length(selected_cancer_types) > 0) {
-    # Always include OCCAMS and mCRPC, plus selected TCGA cancer types
+    # Filter by selected cancer types
     plot_data <- plot_data %>%
-      filter(
-        cohort %in% c("OCCAMS", "mCRPC") |
-        (cohort == "TCGA" & cancer_type %in% selected_cancer_types)
-      )
+      filter(cancer_type %in% selected_cancer_types)
   }
 
   if (nrow(plot_data) == 0) {
@@ -196,8 +196,12 @@ create_heatmap_plot <- function(data, selected_cohorts = NULL,
     column_names_rot = 45,
     heatmap_legend_param = list(
       title = "Pearson\nCorrelation",
+      title_gp = gpar(fontsize = 14, fontface = "bold"),
+      labels_gp = gpar(fontsize = 12),
       at = c(-1, -0.5, 0, 0.5, 1),
-      labels = c("-1", "-0.5", "0", "0.5", "1")
+      labels = c("-1", "-0.5", "0", "0.5", "1"),
+      grid_height = unit(0.8, "cm"),
+      grid_width = unit(0.8, "cm")
     ),
     cell_fun = if (show_numbers) {
       function(j, i, x, y, width, height, fill) {
@@ -225,17 +229,17 @@ get_available_cohorts_heatmap <- function(data) {
   return(sort(cohorts))
 }
 
-#' Get available cancer types for heatmap analysis (TCGA only)
+#' Get available cancer types for heatmap analysis
 #' @param data Data frame with correlation data
-#' @return Vector of TCGA cancer types only
+#' @return Vector of all cancer types
 get_available_cancer_types_heatmap <- function(data) {
   if (nrow(data) == 0) {
     return(character(0))
   }
 
-  # Only return cancer types from TCGA cohort
-  tcga_cancer_types <- unique(data$cancer_type[data$cohort == "TCGA"])
-  return(sort(tcga_cancer_types))
+  # Return all unique cancer types from all cohorts
+  all_cancer_types <- unique(data$cancer_type)
+  return(sort(all_cancer_types))
 }
 
 #' Create summary statistics for heatmap data
