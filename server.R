@@ -1157,24 +1157,26 @@ server <- function(input, output, session) {
   
   observeEvent(input$clear, {
     uploaded_samples$samples <- list()
-    samples_uploaded(FALSE)    
+    samples_uploaded(FALSE)
     updateNumericInput(session, "numSamples", value = 1)
     shinyjs::enable("numSamples")
-    shinyjs::reset("dynamicFileInputs")
-    
+
+    # Clear dynamic file inputs
+    output$dynamicFileInputs <- renderUI({ NULL })
+
     elements_to_hide <- c(
       "selectedSample", "submit", "colorBy", "clear",
       "plot1", "plot2", "caption1", "caption2",
       "smoothingFactor1", "smoothingFactor2",
-      "smoothingExplanation1", "smoothingExplanation2"
+      "smoothingExplanation1", "smoothingExplanation2",
+      "uploadSamples"
     )
-    
+
     for (element in elements_to_hide) {
       shinyjs::hide(element)
     }
-    
+
     shinyjs::show("setSamples")
-    shinyjs::show("uploadSamples")
     
     output$plot1 <- renderPlotly({ NULL })
     output$plot2 <- renderPlotly({ NULL })
