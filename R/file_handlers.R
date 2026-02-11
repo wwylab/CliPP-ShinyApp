@@ -106,7 +106,7 @@ process_sample_files <- function(sampleFiles, selectedSample) {
     dir.create(finalResultPath, recursive = TRUE, showWarnings = FALSE)
   }
   
-  command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
+  command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s --filtering 2",
                      shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile))
   
   cat("Executing command:", command, "\n")
@@ -405,7 +405,7 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
     dir.create(finalResultPath, recursive = TRUE, showWarnings = FALSE)
   }
   
-  command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
+  command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s --filtering 2",
                      shQuote(snvFile[1]), shQuote(cnaFile[1]), shQuote(purityFile[1]))
   
   cat("Executing command:", command, "\n")
