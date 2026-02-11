@@ -245,7 +245,7 @@ process_sample_files <- function(sampleFiles, sampleName) {
     dir.create(finalResultPath, recursive = TRUE, showWarnings = TRUE)
   }
   
-  command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
+  command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s --filtering 2",
                      shQuote(sampleFiles$snvFile), shQuote(sampleFiles$cnaFile), shQuote(sampleFiles$purityFile))
   
   result <- tryCatch({
