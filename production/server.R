@@ -265,8 +265,8 @@ server <- function(input, output, session) {
       incProgress(0.5, detail = "Executing analysis...")
       
       # Construct the command
-      command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s",
-                         shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile))
+      command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s --filtering 2",
+                   shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile))
       
       # Debugging
       cat("Executing command:", command, "\n")
