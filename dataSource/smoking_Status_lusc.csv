@@ -1,0 +1,381 @@
+tcga_id,Smoking.Status,Smoking.Status2
+TCGA-6A-AB49,NA,NA
+TCGA-18-3406,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-18-3408,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-18-3410,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-18-3411,Current smoker,Ever smoker == T
+TCGA-18-3414,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-18-3415,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-18-3417,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-18-4083,Current smoker,Ever smoker == T
+TCGA-18-4721,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-18-5592,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-18-5595,Lifelong Non-smoker,Lifelong Non-smoker
+TCGA-21-1075,NA,NA
+TCGA-21-1077,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-21-1078,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-21-1079,NA,NA
+TCGA-21-1080,NA,NA
+TCGA-21-1082,NA,NA
+TCGA-21-1083,NA,NA
+TCGA-21-5782,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-21-5783,NA,NA
+TCGA-21-5786,Current smoker,Ever smoker == T
+TCGA-21-5787,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-21-A5DI,NA,NA
+TCGA-22-0944,Current smoker,Ever smoker == T
+TCGA-22-1002,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-22-1011,Current smoker,Ever smoker == T
+TCGA-22-1012,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-22-4591,Current smoker,Ever smoker == T
+TCGA-22-4594,NA,NA
+TCGA-22-4595,Current smoker,Ever smoker == T
+TCGA-22-4599,Current smoker,Ever smoker == T
+TCGA-22-4601,Current smoker,Ever smoker == T
+TCGA-22-4604,Current smoker,Ever smoker == T
+TCGA-22-4607,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-22-4609,NA,NA
+TCGA-22-4613,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-22-5471,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-22-5472,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-22-5473,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-22-5474,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-22-5477,Current smoker,Ever smoker == T
+TCGA-22-5478,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-22-5480,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-22-5481,NA,NA
+TCGA-22-5482,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-22-5485,Current smoker,Ever smoker == T
+TCGA-22-5489,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-22-5491,Current smoker,Ever smoker == T
+TCGA-22-5492,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-22-A5C4,NA,NA
+TCGA-33-4532,Current smoker,Ever smoker == T
+TCGA-33-4533,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-33-4538,Current smoker,Ever smoker == T
+TCGA-33-4547,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-33-4566,Current smoker,Ever smoker == T
+TCGA-33-4582,Current smoker,Ever smoker == T
+TCGA-33-4583,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-33-4586,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-33-4587,NA,NA
+TCGA-33-6737,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-33-6738,NA,NA
+TCGA-33-A5GW,NA,NA
+TCGA-33-AAS8,NA,NA
+TCGA-33-AASB,NA,NA
+TCGA-33-AASI,NA,NA
+TCGA-33-AASJ,NA,NA
+TCGA-34-2596,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-34-2600,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-34-2604,NA,NA
+TCGA-34-2605,NA,NA
+TCGA-34-2608,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-34-2609,NA,NA
+TCGA-34-5231,N/A,N/A
+TCGA-34-5232,N/A,N/A
+TCGA-34-5234,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-34-5236,N/A,N/A
+TCGA-34-5240,Current smoker,Ever smoker == T
+TCGA-34-5927,N/A,N/A
+TCGA-34-5928,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-34-7107,NA,NA
+TCGA-34-8454,NA,NA
+TCGA-34-8456,NA,NA
+TCGA-37-3783,N/A,N/A
+TCGA-37-3789,Lifelong Non-smoker,Lifelong Non-smoker
+TCGA-37-4130,NA,NA
+TCGA-37-4132,NA,NA
+TCGA-37-4133,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-37-4135,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-37-4141,Lifelong Non-smoker,Lifelong Non-smoker
+TCGA-37-5819,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-37-A5EN,NA,NA
+TCGA-39-5011,NA,NA
+TCGA-39-5016,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-39-5021,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-39-5022,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-39-5024,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-39-5028,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-39-5029,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-39-5030,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-39-5031,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-39-5034,NA,NA
+TCGA-39-5035,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-39-5036,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-39-5039,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-39-5040,NA,NA
+TCGA-43-2576,NA,NA
+TCGA-43-2581,NA,NA
+TCGA-43-3394,Current smoker,Ever smoker == T
+TCGA-43-5668,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-43-5670,NA,NA
+TCGA-43-6143,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-43-6647,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-43-6770,Current smoker,Ever smoker == T
+TCGA-43-7657,NA,NA
+TCGA-43-7658,NA,NA
+TCGA-43-8115,NA,NA
+TCGA-43-8116,NA,NA
+TCGA-43-8118,NA,NA
+TCGA-43-A56V,NA,NA
+TCGA-43-A474,NA,NA
+TCGA-46-3769,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-46-6025,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-51-4079,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-51-4080,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-51-4081,Current smoker,Ever smoker == T
+TCGA-52-7809,NA,NA
+TCGA-52-7810,NA,NA
+TCGA-52-7812,NA,NA
+TCGA-56-1622,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-56-5898,Current smoker,Ever smoker == T
+TCGA-56-6545,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-56-6546,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-56-7221,NA,NA
+TCGA-56-7222,NA,NA
+TCGA-56-7223,NA,NA
+TCGA-56-7579,NA,NA
+TCGA-56-7580,NA,NA
+TCGA-56-7730,NA,NA
+TCGA-56-7822,NA,NA
+TCGA-56-8082,NA,NA
+TCGA-56-8083,NA,NA
+TCGA-56-8201,NA,NA
+TCGA-56-8304,NA,NA
+TCGA-56-8305,NA,NA
+TCGA-56-8307,NA,NA
+TCGA-56-8308,NA,NA
+TCGA-56-8503,NA,NA
+TCGA-56-8504,NA,NA
+TCGA-56-8622,NA,NA
+TCGA-56-8625,NA,NA
+TCGA-56-8626,NA,NA
+TCGA-56-8628,NA,NA
+TCGA-56-A4BW,NA,NA
+TCGA-56-A4BY,NA,NA
+TCGA-56-A4ZK,NA,NA
+TCGA-56-A49D,NA,NA
+TCGA-56-A62T,NA,NA
+TCGA-58-8386,NA,NA
+TCGA-58-8387,NA,NA
+TCGA-58-8388,NA,NA
+TCGA-58-8391,NA,NA
+TCGA-58-8393,NA,NA
+TCGA-58-A46K,NA,NA
+TCGA-58-A46L,NA,NA
+TCGA-58-A46M,NA,NA
+TCGA-58-A46N,NA,NA
+TCGA-60-2695,NA,NA
+TCGA-60-2698,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-60-2707,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-60-2708,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-60-2709,Current smoker,Ever smoker == T
+TCGA-60-2710,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-60-2711,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-60-2712,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-60-2713,Current smoker,Ever smoker == T
+TCGA-60-2714,NA,NA
+TCGA-60-2715,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-60-2719,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-60-2722,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-60-2723,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-60-2724,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-60-2725,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-60-2726,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-63-5128,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-63-6202,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-63-7020,NA,NA
+TCGA-63-7021,NA,NA
+TCGA-63-7023,NA,NA
+TCGA-63-A5M9,NA,NA
+TCGA-63-A5MB,NA,NA
+TCGA-63-A5MH,NA,NA
+TCGA-63-A5MI,NA,NA
+TCGA-63-A5MM,NA,NA
+TCGA-63-A5MR,NA,NA
+TCGA-63-A5MS,NA,NA
+TCGA-63-A5MT,NA,NA
+TCGA-63-A5MU,NA,NA
+TCGA-63-A5MW,NA,NA
+TCGA-63-A5MY,NA,NA
+TCGA-66-2742,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-66-2754,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2755,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-66-2756,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2757,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2758,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2759,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-66-2763,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2765,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2766,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2768,Lifelong Non-smoker,Lifelong Non-smoker
+TCGA-66-2769,NA,NA
+TCGA-66-2770,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-66-2771,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2773,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-66-2777,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2780,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-66-2781,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2782,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2783,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2785,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2786,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2788,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2789,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-66-2791,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2792,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2793,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2794,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-66-2795,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-66-2800,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-68-7755,NA,NA
+TCGA-68-7756,NA,NA
+TCGA-68-7757,NA,NA
+TCGA-68-8250,NA,NA
+TCGA-68-8251,NA,NA
+TCGA-68-A59J,NA,NA
+TCGA-70-6722,Lifelong Non-smoker,Lifelong Non-smoker
+TCGA-70-6723,Lifelong Non-smoker,Lifelong Non-smoker
+TCGA-77-6843,NA,NA
+TCGA-77-6844,NA,NA
+TCGA-77-6845,NA,NA
+TCGA-77-7139,NA,NA
+TCGA-77-7140,NA,NA
+TCGA-77-7141,NA,NA
+TCGA-77-7142,NA,NA
+TCGA-77-7335,NA,NA
+TCGA-77-7337,NA,NA
+TCGA-77-7338,NA,NA
+TCGA-77-7465,NA,NA
+TCGA-77-8007,NA,NA
+TCGA-77-8009,NA,NA
+TCGA-77-8130,NA,NA
+TCGA-77-8131,NA,NA
+TCGA-77-8133,NA,NA
+TCGA-77-8136,NA,NA
+TCGA-77-8139,NA,NA
+TCGA-77-8143,NA,NA
+TCGA-77-8145,NA,NA
+TCGA-77-8148,NA,NA
+TCGA-77-8150,NA,NA
+TCGA-77-8153,NA,NA
+TCGA-77-8154,NA,NA
+TCGA-77-8156,NA,NA
+TCGA-77-A5G3,NA,NA
+TCGA-77-A5GA,NA,NA
+TCGA-77-A5GF,NA,NA
+TCGA-77-A5GH,NA,NA
+TCGA-79-5596,NA,NA
+TCGA-85-6175,Lifelong Non-smoker,Lifelong Non-smoker
+TCGA-85-6560,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-85-6798,NA,NA
+TCGA-85-7696,NA,NA
+TCGA-85-7697,NA,NA
+TCGA-85-7698,NA,NA
+TCGA-85-7699,NA,NA
+TCGA-85-7710,NA,NA
+TCGA-85-7844,NA,NA
+TCGA-85-7950,NA,NA
+TCGA-85-8052,NA,NA
+TCGA-85-8070,NA,NA
+TCGA-85-8071,NA,NA
+TCGA-85-8072,NA,NA
+TCGA-85-8276,NA,NA
+TCGA-85-8277,NA,NA
+TCGA-85-8287,NA,NA
+TCGA-85-8288,NA,NA
+TCGA-85-8351,NA,NA
+TCGA-85-8353,NA,NA
+TCGA-85-8354,NA,NA
+TCGA-85-8355,NA,NA
+TCGA-85-8479,NA,NA
+TCGA-85-8580,NA,NA
+TCGA-85-A4CL,NA,NA
+TCGA-85-A4CN,NA,NA
+TCGA-85-A4JB,NA,NA
+TCGA-85-A4QQ,NA,NA
+TCGA-85-A4QR,NA,NA
+TCGA-85-A5B5,NA,NA
+TCGA-85-A510,NA,NA
+TCGA-85-A512,NA,NA
+TCGA-85-A513,NA,NA
+TCGA-90-7766,NA,NA
+TCGA-90-7767,NA,NA
+TCGA-90-7769,NA,NA
+TCGA-90-7964,NA,NA
+TCGA-90-A4ED,NA,NA
+TCGA-90-A4EE,NA,NA
+TCGA-90-A59Q,NA,NA
+TCGA-92-8063,NA,NA
+TCGA-92-8064,NA,NA
+TCGA-92-8065,NA,NA
+TCGA-94-7033,NA,NA
+TCGA-94-7557,NA,NA
+TCGA-94-7943,NA,NA
+TCGA-94-8035,NA,NA
+TCGA-94-8490,NA,NA
+TCGA-94-8491,NA,NA
+TCGA-94-A4VJ,NA,NA
+TCGA-94-A5I4,NA,NA
+TCGA-96-7544,NA,NA
+TCGA-96-8169,NA,NA
+TCGA-96-A4JK,NA,NA
+TCGA-96-A4JL,NA,NA
+TCGA-98-8020,NA,NA
+TCGA-98-8021,NA,NA
+TCGA-98-8022,NA,NA
+TCGA-98-8023,NA,NA
+TCGA-98-A53A,NA,NA
+TCGA-98-A53B,NA,NA
+TCGA-98-A53I,NA,NA
+TCGA-98-A53J,NA,NA
+TCGA-98-A538,NA,NA
+TCGA-98-A539,NA,NA
+TCGA-J1-A4AH,NA,NA
+TCGA-L3-A4E7,NA,NA
+TCGA-L3-A524,NA,NA
+TCGA-LA-A7SW,NA,NA
+TCGA-LA-A446,NA,NA
+TCGA-NC-A5HD,NA,NA
+TCGA-NC-A5HE,NA,NA
+TCGA-NC-A5HG,NA,NA
+TCGA-NC-A5HI,NA,NA
+TCGA-NC-A5HK,NA,NA
+TCGA-NC-A5HL,NA,NA
+TCGA-NC-A5HM,NA,NA
+TCGA-NC-A5HN,NA,NA
+TCGA-NC-A5HP,NA,NA
+TCGA-NC-A5HQ,NA,NA
+TCGA-NC-A5HR,NA,NA
+TCGA-NC-A5HT,NA,NA
+TCGA-NK-A5CT,NA,NA
+TCGA-NK-A5CX,NA,NA
+TCGA-NK-A5D1,NA,NA
+TCGA-NK-A7XE,NA,NA
+TCGA-O2-A5IB,NA,NA
+TCGA-O2-A52S,NA,NA
+TCGA-O2-A52V,NA,NA
+TCGA-O2-A52W,NA,NA
+TCGA-XC-AA0X,NA,NA
+TCGA-21-1076,Current reformed smoker for > 15 years,Ever smoker == T
+TCGA-22-1000,NA,NA
+TCGA-22-1005,NA,NA
+TCGA-22-4596,NA,NA
+TCGA-43-6773,NA,NA
+TCGA-43-A56U,NA,NA
+TCGA-56-A4ZJ,NA,NA
+TCGA-56-A5DS,NA,NA
+TCGA-60-2697,NA,NA
+TCGA-60-2716,NA,NA
+TCGA-60-2720,Current reformed smoker for < or = 15 years,Ever smoker == T
+TCGA-63-7022,NA,NA
+TCGA-63-A5MG,NA,NA
+TCGA-63-A5MN,NA,NA
+TCGA-77-A5G1,NA,NA
+TCGA-77-A5GB,NA,NA
+TCGA-85-A4PA,NA,NA
+TCGA-85-A50M,NA,NA
+TCGA-98-7454,NA,NA
+TCGA-98-A53H,NA,NA
+TCGA-NC-A5HJ,NA,NA
