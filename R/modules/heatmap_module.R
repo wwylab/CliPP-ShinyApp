@@ -13,7 +13,6 @@ load_heatmap_data <- function() {
   tryCatch({
     global_TCGA_PCAWG <- "dataSource"
 
-    # Load main cohort data (TCGA)
     final_cohort_file <- file.path(global_TCGA_PCAWG, "7279_final_cohort_result.txt")
     if (!file.exists(final_cohort_file)) {
       warning("Final cohort result file not found")
@@ -22,10 +21,7 @@ load_heatmap_data <- function() {
 
     final_cohort_result <- data.table::fread(final_cohort_file)
 
-    # Calculate correlations for TCGA data
-    # Exclude PRAD from TCGA since it will be represented separately as mCRPC
     correlations <- final_cohort_result %>%
-      filter(cancer_type != "PRAD") %>%
       group_by(cancer_type) %>%
       reframe(
         TMB_cor = cor(sML, new_TMB, use = "complete.obs"),
@@ -34,16 +30,14 @@ load_heatmap_data <- function() {
         cohort = "TCGA"
       )
 
-    # Add OCCAMS data if available
     occams_file <- file.path(global_TCGA_PCAWG, "OCCAMS_with_SI.RData")
     if (file.exists(occams_file)) {
       load(occams_file)
       if (exists("OCCAMS_with_SI")) {
-        # Filter out rows with NA values for sML
         occams_data <- OCCAMS_with_SI[!is.na(OCCAMS_with_SI$sML), ]
         if (nrow(occams_data) > 0) {
           occams_cor <- data.frame(
-            cancer_type = "OCCAMS",
+            cancer_type = "ESAD (OCCAMS)",
             TMB_cor = cor(occams_data$sML, occams_data$cdsTMB, use = "complete.obs"),
             nrpcc_cor = cor(occams_data$sML, occams_data$nrpcc, use = "complete.obs"),
             purity_cor = cor(occams_data$sML, occams_data$purity, use = "complete.obs"),
@@ -54,7 +48,7 @@ load_heatmap_data <- function() {
       }
     }
 
-    # Add mCRPC data if available - try multiple possible file locations
+    # mCRPC: try the dedicated summary file first, fall back to PCAWG table
     mcrpc_files <- c(
       file.path(global_TCGA_PCAWG, "mCRPC_21_summarytable.txt"),
       file.path(global_TCGA_PCAWG, "CliP_PCAWG_summary_table_debug_updated_sMF_TMB.txt")
@@ -64,21 +58,19 @@ load_heatmap_data <- function() {
       if (file.exists(mcrpc_file)) {
         mcrpc_data <- data.table::fread(mcrpc_file)
 
-        # If this is the PCAWG file, filter for mCRPC samples specifically
         if (basename(mcrpc_file) == "CliP_PCAWG_summary_table_debug_updated_sMF_TMB.txt") {
-          # For now, use PRAD samples as proxy for mCRPC until specific mCRPC data is available
+          # PRAD is the closest available proxy for mCRPC in the PCAWG table
           mcrpc_subset <- mcrpc_data[mcrpc_data$cancer_type == "PRAD", ]
           if (nrow(mcrpc_subset) > 0) {
-            # Filter out NA values and ensure we have valid data for correlations
             valid_subset <- mcrpc_subset[
               !is.na(mcrpc_subset$sMF) &
-              !is.na(mcrpc_subset$TMB) &
-              !is.na(mcrpc_subset$nrpcc) &
-              !is.na(mcrpc_subset$purity) &
-              is.finite(mcrpc_subset$sMF) &
-              is.finite(mcrpc_subset$TMB) &
-              is.finite(mcrpc_subset$nrpcc) &
-              is.finite(mcrpc_subset$purity),
+                !is.na(mcrpc_subset$TMB) &
+                !is.na(mcrpc_subset$nrpcc) &
+                !is.na(mcrpc_subset$purity) &
+                is.finite(mcrpc_subset$sMF) &
+                is.finite(mcrpc_subset$TMB) &
+                is.finite(mcrpc_subset$nrpcc) &
+                is.finite(mcrpc_subset$purity),
             ]
 
             if (nrow(valid_subset) > 2) {  # Need at least 3 points for correlation
@@ -86,10 +78,9 @@ load_heatmap_data <- function() {
               nrpcc_cor <- cor(valid_subset$sMF, valid_subset$nrpcc, use = "complete.obs")
               purity_cor <- cor(valid_subset$sMF, valid_subset$purity, use = "complete.obs")
 
-              # Only add if correlations are valid (not NA)
               if (!is.na(tmb_cor) && !is.na(nrpcc_cor) && !is.na(purity_cor)) {
                 mcrpc_cor <- data.frame(
-                  cancer_type = "mCRPC",
+                  cancer_type = "PRAD (PCAWG)",
                   TMB_cor = tmb_cor,
                   nrpcc_cor = nrpcc_cor,
                   purity_cor = purity_cor,
@@ -100,7 +91,7 @@ load_heatmap_data <- function() {
             }
           }
         } else {
-          # Direct mCRPC file (from IPI trial)
+          # mCRPC_21_summarytable.txt — dedicated IPI trial file
           mcrpc_cor <- data.frame(
             cancer_type = "mCRPC (IPI trial)",
             TMB_cor = cor(mcrpc_data$sML, mcrpc_data$TMB, use = "complete.obs"),
@@ -113,7 +104,6 @@ load_heatmap_data <- function() {
         break  # Use first available file
       }
     }
-
 
     return(correlations)
 
@@ -130,33 +120,32 @@ load_heatmap_data <- function() {
 #' @param show_numbers Boolean to show correlation values on heatmap
 #' @return ComplexHeatmap object
 create_heatmap_plot <- function(data, selected_cohorts = NULL,
-                               selected_cancer_types = NULL,
-                               show_numbers = TRUE) {
+                                selected_cancer_types = NULL,
+                                show_numbers = TRUE) {
 
   if (nrow(data) == 0) {
-    # Create empty plot with message
     return(grid::grid.newpage())
   }
 
-  # Filter data based on selections
   plot_data <- data
-
   if (!is.null(selected_cohorts) && length(selected_cohorts) > 0) {
     plot_data <- plot_data %>%
       filter(cohort %in% selected_cohorts)
   }
 
   if (!is.null(selected_cancer_types) && length(selected_cancer_types) > 0) {
-    # Filter by selected cancer types
+    # OCCAMS and mCRPC are always shown; filter only applies to TCGA rows
     plot_data <- plot_data %>%
-      filter(cancer_type %in% selected_cancer_types)
+      filter(
+        cohort %in% c("OCCAMS", "mCRPC") |
+          (cohort == "TCGA" & cancer_type %in% selected_cancer_types)
+      )
   }
 
   if (nrow(plot_data) == 0) {
     return(grid::grid.newpage())
   }
 
-  # Create correlation matrix - ensure all values are finite
   plot_data_clean <- plot_data %>%
     filter(
       is.finite(TMB_cor) & !is.na(TMB_cor),
@@ -176,16 +165,11 @@ create_heatmap_plot <- function(data, selected_cohorts = NULL,
   colnames(cor_mat) <- plot_data_clean$cancer_type
   rownames(cor_mat) <- c("TMB", "NRPCC", "Purity")
 
-  # Format numbers for annotation
   labels_mat <- matrix(sprintf("%.2f", cor_mat),
                        nrow = nrow(cor_mat),
                        dimnames = dimnames(cor_mat))
 
-  # Determine if we need to rotate text based on number of cancer types
-  num_cancer_types <- ncol(cor_mat)
-  rotate_text <- num_cancer_types > 20
-
-  # Create the heatmap
+  rotate_text <- ncol(cor_mat) > 20
   ht <- Heatmap(
     cor_mat,
     name = "Correlation",
@@ -196,12 +180,8 @@ create_heatmap_plot <- function(data, selected_cohorts = NULL,
     column_names_rot = 45,
     heatmap_legend_param = list(
       title = "Pearson\nCorrelation",
-      title_gp = gpar(fontsize = 14, fontface = "bold"),
-      labels_gp = gpar(fontsize = 12),
       at = c(-1, -0.5, 0, 0.5, 1),
-      labels = c("-1", "-0.5", "0", "0.5", "1"),
-      grid_height = unit(0.8, "cm"),
-      grid_width = unit(0.8, "cm")
+      labels = c("-1", "-0.5", "0", "0.5", "1")
     ),
     cell_fun = if (show_numbers) {
       function(j, i, x, y, width, height, fill) {
@@ -229,17 +209,16 @@ get_available_cohorts_heatmap <- function(data) {
   return(sort(cohorts))
 }
 
-#' Get available cancer types for heatmap analysis
+#' Get available cancer types for heatmap analysis (TCGA only)
 #' @param data Data frame with correlation data
-#' @return Vector of all cancer types
+#' @return Vector of TCGA cancer types only
 get_available_cancer_types_heatmap <- function(data) {
   if (nrow(data) == 0) {
     return(character(0))
   }
 
-  # Return all unique cancer types from all cohorts
-  all_cancer_types <- unique(data$cancer_type)
-  return(sort(all_cancer_types))
+  tcga_cancer_types <- unique(data$cancer_type[data$cohort == "TCGA"])
+  return(sort(tcga_cancer_types))
 }
 
 #' Create summary statistics for heatmap data
@@ -260,13 +239,13 @@ create_heatmap_summary <- function(data, selected_cohorts = NULL) {
       filter(cohort %in% selected_cohorts)
   }
 
-  # Calculate correlation ranges with better NA handling
-  valid_tmb <- plot_data$TMB_cor[!is.na(plot_data$TMB_cor) & is.finite(plot_data$TMB_cor)]
-  valid_nrpcc <- plot_data$nrpcc_cor[!is.na(plot_data$nrpcc_cor) & is.finite(plot_data$nrpcc_cor)]
-  valid_purity <- plot_data$purity_cor[!is.na(plot_data$purity_cor) & is.finite(plot_data$purity_cor)]
+  finite_ok <- function(x) x[!is.na(x) & is.finite(x)]
+  valid_tmb    <- finite_ok(plot_data$TMB_cor)
+  valid_nrpcc  <- finite_ok(plot_data$nrpcc_cor)
+  valid_purity <- finite_ok(plot_data$purity_cor)
 
-  tmb_range <- if (length(valid_tmb) > 0) range(valid_tmb) else c(0, 0)
-  nrpcc_range <- if (length(valid_nrpcc) > 0) range(valid_nrpcc) else c(0, 0)
+  tmb_range    <- if (length(valid_tmb)    > 0) range(valid_tmb)    else c(0, 0)
+  nrpcc_range  <- if (length(valid_nrpcc)  > 0) range(valid_nrpcc)  else c(0, 0)
   purity_range <- if (length(valid_purity) > 0) range(valid_purity) else c(0, 0)
 
   summary_stats <- data.frame(

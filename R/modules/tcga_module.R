@@ -62,7 +62,6 @@ tcgaUI <- function(id) {
       )
     ),
     
-    # Smoothing factor controls
     hidden(
       div(id = ns("smoothingControls"),
           fluidRow(
@@ -92,20 +91,15 @@ tcgaUI <- function(id) {
       )
     ),
     
-    # Plot outputs
     fluidRow(
       column(12,
-             # VAF Plot
              plotlyOutput(ns("plot1")),
              uiOutput(ns("caption1")),
-             
-             # CP Plot
              plotlyOutput(ns("plot2")),
              uiOutput(ns("caption2"))
       )
     ),
     
-    # Results download section
     hidden(
       div(id = ns("downloadSection"),
           wellPanel(

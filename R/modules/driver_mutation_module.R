@@ -95,19 +95,7 @@ driverMutationServer <- function(id, driver_data, global_path) {
       
       return(annotations)
     }
-    
-    # Recommended smoothing factor function
-    recommended_smoothing_factor <- function(total_mutations) {
-      min_smooth <- 0.2
-      max_smooth <- 0.7
-      min_mut <- 100
-      max_mut <- 10000
-      smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
-      smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
-      return(round(smoothing_factor, 2))
-    }
-    
-    # Initialize cancer type choices for both tabs
+
     observe({
       req(driver_data())
       
@@ -122,7 +110,6 @@ driverMutationServer <- function(id, driver_data, global_path) {
                         choices = cancer_types)
     })
     
-    # Update gene choices based on cancer type
     observeEvent(input$cancer_type_gene, {
       req(driver_data(), input$cancer_type_gene)
       cat("Updating genes for cancer type:", input$cancer_type_gene, "\n")
@@ -137,7 +124,6 @@ driverMutationServer <- function(id, driver_data, global_path) {
                         choices = genes)
     })
     
-    # Update sample choices based on cancer type
     observeEvent(input$cancer_type_sample, {
       req(driver_data(), input$cancer_type_sample)
       
@@ -151,7 +137,6 @@ driverMutationServer <- function(id, driver_data, global_path) {
                         choices = samples)
     })
     
-    # Process data by gene
     observeEvent(input$gene_name, {
       req(driver_data(), input$cancer_type_gene, input$gene_name)
       
@@ -168,7 +153,6 @@ driverMutationServer <- function(id, driver_data, global_path) {
         NULL
       })
       
-      # Display data table
       output$gene_mutation_table <- renderDT({
         if (is.null(filtered_data) || nrow(filtered_data) == 0) {
           return(datatable(data.frame(message = "No driver mutations found for this gene"),
@@ -190,10 +174,10 @@ driverMutationServer <- function(id, driver_data, global_path) {
                       backgroundColor = styleEqual(
                         c("Clonal", "Subclonal"),
                         c('#C9EDEF', '#FED9D7')
-                      ))
+                      )) %>%
+          formatRound(intersect(c('VAF', 'CP_unpenalized'), display_cols), digits = 3)
       })
-      
-      # Process data for visualization 
+
       if (!is.null(filtered_data) && nrow(filtered_data) > 0) {
         sample_mutation <- filtered_data[1, ]
         sample_name <- sample_mutation$sample
@@ -207,14 +191,13 @@ driverMutationServer <- function(id, driver_data, global_path) {
           
           mutation_vaf <- sample_mutation$VAF
           
-          # Subclonality counts
           subclonality_counts <- data.frame(
             Subclonality = c("Clonal", "Subclonal"),
             n = c(100, 80)
           )
           
           g <- ggplot(default_data, aes(x = AF)) +
-            geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1) +
+            geom_density(fill = "gray", alpha = .6, adjust = input$smoothingFactor1_driver) +
             geom_point(
               shape = 142,
               size = 5,
@@ -239,13 +222,14 @@ driverMutationServer <- function(id, driver_data, global_path) {
             geom_text(
               data = data.frame(
                 AF = mutation_vaf,
-                y = -1.25,
+                y = 3,
                 label = input$gene_name
               ),
               aes(x = AF, y = y, label = label),
               size = 3,
               angle = 45,
-              hjust = 0
+              hjust = 0,
+              vjust = 0
             ) +
             xlim(0, 1) +
             ggtitle(paste(sample_name, " - VAF Distribution")) +
@@ -261,7 +245,6 @@ driverMutationServer <- function(id, driver_data, global_path) {
             config(displayModeBar = TRUE, scrollZoom = TRUE)
         })
         
-        # Create CP plot
         output$plot2 <- renderPlotly({
           default_data <- data.frame(
             CP_unpenalized = c(rnorm(100, 0.4, 0.05), rnorm(50, 0.6, 0.08), rnorm(30, 0.8, 0.05)),
@@ -277,7 +260,7 @@ driverMutationServer <- function(id, driver_data, global_path) {
           )
           
           g <- ggplot(default_data, aes(x = CP_unpenalized)) +
-            geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2) +
+            geom_density(fill = "seagreen", alpha = .6, adjust = input$smoothingFactor2_driver) +
             geom_point(
               shape = 142,
               size = 5,
@@ -302,13 +285,14 @@ driverMutationServer <- function(id, driver_data, global_path) {
             geom_text(
               data = data.frame(
                 CP_unpenalized = mutation_cp,
-                y = -1.25,
+                y = 3,
                 label = input$gene_name
               ),
               aes(x = CP_unpenalized, y = y, label = label),
               size = 3,
               angle = 45,
-              hjust = 0
+              hjust = 0,
+              vjust = 0
             ) +
             xlim(0, 1.5) +
             ggtitle("CP Distribution - Selected Mutation") +
@@ -336,7 +320,6 @@ driverMutationServer <- function(id, driver_data, global_path) {
       }
     })
     
-    # Process data by sample
     observeEvent(input$sample_name, {
       req(driver_data(), input$cancer_type_sample, input$sample_name)
       
@@ -353,7 +336,6 @@ driverMutationServer <- function(id, driver_data, global_path) {
         NULL
       })
       
-      # Display data table
       output$sample_mutation_table <- renderDT({
         if (is.null(filtered_data) || nrow(filtered_data) == 0) {
           return(datatable(data.frame(message = "No driver mutations found for this sample"),
@@ -375,11 +357,11 @@ driverMutationServer <- function(id, driver_data, global_path) {
                       backgroundColor = styleEqual(
                         c("Clonal", "Subclonal"),
                         c('#C9EDEF', '#FED9D7')
-                      ))
+                      )) %>%
+          formatRound(intersect(c('VAF', 'CP_unpenalized'), display_cols), digits = 3)
       })
     })
-    
-    # Download handler for gene data
+
     output$download_gene_data <- downloadHandler(
       filename = function() {
         paste0(
@@ -412,7 +394,6 @@ driverMutationServer <- function(id, driver_data, global_path) {
       contentType = "text/plain"
     )
     
-    # Download handler for sample data
     output$download_sample_data <- downloadHandler(
       filename = function() {
         paste0(
