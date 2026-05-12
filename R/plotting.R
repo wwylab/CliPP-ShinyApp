@@ -53,9 +53,10 @@ create_annotations <- function(subclonality_counts) {
 #' @param subclonality_counts Data frame with mutation counts
 #' @param driver_mutations Optional data frame of driver mutations to highlight
 #' @return plotly object
-create_vaf_plot <- function(merged_df, sample_name, purity, read_depth, 
+create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
                             smoothing_factor, color_by = "clonality",
-                            subclonality_counts, driver_mutations = NULL) {
+                            subclonality_counts, driver_mutations = NULL,
+                            return_gg = FALSE) {
   
   if (is.factor(merged_df$Subclonality)) {
     levels(merged_df$Subclonality) <- c("Clonal", "Subclonal")
@@ -95,24 +96,19 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
     ylab("Density") +
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
   
-  if (!is.null(driver_mutations)) {
+  if (!is.null(driver_mutations) && nrow(driver_mutations) > 0) {
     driver_mutations$Subclonality <- as.character(driver_mutations$Subclonality)
-    plot <- plot +
-      geom_point(
-        data = driver_mutations,
-        aes(x = VAF, y = -0.75, fill = Subclonality),
-        shape = 21,
-        size = 8,
-        color = "black",
-        alpha = 0.7
-      ) +
-      geom_text(
-        data = driver_mutations,
-        aes(x = VAF, y = -1.25, label = gene),
-        size = 3,
-        angle = 45,
-        hjust = 0
-      )
+    for (i in seq_len(nrow(driver_mutations))) {
+      mut <- driver_mutations[i, ]
+      if (!is.na(mut$VAF)) {
+        plot <- plot +
+          geom_vline(
+            xintercept = round(mut$VAF, 3),
+            linetype = "dashed",
+            color = ifelse(mut$Subclonality == "Clonal", "#047857", "#FFA07A")
+          )
+      }
+    }
   }
   
   if (color_by == "clonality") {
@@ -123,14 +119,39 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
       scale_color_manual(values = c(clonal_color, subclonal_color), labels = c("Clonal", "Subclonal")) +
       scale_fill_manual(values = c(clonal_color, subclonal_color), labels = c("Clonal", "Subclonal"))
   }
-  
+
+  if (return_gg) return(plot)
+
   p <- plotly::ggplotly(plot)
-  
+
+  if (!is.null(driver_mutations) && nrow(driver_mutations) > 0) {
+    for (i in seq_len(nrow(driver_mutations))) {
+      mut <- driver_mutations[i, ]
+      if (!is.na(mut$VAF)) {
+        p <- plotly::add_annotations(
+          p,
+          x = round(mut$VAF, 3),
+          y = 1,
+          xref = "x",
+          yref = "paper",
+          text = paste0(mut$gene, " (", mut$protein, ")"),
+          showarrow = FALSE,
+          xanchor = "left",
+          yanchor = "top",
+          font = list(
+            size = 10,
+            color = ifelse(mut$Subclonality == "Clonal", "#047857", "#FFA07A")
+          )
+        )
+      }
+    }
+  }
+
   tryCatch({
     if (!is.null(p$x$data)) {
       for (i in seq_along(p$x$data)) {
         if (!is.null(p$x$data[[i]]$name)) {
-          if (grepl("Clonal", p$x$data[[i]]$name, ignore.case = TRUE) && 
+          if (grepl("Clonal", p$x$data[[i]]$name, ignore.case = TRUE) &&
               !grepl("Subclonal", p$x$data[[i]]$name, ignore.case = TRUE)) {
             p$x$data[[i]]$name <- "Clonal"
           } else if (grepl("Subclonal", p$x$data[[i]]$name, ignore.case = TRUE)) {
@@ -138,14 +159,13 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
           }
         }
       }
-      
+
       legend_names <- sapply(p$x$data, function(x) x$name)
       first_clonal <- which(legend_names == "Clonal")[1]
       first_subclonal <- which(legend_names == "Subclonal")[1]
-      
+
       for (i in seq_along(p$x$data)) {
         if (!is.null(p$x$data[[i]]$showlegend) && p$x$data[[i]]$showlegend) {
-          # Hide duplicates
           if (p$x$data[[i]]$name == "Clonal" && !is.na(first_clonal) && i != first_clonal) {
             p$x$data[[i]]$showlegend <- FALSE
           } else if (p$x$data[[i]]$name == "Subclonal" && !is.na(first_subclonal) && i != first_subclonal) {
@@ -157,7 +177,7 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
   }, error = function(e) {
     warning("Error fixing legend: ", e$message)
   })
-  
+
   return(p)
 }
 
@@ -173,7 +193,8 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
 create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
                            color_by = "clonality",
                            subclonality_counts, df_subc,
-                           driver_mutations = NULL) {
+                           driver_mutations = NULL,
+                           return_gg = FALSE) {
   
   if (is.factor(merged_df$Subclonality)) {
     levels(merged_df$Subclonality) <- c("Clonal", "Subclonal")
@@ -190,7 +211,7 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
   color_aesthetic <- if(color_by == "clonality") "Subclonality" else "ReadDepth"
   
   plot <- ggplot(merged_df, aes(x = CP_unpenalized)) +
-    geom_density(fill = "seagreen", alpha = .6, adjust = smoothing_factor) +
+    geom_density(fill = "#047857", alpha = .6, adjust = smoothing_factor) +
     geom_point(
       shape = 142,
       size = 5,
@@ -216,24 +237,19 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
       lty = "dashed"
     )
   
-  if (!is.null(driver_mutations)) {
+  if (!is.null(driver_mutations) && nrow(driver_mutations) > 0) {
     driver_mutations$Subclonality <- as.character(driver_mutations$Subclonality)
-    plot <- plot +
-      geom_point(
-        data = driver_mutations,
-        aes(x = CP_unpenalized, y = -0.75, fill = Subclonality),
-        shape = 21,
-        size = 8,
-        color = "black",
-        alpha = 0.7
-      ) +
-      geom_text(
-        data = driver_mutations,
-        aes(x = CP_unpenalized, y = -1.25, label = gene),
-        size = 3,
-        angle = 45,
-        hjust = 0
-      )
+    for (i in seq_len(nrow(driver_mutations))) {
+      mut <- driver_mutations[i, ]
+      if (!is.na(mut$CP_unpenalized)) {
+        plot <- plot +
+          geom_vline(
+            xintercept = round(mut$CP_unpenalized, 3),
+            linetype = "dashed",
+            color = ifelse(mut$Subclonality == "Clonal", "#047857", "#FFA07A")
+          )
+      }
+    }
   }
   
   if (color_by == "clonality") {
@@ -244,14 +260,39 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
       scale_color_manual(values = c(clonal_color, subclonal_color), labels = c("Clonal", "Subclonal")) +
       scale_fill_manual(values = c(clonal_color, subclonal_color), labels = c("Clonal", "Subclonal"))
   }
-  
+
+  if (return_gg) return(plot)
+
   p <- plotly::ggplotly(plot)
-  
+
+  if (!is.null(driver_mutations) && nrow(driver_mutations) > 0) {
+    for (i in seq_len(nrow(driver_mutations))) {
+      mut <- driver_mutations[i, ]
+      if (!is.na(mut$CP_unpenalized)) {
+        p <- plotly::add_annotations(
+          p,
+          x = round(mut$CP_unpenalized, 3),
+          y = 1,
+          xref = "x",
+          yref = "paper",
+          text = paste0(mut$gene, " (", mut$protein, ")"),
+          showarrow = FALSE,
+          xanchor = "left",
+          yanchor = "top",
+          font = list(
+            size = 10,
+            color = ifelse(mut$Subclonality == "Clonal", "#047857", "#FFA07A")
+          )
+        )
+      }
+    }
+  }
+
   tryCatch({
     if (!is.null(p$x$data)) {
       for (i in seq_along(p$x$data)) {
         if (!is.null(p$x$data[[i]]$name)) {
-          if (grepl("Clonal", p$x$data[[i]]$name, ignore.case = TRUE) && 
+          if (grepl("Clonal", p$x$data[[i]]$name, ignore.case = TRUE) &&
               !grepl("Subclonal", p$x$data[[i]]$name, ignore.case = TRUE)) {
             p$x$data[[i]]$name <- "Clonal"
           } else if (grepl("Subclonal", p$x$data[[i]]$name, ignore.case = TRUE)) {
@@ -259,11 +300,11 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
           }
         }
       }
-      
+
       legend_names <- sapply(p$x$data, function(x) x$name)
       first_clonal <- which(legend_names == "Clonal")[1]
       first_subclonal <- which(legend_names == "Subclonal")[1]
-      
+
       for (i in seq_along(p$x$data)) {
         if (!is.null(p$x$data[[i]]$showlegend) && p$x$data[[i]]$showlegend) {
           if (p$x$data[[i]]$name == "Clonal" && !is.na(first_clonal) && i != first_clonal) {
@@ -277,7 +318,7 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
   }, error = function(e) {
     warning("Error fixing legend: ", e$message)
   })
-  
+
   return(p)
 }
 

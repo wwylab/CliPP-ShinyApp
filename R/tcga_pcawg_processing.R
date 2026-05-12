@@ -14,22 +14,18 @@ process_tcga_data_internal <- function(file_data, sample_name, global_path) {
   purity <- file_data$purity
 
   tryCatch({
-    result_path <- file.path(global_path, "TCGA", sample_name)
+    result_path <- file.path(global_path, "TCGA", sample_name, "final_result", "Best_lambda")
     matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
     matching_file2 <- list.files(result_path, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
 
     df_assigned <- read.table(matching_file1[1], header = TRUE, sep = "\t")
     df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
 
-    df_snv_subset <- df_snv %>%
-      select(chromosome_index, position)
-
-    matching_rows <- suppressMessages(
-      inner_join(
-        df_snv_subset,
-        df_assigned %>% select(chromosome_index, position)
-      )
-    )
+    df_snv$chromosome_index <- as.character(df_snv$chromosome_index)
+    df_snv$position          <- as.integer(df_snv$position)
+    df_cna$chromosome_index  <- as.character(df_cna$chromosome_index)
+    df_assigned$chromosome_index <- as.character(df_assigned$chromosome_index)
+    df_assigned$position         <- as.integer(df_assigned$position)
 
     df_snvcna <- df_snv %>%
       mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
@@ -43,15 +39,6 @@ process_tcga_data_internal <- function(file_data, sample_name, global_path) {
     max_rd <- max(df_snvcna$sum_counts)
 
     merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-
-    if (nrow(merged_df) == 0) {
-      df_snvcna$chromosome_index <- as.character(df_snvcna$chromosome_index)
-      df_assigned$chromosome_index <- as.character(df_assigned$chromosome_index)
-      df_snvcna$position <- as.integer(df_snvcna$position)
-      df_assigned$position <- as.integer(df_assigned$position)
-
-      merged_df <- left_join(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-    }
 
     merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
 
@@ -102,7 +89,7 @@ process_pcawg_data_internal <- function(file_data, sample_name, global_path) {
   purity <- file_data$purity
 
   tryCatch({
-    result_path <- file.path(global_path, "PCAWG", sample_name)
+    result_path <- file.path(global_path, "PCAWG", sample_name, "final_result", "Best_lambda")
     matching_file1 <- list.files(result_path, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
     matching_file2 <- list.files(result_path, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
 
@@ -111,34 +98,24 @@ process_pcawg_data_internal <- function(file_data, sample_name, global_path) {
                                              cluster_index = "integer"))
     df_subc <- read.table(matching_file2[1], header = TRUE, sep = "\t")
 
-    df_snv$chromosome_index <- as.character(df_snv$chromosome_index)
-    df_snv$position <- as.integer(df_snv$position)
+    df_snv$chromosome_index      <- as.character(df_snv$chromosome_index)
+    df_snv$position               <- as.integer(df_snv$position)
+    df_cna$chromosome_index       <- as.character(df_cna$chromosome_index)
+    df_assigned$chromosome_index  <- as.character(df_assigned$chromosome_index)
+    df_assigned$position          <- as.integer(df_assigned$position)
 
     df_snvcna <- df_snv %>%
-      mutate(
-        chromosome_index = as.character(chromosome_index),
-        total_cn = map2_chr(position, chromosome_index, function(x, y) {
-          inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
-          if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
-        })
-      )
+      mutate(total_cn = map2_chr(position, chromosome_index, function(x, y) {
+        inds = x >= df_cna$start_position & x <= df_cna$end_position & y == df_cna$chromosome_index
+        if (any(inds)) as.character(df_cna$total_cn[which.max(inds)]) else NA
+      }))
 
     df_snvcna$sum_counts <- df_snvcna$ref_count + df_snvcna$alt_count
     mean_rd <- mean(df_snvcna$sum_counts)
     min_rd <- min(df_snvcna$sum_counts)
     max_rd <- max(df_snvcna$sum_counts)
 
-    df_assigned$chromosome_index <- as.character(df_assigned$chromosome_index)
     merged_df <- merge(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-
-    if (nrow(merged_df) == 0) {
-      df_snvcna$chromosome_index <- as.character(df_snvcna$chromosome_index)
-      df_assigned$chromosome_index <- as.character(df_assigned$chromosome_index)
-      df_snvcna$position <- as.integer(df_snvcna$position)
-      df_assigned$position <- as.integer(df_assigned$position)
-
-      merged_df <- left_join(df_snvcna, df_assigned, by = c("chromosome_index", "position"))
-    }
 
     merged_df['AF'] = merged_df['alt_count'] / (merged_df['sum_counts'])
 

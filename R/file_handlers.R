@@ -106,7 +106,7 @@ process_sample_files <- function(sampleFiles, selectedSample) {
     dir.create(finalResultPath, recursive = TRUE, showWarnings = FALSE)
   }
   
-  command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s --filtering 2",
+  command <- sprintf("python3 forCliPP/CliPP/run_clipp_main.py %s %s %s --filtering 2",
                      shQuote(snvFile), shQuote(cnaFile), shQuote(purityFile))
   
   cat("Executing command:", command, "\n")
@@ -260,19 +260,6 @@ get_current_analysis <- function(sampleFiles) {
   ))
 }
 
-#' Function to calculate recommended smoothing factor based on number of mutations
-#' @param total_mutations Total number of mutations
-#' @return Recommended smoothing factor
-recommended_smoothing_factor <- function(total_mutations) {
-  min_smooth <- 0.2
-  max_smooth <- 0.7
-  min_mut <- 100
-  max_mut <- 10000
-  smoothing_factor <- max_smooth - (total_mutations - min_mut) * (max_smooth - min_smooth) / (max_mut - min_mut)
-  smoothing_factor <- max(min_smooth, min(max_smooth, smoothing_factor))
-  return(round(smoothing_factor, 2))
-}
-
 #' Create VAF plot
 #' @param merged_df Merged data frame
 #' @param sample_name Sample name
@@ -372,20 +359,21 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor, color_by, s
 #' @return Boolean indicating success
 prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
   if (!dir.exists(sampleDir)) {
-    showNotification(paste("Sample directory not found:", sampleDir), type = "error")
-    return(FALSE)
+    dir.create(sampleDir, recursive = TRUE, showWarnings = FALSE)
   }
   
-  matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
-  matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+  best_lambda_dir <- file.path(sampleDir, "final_result", "Best_lambda")
+  matching_file1 <- list.files(best_lambda_dir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+  matching_file2 <- list.files(best_lambda_dir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
   
   if (length(matching_file1) > 0 && length(matching_file2) > 0) {
     return(TRUE)
   }
   
-  snvFile <- list.files(sampleDir, pattern = "*.snv.txt", full.names = TRUE)
-  cnaFile <- list.files(sampleDir, pattern = "*.cna.txt", full.names = TRUE)
-  purityFile <- list.files(sampleDir, pattern = "*.purity.txt", full.names = TRUE)
+  www_dir <- file.path(global_www, prefix, selectedSample)
+  snvFile <- list.files(www_dir, pattern = "\\.snv\\.txt$", full.names = TRUE)
+  cnaFile <- list.files(www_dir, pattern = "\\.cna\\.txt$", full.names = TRUE)
+  purityFile <- list.files(www_dir, pattern = "\\.purity\\.txt$", full.names = TRUE)
   
   if (length(snvFile) == 0 || length(cnaFile) == 0 || length(purityFile) == 0) {
     showNotification("Required sample files not found", type = "error")
@@ -405,7 +393,7 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
     dir.create(finalResultPath, recursive = TRUE, showWarnings = FALSE)
   }
   
-  command <- sprintf("/usr/local/bin/python3 ./forCliPP/CliPP/run_clipp_main.py %s %s %s --filtering 2",
+  command <- sprintf("python3 forCliPP/CliPP/run_clipp_main.py %s %s %s --filtering 2",
                      shQuote(snvFile[1]), shQuote(cnaFile[1]), shQuote(purityFile[1]))
   
   cat("Executing command:", command, "\n")
@@ -428,12 +416,16 @@ prepareAndRunCliPP <- function(sampleDir, prefix, selectedSample) {
     return(FALSE)
   }
   
-  for (file in resultFiles) {
-    file.copy(file, file.path(sampleDir, basename(file)), overwrite = TRUE)
+  if (!dir.exists(best_lambda_dir)) {
+    dir.create(best_lambda_dir, recursive = TRUE, showWarnings = FALSE)
   }
   
-  matching_file1 <- list.files(sampleDir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
-  matching_file2 <- list.files(sampleDir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
+  for (file in resultFiles) {
+    file.copy(file, file.path(best_lambda_dir, basename(file)), overwrite = TRUE)
+  }
+  
+  matching_file1 <- list.files(best_lambda_dir, pattern = "mutation_assignments_lam.*\\.txt", full.names = TRUE)
+  matching_file2 <- list.files(best_lambda_dir, pattern = "subclonal_structure_lam.*\\.txt", full.names = TRUE)
   
   if (length(matching_file1) == 0 || length(matching_file2) == 0) {
     showNotification("Failed to generate mutation assignments", type = "error")
@@ -452,24 +444,69 @@ count_snvs <- function(file_path) {
   nrow(df)
 }
 
+#' Reconstruct file_data from preprocess_result directory
+#' @param sample_dir dataSource sample directory (contains preprocess_result/)
+#' @return file_data list (df_snv, df_cna, purity) or NULL
+read_from_preprocess <- function(sample_dir) {
+  pre_dir <- file.path(sample_dir, "preprocess_result")
+  if (!dir.exists(pre_dir)) return(NULL)
+
+  tryCatch({
+    mult  <- read.table(file.path(pre_dir, "multiplicity.txt"), header = FALSE)
+    r     <- scan(file.path(pre_dir, "r.txt"),     quiet = TRUE)
+    n     <- scan(file.path(pre_dir, "n.txt"),     quiet = TRUE)
+    total <- scan(file.path(pre_dir, "total.txt"), quiet = TRUE)
+    purity <- as.numeric(readLines(file.path(pre_dir, "purity_ploidy.txt"), warn = FALSE)[1])
+
+    df_snv <- data.frame(
+      chromosome_index = mult[[1]],
+      position         = as.integer(mult[[2]]),
+      alt_count        = as.integer(r),
+      ref_count        = as.integer(n - r),
+      stringsAsFactors = FALSE
+    )
+
+    # Per-mutation CN as point segments so the interval join in process_*_data_internal works
+    df_cna <- data.frame(
+      chromosome_index = mult[[1]],
+      start_position   = as.integer(mult[[2]]),
+      end_position     = as.integer(mult[[2]]),
+      total_cn         = as.numeric(total),
+      stringsAsFactors = FALSE
+    )
+
+    list(df_snv = df_snv, df_cna = df_cna, purity = purity)
+  }, error = function(e) NULL)
+}
+
 #' Read TCGA files from sample directory
 #' @param sample_dir Directory containing TCGA sample files
 #' @return Validated file data or NULL
 read_tcga_files <- function(sample_dir) {
-  snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
-  cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
-  purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
+  www_dir   <- sub(global_TCGA_PCAWG, global_www, sample_dir, fixed = TRUE)
+  snv_file  <- list.files(www_dir, pattern = "\\.snv\\.txt$",    full.names = TRUE)
+  cna_file  <- list.files(www_dir, pattern = "\\.cna\\.txt$",    full.names = TRUE)
+  purity_file <- list.files(www_dir, pattern = "\\.purity\\.txt$", full.names = TRUE)
 
-  validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data
+  if (length(snv_file) > 0 && length(cna_file) > 0 && length(purity_file) > 0) {
+    return(validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data)
+  }
+
+  read_from_preprocess(sample_dir)
 }
 
 #' Read PCAWG files from sample directory
 #' @param sample_dir Directory containing PCAWG sample files
 #' @return Validated file data or NULL
 read_pcawg_files <- function(sample_dir) {
-  snv_file <- list.files(sample_dir, pattern = "*.snv.txt", full.names = TRUE)
-  cna_file <- list.files(sample_dir, pattern = "*.cna.txt", full.names = TRUE)
-  purity_file <- list.files(sample_dir, pattern = "*.purity.txt", full.names = TRUE)
+  www_dir   <- sub(global_TCGA_PCAWG, global_www, sample_dir, fixed = TRUE)
+  snv_file  <- list.files(www_dir, pattern = "\\.snv\\.txt$",    full.names = TRUE)
+  cna_file  <- list.files(www_dir, pattern = "\\.cna\\.txt$",    full.names = TRUE)
+  purity_file <- list.files(www_dir, pattern = "\\.purity\\.txt$", full.names = TRUE)
 
-  validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data
+  if (length(snv_file) > 0 && length(cna_file) > 0 && length(purity_file) > 0) {
+    return(validate_and_read_files(snv_file[1], cna_file[1], purity_file[1])$data)
+  }
+
+  read_from_preprocess(sample_dir)
 }
