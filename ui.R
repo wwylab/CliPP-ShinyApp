@@ -2,1290 +2,883 @@ library(shiny)
 library(plotly)
 library(shinyjs)
 library(shinyWidgets)
+library(bslib)
 library(DT)
 
+# ============================================================================
+# UI
+# ============================================================================
+
+sidebar_link <- function(value, icon_name, label, badge = NULL, active = FALSE) {
+  tags$a(
+    href = "#",
+    class = paste("sidebar-link", if (active) "active" else ""),
+    `data-tab` = value,
+    tags$span(class = "sidebar-icon", icon(icon_name)),
+    tags$span(class = "sidebar-label", label),
+    if (!is.null(badge)) tags$span(class = "sidebar-badge", badge)
+  )
+}
+
+chapter_item <- function(time_str, time_sec, title, subtitle, active = FALSE) {
+  tags$a(
+    href = "#",
+    class = paste("chapter-row", if (active) "active" else ""),
+    `data-time` = time_sec,
+    onclick = "seekTutorial(this); return false;",
+    span(class = "chapter-time", time_str),
+    div(class = "chapter-text",
+      div(class = "chapter-title", title),
+      div(class = "chapter-sub", subtitle)
+    )
+  )
+}
+
 ui <- fluidPage(
-  tags$head(includeHTML("google-analytics.html")),
-  shinyjs::useShinyjs(),
+  theme = bs_theme(
+    version = 5,
+    bg = "#ffffff",
+    fg = "#1f2937",
+    primary = "#2563eb",
+    secondary = "#7c3aed",
+    success = "#047857",
+    font_scale = 1.0,
+    bootswatch = "flatly"
+  ),
+
+  useShinyjs(),
   tags$head(
+    includeHTML("google-analytics.html"),
+    tags$link(rel = "stylesheet", type = "text/css", href = paste0(global_assets, "/css/custom.css")),
+    tags$script(src = paste0(global_assets, "/js/custom.js")),
     tags$style(HTML("
-      .controls-area {
-        position: absolute;
-        top: 28%;
-        left: 86%;
-        width: 20%;
-        min-width: 120px;
-        max-width: 220px;
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 5px;
-        z-index: 100;
-        border: 1px solid #ddd;
-      }
-      
-      .controls-area-depth {
-        top: -10%;
-      }
-      
-      .info-panel {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-left: 4px solid #3498db;
-        border-radius: 8px;
-        padding: 20px;
-        margin: 15px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      }
-      
-      .legend-panel {
-        background: #fff;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 15px;
-        margin: 15px 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      }
-      
-      .legend-panel h5 {
-        color: #2c3e50;
-        font-weight: 600;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-        border-bottom: 2px solid #3498db;
-      }
-      
-      .legend-item {
-        display: flex;
-        align-items: center;
-        margin: 8px 0;
-        padding: 5px 0;
-      }
-      
-      .legend-symbol {
-        width: 20px;
-        height: 15px;
-        margin-right: 10px;
-        border-radius: 3px;
-        flex-shrink: 0;
-      }
-      
-      .legend-text {
-        color: #555;
-        font-size: 14px;
-        line-height: 1.4;
-      }
-      
-      .analysis-summary {
-        background: linear-gradient(135deg, rgba(52, 152, 219, 0.05) 0%, rgba(155, 89, 182, 0.05) 100%);
-        border: 1px solid rgba(52, 152, 219, 0.2);
-        border-radius: 8px;
-        padding: 20px;
-        margin: 20px 0;
-      }
-      
-      .sample-info-card {
-        background: #fff;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 15px;
-        margin: 15px 0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      }
-      
-      .data-exploration-main {
-        background: #fff;
-        border-radius: 12px;
-        padding: 30px;
-        margin: 20px 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        min-height: 600px;
-      }
-      
-      .plot-section {
-        background: #fafbfc;
-        border: 1px solid #e1e4e8;
-        border-radius: 10px;
-        padding: 25px;
-        margin: 20px 0;
-      }
-      
-      .correlation-table-container {
-        background: #fff;
-        border-radius: 8px;
-        padding: 20px;
-        margin: 20px 0;
-        border: 1px solid #e0e0e0;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      }
-      
-      .instructions-card {
-        background: linear-gradient(135deg, #e8f4f8 0%, #d6eaf8 100%);
-        border-left: 4px solid #3498db;
-        border-radius: 8px;
-        padding: 15px 20px;
-        margin: 15px 0;
-      }
-      
-      .instructions-card .fa {
-        color: #3498db;
-        margin-right: 8px;
-      }
-
-      .downloads-tab-container {
-        position: relative;
-        min-height: 100vh;
-        padding-left: 20px;
-        padding-right: 20px;
-      }
-
-      .vertical-nav-floating {
+      #progress {
         position: fixed;
         top: 50%;
-        left: 20px;
-        transform: translateY(-50%);
-        width: 200px;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 20px;
-        z-index: 1000;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-      }
-
-      .vertical-nav-floating:hover {
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
-        transform: translateY(-50%) translateX(2px);
-      }
-
-      .vertical-nav-floating .nav-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-      }
-
-      .vertical-nav-floating .nav-list li {
-        margin-bottom: 12px;
-      }
-
-      .vertical-nav-floating h5 {
-        color: #495057;
-        margin-bottom: 15px;
-        font-weight: 600;
-      }
-
-      .vertical-nav-floating .nav-link {
-        display: block;
-        color: #495057;
-        text-decoration: none;
-        padding: 12px 16px;
-        border-radius: 6px;
-        transition: all 0.3s ease;
-        font-weight: 500;
-        font-size: 14px;
-        border-left: 3px solid transparent;
-      }
-
-      .vertical-nav-floating .nav-link:hover {
-        background: #e9ecef;
-        border-left: 3px solid #6c757d;
-        transform: translateX(4px);
-        color: #212529;
-        text-decoration: none;
-      }
-
-      .vertical-nav-floating .nav-link:active,
-      .vertical-nav-floating .nav-link.active {
-        background: #dee2e6;
-        border-left: 3px solid #495057;
-        color: #212529;
-      }
-
-      .downloads-main-content {
-        margin-left: 260px;
-        padding: 30px;
-        max-width: calc(100% - 300px);
-      }
-
-      .download-section {
-        margin-bottom: 40px;
-        padding: 30px;
-        background: #ffffff;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
-      }
-
-      .download-section:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transform: translateY(-1px);
-      }
-
-      .download-section h3 {
-        margin-bottom: 25px;
-        font-size: 24px;
-        font-weight: 600;
-      }
-
-      .metadata-card {
-        background: #f8f9fa;
-        border-left: 4px solid #6c757d;
-        border-radius: 6px;
-        padding: 20px;
-        margin: 20px 0;
-        border: 1px solid #e9ecef;
-      }
-
-      .download-table-styled {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 25px 0;
-        font-size: 16px;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-      }
-
-      .download-table-styled thead tr {
-        background: #495057;
-        color: white;
-        text-align: left;
-        font-weight: 600;
-      }
-
-      .download-table-styled th,
-      .download-table-styled td {
-        padding: 15px 20px;
-        border: none;
-      }
-
-      .download-table-styled tbody tr {
-        border-bottom: 1px solid #e0e0e0;
-        transition: all 0.3s ease;
-      }
-
-      .download-table-styled tbody tr:nth-of-type(even) {
-        background: #f8f9fa;
-      }
-
-      .download-table-styled tbody tr:hover {
-        background: #e9ecef;
-        transform: scale(1.01);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      }
-
-      .download-table-styled tbody tr:last-of-type {
-        border-bottom: none;
-      }
-
-      .dataset-name {
-        font-weight: 600;
-        color: #2c3e50;
-      }
-
-      .file-type-badge {
-        display: inline-block;
-        background: #6c757d;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      .download-btn, .browse-btn {
-        display: inline-block;
-        padding: 10px 20px;
-        border-radius: 25px;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 14px;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-        text-align: center;
-      }
-
-      .download-btn {
-        background: #28a745;
-        color: white;
-        border: 1px solid #28a745;
-      }
-
-      .download-btn:hover {
-        background: #218838;
-        border-color: #1e7e34;
-        transform: translateY(-1px);
-        color: white;
-        text-decoration: none;
-      }
-
-      .browse-btn {
-        background: #6c757d;
-        color: white;
-        border: 1px solid #6c757d;
-      }
-
-      .browse-btn:hover {
-        background: #545b62;
-        border-color: #4e555b;
-        transform: translateY(-1px);
-        color: white;
-        text-decoration: none;
-      }
-
-      .file-size {
-        font-size: 12px;
-        color: #7f8c8d;
-        font-style: italic;
-        margin-left: 10px;
-      }
-
-      .citation-section {
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 8px;
-        padding: 30px;
-        margin-top: 40px;
-        border-left: 4px solid #6c757d;
-      }
-
-      @media (max-width: 1200px) {
-        .vertical-nav-floating {
-          width: 180px;
-          left: 15px;
-        }
-
-        .downloads-main-content {
-          margin-left: 220px;
-          max-width: calc(100% - 250px);
-        }
-      }
-
-      @media (max-width: 992px) {
-        .vertical-nav-floating {
-          position: relative;
-          top: auto;
-          left: auto;
-          transform: none;
-          width: 100%;
-          margin-bottom: 30px;
-        }
-
-        .downloads-main-content {
-          margin-left: 0;
-          max-width: 100%;
-        }
-      }
-
-      @media (max-width: 768px) {
-        .download-table-styled {
-          font-size: 14px;
-        }
-
-        .download-table-styled th,
-        .download-table-styled td {
-          padding: 12px 15px;
-        }
-
-        .download-btn, .browse-btn {
-          padding: 8px 16px;
-          font-size: 12px;
-        }
-      }
-
-      .sample-count-info {
-        background: linear-gradient(135deg, #e8f5e8, #d4edda);
-        border: 1px solid #c3e6cb;
-        border-radius: 8px;
-        padding: 15px;
-        margin: 15px 0;
-        text-align: center;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      .sample-count-info:hover {
-        background: linear-gradient(135deg, #d4edda, #c3e6cb);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-      }
-
-      .sample-count-number {
-        font-size: 18px;
-        font-weight: 600;
-        color: #155724;
-        margin-bottom: 5px;
-        display: block;
-      }
-
-      .sample-count-label {
-        font-size: 14px;
-        color: #155724;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      .sample-count-details {
-        font-size: 12px;
-        color: #6c757d;
-        margin-top: 8px;
-        font-style: italic;
-      }
-
-      .sample-count-hidden {
-        display: none;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 50%;
+        z-index: 9999;
       }
     ")),
-    
-    tags$script(HTML("
-      $(document).ready(function() {
-        function adjustControlPosition(colorBySelector, controlAreaSelectors) {
-          $(document).on('change', colorBySelector, function() {
-            var colorMode = $(this).val();
-            
-            controlAreaSelectors.forEach(function(selector) {
-              if (colorMode === 'readDepth' || colorMode === 'depth') {
-                $(selector).addClass('controls-area-depth');
-              } else {
-                $(selector).removeClass('controls-area-depth');
-              }
-            });
-          });
-        }
-        
-        adjustControlPosition('#colorBy', ['.plot-container .controls-area']);
-        
-        adjustControlPosition('#colorByTCGA', ['.plot-container .controls-area']);
-        
-        adjustControlPosition('#colorByPCAWG', ['.plot-container .controls-area']);
-        
-        adjustControlPosition('#colorByDriver', ['.plot-container .controls-area']);
-
-        // Floating vertical navigation smooth scrolling
-        $(document).on('click', '.vertical-nav-floating .nav-link', function(e) {
-          e.preventDefault();
-          var href = $(this).attr('href');
-          var target = $(href);
-
-          if (target.length) {
-            $('.vertical-nav-floating .nav-link').removeClass('active');
-            $(this).addClass('active');
-
-            $('html, body').animate({
-              scrollTop: target.offset().top - 120
-            }, 800);
-          }
-        });
-
-        // Highlight active section in navigation based on scroll position
-        $(window).scroll(function() {
-          if ($('.downloads-tab-container').length > 0 && $('.downloads-tab-container').is(':visible')) {
-            var scrollPos = $(window).scrollTop() + 150;
-
-            $('.download-section').each(function() {
-              var section = $(this);
-              if (section.offset()) {
-                var sectionTop = section.offset().top;
-                var sectionBottom = sectionTop + section.outerHeight();
-                var sectionId = section.attr('id');
-
-                if (scrollPos >= sectionTop && scrollPos < sectionBottom) {
-                  $('.vertical-nav-floating .nav-link').removeClass('active');
-                  $('.vertical-nav-floating .nav-link[href=\"#' + sectionId + '\"]').addClass('active');
-                }
-              }
-            });
-          }
-        });
-      });
-    "))
+    # ============================================================================
+    # Page header registration — uncomment for each tab you add:
+    #   Data Exploration  → uncomment line A below
+    #   Phylogenetic Tree → uncomment line B below
+    # ============================================================================
+#     tags$script(HTML("
+#       $(document).ready(function() {
+#         if (window.pageHeaders) {
+#           window.pageHeaders['Data Exploration'] = ['Data Exploration', 'Kaplan-Meier survival analysis and sMF correlation heatmaps'];  # A
+#           window.pageHeaders['Phylogenetic Tree'] = ['Phylogenetic Tree', 'Tumor evolutionary history from CliPP subclonal clusters'];   # B
+#         }
+#       });
+#     "))
   ),
-  
-  titlePanel("CliPP-on-Web: Scalable Subclonal Reconstruction for Cancer Research"),
-  div(p("Copyright ", HTML("&copy;"), " 2025 The University of Texas MD Anderson Cancer Center. All rights reserved.")),
-  
-  
-  navbarPage("",
-             tabPanel("About",
-                      tags$div(
-                        p(tags$b("Advancing Tumor Evolution Studies with Efficient Analysis")),
-                        p("CliPP (Clonal structure identification through Pairwise Penalization) is an advanced computational framework for identifying clonal and subclonal mutations using a regularized likelihood model. Designed for researchers investigating tumor heterogeneity, CliPP-on-Web provides rapid and accurate subclonal reconstruction without requiring programming expertise."),
-                        p(tags$b("Addressing Computational Challenges in Subclonal Analysis")),
-                        p("Intra-tumor heterogeneity plays a critical role in tumor evolution and therapeutic resistance. However, large-scale subclonal reconstruction has traditionally been constrained by computational limitations. CliPP-on-Web overcomes these challenges by enabling high-throughput, efficient analysis of sequencing data at scale."),
-                        p(tags$b("Efficient, Large-Scale Analysis")),
-                        p("Leveraging an optimized likelihood-based clustering model, CliPP has successfully processed whole-genome and whole-exome sequencing data from over 10,000 tumor samples across TCGA and PCAWG. These datasets are accessible for further exploration in the CliPP Data Resources tab."),
-                        p(tags$b("Key Features")),
-                        tags$ul(
-                          tags$li("Analyze Your Own Data: Upload tumor sequencing data and obtain rapid subclonal reconstruction results."),
-                          tags$li("Access Curated Datasets: Explore pre-processed subclonal analyses from PCAWG and TCGA."),
-                          tags$li("Driver Mutation Subclonality: Investigate the clonal architecture of key driver mutations in TCGA."),
-                          tags$li("Data Exploration: Perform Kaplan-Meier survival analysis and sMF correlation heatmaps.")
-                        ),
-                        p("For detailed methodology, refer to our BioRxiv preprint: ",
-                          a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v2",
-                            "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v2"), "."),
-                        tags$br(),
-                        p(tags$b(tags$span(style = "color: #D22B2B;", "For issues with the app, please contact:"))),
-                        p("Aaron Wu - ", a(href = "mailto:aw80@rice.edu", "aw80@rice.edu")),
-                        p("Quang Tran - ", a(href = "mailto:qmtran@mdanderson.org", "qmtran@mdanderson.org"))
-                      )
-             ),
-             
-             tabPanel("Tutorial",
-                      tags$div(
-                        tags$h4(tags$b("CliPP-on-Web Video Tutorials")),
-                        tags$p("Learn CliPP-on-Web through focused, feature-specific video tutorials. Each video covers a specific aspect of the application."),
-                        
-                        # Overall Introduction
-                        hidden(
-                          tags$div(
-                            class = "tutorial-section",
-                            style = "border: 2px solid #3498db; border-radius: 8px; padding: 15px; margin: 15px 0; background-color: #f8f9fa;",
-                            tags$h5(tags$b("🎬 Complete Overview"), style = "color: #2c3e50;"),
-                            tags$p("Start here for a comprehensive introduction to CliPP-on-Web:"),
-                            tags$iframe(src="https://www.youtube.com/embed/NTJX33csjwA",
-                                        style="width:100%; height:400px; border:none; border-radius: 5px;"),
-                            tags$p(tags$em("Duration: ~15 minutes"), style = "color: #7f8c8d; margin-top: 10px;")
-                          )
-                        ),
-                        
-                      
-                        # Row 1: Data Upload and Resources
-                        tags$div(
-                          class = "tutorial-row", 
-                          style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
-                          
-                          # Tutorial 1: Data Upload
-                          tags$div(
-                            class = "tutorial-card",
-                            style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                            tags$h6(tags$b("1️⃣ Data Upload & File Formats"), style = "color: #e74c3c;"),
-                            tags$iframe(
-                              src = "https://www.youtube.com/embed/J6wOEK8iznY",
-                              style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
-                              frameborder = "0",
-                              allowfullscreen = TRUE
-                            ),
-                            tags$p("Learn to upload and validate your data files:", style = "font-size: 14px;"),
-                            tags$ul(
-                              style = "font-size: 13px; color: #555;",
-                              tags$li("SNV, CNA, and purity file requirements"),
-                              tags$li("File validation and error handling"),
-                              tags$li("Multiple sample upload modes")
-                            )
-                          ),
-                          
-                          # Tutorial 2: CliPP Data Resources (TCGA + PCAWG)
-                          tags$div(
-                            class = "tutorial-card",
-                            style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                            tags$h6(tags$b("2️⃣ CliPP Data Resources"), style = "color: #3498db;"),
-                            tags$iframe(
-                              src = "https://www.youtube.com/embed/eOPzoNAjae8",
-                              style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
-                              frameborder = "0",
-                              allowfullscreen = TRUE
-                            ),
-                            tags$p("Navigate TCGA and PCAWG datasets:", style = "font-size: 14px;"),
-                            tags$ul(
-                              style = "font-size: 13px; color: #555;",
-                              tags$li("TCGA multi-platform genomic data"),
-                              tags$li("PCAWG whole-genome datasets"),
-                              tags$li("Cancer type and cohort selection")
-                            )
-                          )
-                        ),
-                        
-                        # Row 2: Driver Mutations and Data Exploration
-                        tags$div(
-                          class = "tutorial-row",
-                          style = "display: flex; gap: 20px; margin: 20px 0; flex-wrap: wrap;",
-                          
-                          # Tutorial 3: Driver Mutations
-                          tags$div(
-                            class = "tutorial-card",
-                            style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                            tags$h6(tags$b("3️⃣ Driver Mutation Analysis"), style = "color: #f39c12;"),
-                            tags$iframe(
-                              src = "https://www.youtube.com/embed/ZmFQxehEKL4",
-                              style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
-                              frameborder = "0",
-                              allowfullscreen = TRUE
-                            ),
-                            tags$p("Analyze driver mutation subclonality:", style = "font-size: 14px;"),
-                            tags$ul(
-                              style = "font-size: 13px; color: #555;",
-                              tags$li("Identifying key driver mutations"),
-                              tags$li("Clonal vs subclonal classification"),
-                              tags$li("VAF and cellular prevalence plots")
-                            )
-                          ),
-                          
-                          # Tutorial 4: Data Exploration (KM + Heatmap)
-                          tags$div(
-                            class = "tutorial-card",
-                            style = "flex: 1; min-width: 300px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background-color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);",
-                            tags$h6(tags$b("4️⃣ Data Exploration"), style = "color: #27ae60;"),
-                            tags$iframe(
-                              src = "https://www.youtube.com/embed/_AtFySOoC2g",
-                              style = "width: 100%; height: 180px; border: none; border-radius: 5px;",
-                              frameborder = "0",
-                              allowfullscreen = TRUE
-                            ),
-                            tags$p("Advanced analysis and visualization:", style = "font-size: 14px;"),
-                            tags$ul(
-                              style = "font-size: 13px; color: #555;",
-                              tags$li("Kaplan-Meier survival analysis"),
-                              tags$li("sMF correlation heatmaps"),
-                              tags$li("Multi-cohort comparison tools")
-                            )
-                          )
-                        ),
-                        
-                      )
-             ),
-             
-             tabPanel("CliPP-on-Web",
-                      tags$div(
-                        tags$h4(tags$b("Upload Files")),
-                        sidebarLayout(
-                          sidebarPanel(
-                            tags$div(
-                              p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File."),
-                              p(tags$b(tags$span(style = "color: #D22B2B;", "Important:")),
-                                " File extensions are case-sensitive. Files MUST end with ",
-                                tags$code(".snv.txt"), ", ",
-                                tags$code(".cna.txt"), ", and ",
-                                tags$code(".purity.txt"), " respectively."),
-                              p("Download example files below:"),
-                              p(a("SNV file", href="sample.snv.txt", download="sample.snv.txt"),
-                                " - Tab-separated file (must end with ", tags$code(".snv.txt"),
-                                ") with columns: chromosome_index, position, ref_count, alt_count", br(),
-                                a("CNA file", href="sample.cna.txt", download="sample.cna.txt"),
-                                " - Tab-separated file (must end with ", tags$code(".cna.txt"),
-                                ") with columns: chromosome_index, start_position, end_position, major_cn, minor_cn, and total_cn", br(),
-                                a("Purity file", href="sample.purity.txt", download="sample.purity.txt"),
-                                " - Text file (must end with ", tags$code(".purity.txt"),
-                                ") storing a scalar purity value between 0 and 1"
-                              )
-                            ),
-                            radioButtons("uploadMode", "Choose your upload method:",
-                                         choices = list("Upload all files at once" = "all_at_once",
-                                                        "Upload files individually" = "individually"),
-                                         selected = "all_at_once"),
-                            numericInput("numSamples", "Number of samples:", min = 1, max = 10, value = 1),
-                            actionButton("setSamples", "Set Samples", class = "btn-primary"),
-                            br(),
-                            uiOutput("dynamicFileInputs"),
-                            hidden(actionButton("uploadSamples", "Upload Samples", class = "btn-primary")),
-                            br(),
-                            hidden(selectInput("selectedSample", "Select a sample to analyze:", choices = NULL)),
-                            hidden(actionButton("submit", "Submit", class = "btn-primary")),
-                            hidden(selectInput("colorBy", "Color points by:",
-                                               choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
-                                               selected = "clonality")),
 
-                            # Smoothing factor controls for CliPP-on-Web
-                            conditionalPanel(
-                              condition = "output.plotsReadyCliPP == true",
-                              sliderInput("smoothingFactor1", "Smoothing Factor (VAF Plot):",
-                                          min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                              div(class = "recommended-smoothing",
-                                  uiOutput("smoothingExplanation1")
-                              ),
-                              sliderInput("smoothingFactor2", "Smoothing Factor (CP Plot):",
-                                          min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                              div(class = "recommended-smoothing",
-                                  uiOutput("smoothingExplanation2")
-                              )
-                            ),
+  div(class = "app-shell",
 
-                            hidden(actionButton("clear", "Clear", class = "btn-danger"))
-                          ),
-                          
-                          mainPanel(
-                            div(class = "plot-container",
-                                div(class = "plot-area",
-                                    plotlyOutput("plot1")
-                                ),
-                                div(class = "caption-area",
-                                    uiOutput("caption1")
-                                )
-                            ),
-                            
-                            div(class = "plot-container",
-                                div(class = "plot-area",
-                                    plotlyOutput("plot2")
-                                ),
-                                div(class = "caption-area",
-                                    uiOutput("caption2")
-                                )
-                            ),
-                            
-                            uiOutput("plotOutputArea"),
-                            hidden(div(id = "plotReadyTextCliPP")),
-                            shinyjs::hidden(
-                              shinyWidgets::progressBar(
-                                id = "progress",
-                                value = 0,
-                                total = 100,
-                                display_pct = TRUE
-                              )
-                            )
-                          )
-                        )
-                      )
-             ),
-             
-             tabPanel("CliPP Data Resources",
-                      tags$div(
-                        tabsetPanel(id = "tabset",
-                                    tabPanel("TCGA",
-                                             tags$div(
-                                               tags$h4(tags$b("TCGA Select")),
-                                               sidebarLayout(
-                                                 sidebarPanel(
-                                                   uiOutput("cancer_type_ui_TCGA"),
-                                                   
-                                                   div(id = "sample_count_display_TCGA", class = "sample-count-info",
-                                                       uiOutput("sample_count_TCGA")
-                                                   ),
-                                                   
-                                                   uiOutput("sample_name_ui_TCGA"),
-                                                   actionButton("submitTCGA", "Submit", class = "btn-primary"),
-                                                   hidden(actionButton("clearTCGA", "Clear", class = "btn-danger")),
-                                                   
-                                                   # Smoothing factor controls for TCGA
-                                                   conditionalPanel(
-                                                     condition = "output.plotsReadyTCGA == true",
-                                                     sliderInput("smoothingFactor1_TCGA", "Smoothing Factor (VAF Plot):",
-                                                                 min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                     div(class = "recommended-smoothing",
-                                                         uiOutput("smoothingExplanation1_TCGA")
-                                                     ),
-                                                     sliderInput("smoothingFactor2_TCGA", "Smoothing Factor (CP Plot):",
-                                                                 min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                     div(class = "recommended-smoothing",
-                                                         uiOutput("smoothingExplanation2_TCGA")
-                                                     )
-                                                   ),
-                                                   
-                                                   hidden(selectInput("colorByTCGA", "Color points by:",
-                                                                      choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
-                                                                      selected = "clonality"))
-                                                 ),
-                                                 mainPanel(
-                                                   # First TCGA plot
-                                                   div(class = "plot-container",
-                                                       div(class = "plot-area",
-                                                           plotlyOutput("plot1TCGA")
-                                                       ),
-                                                       div(class = "caption-area",
-                                                           uiOutput("caption1TCGA")
-                                                       )
-                                                   ),
-                                                   
-                                                   # Second TCGA plot
-                                                   div(class = "plot-container",
-                                                       div(class = "plot-area",
-                                                           plotlyOutput("plot2TCGA")
-                                                       ),
-                                                       div(class = "caption-area",
-                                                           uiOutput("caption2TCGA")
-                                                       )
-                                                   ),
-                                                   
-                                                   hidden(uiOutput("plotOutputAreaTCGA")),
-                                                   hidden(div(id = "plotReadyTextTCGA")),
-                                                   uiOutput("downloadUI_TCGA")
-                                                 )
-                                               )
-                                             )
-                                    ),
-                                    
-                                    tabPanel("PCAWG",
-                                             tags$div(
-                                               tags$h4(tags$b("PCAWG Select")),
-                                               sidebarLayout(
-                                                 sidebarPanel(
-                                                   uiOutput("cancer_type_ui_PCAWG"),
-                                                   
-                                                   # Sample count display
-                                                   div(id = "sample_count_display_PCAWG", class = "sample-count-info",
-                                                       uiOutput("sample_count_PCAWG")
-                                                   ),
-                                                   
-                                                   uiOutput("sample_name_ui_PCAWG"),
-                                                   actionButton("submitPCAWG", "Submit", class = "btn-primary"),
-                                                   hidden(actionButton("clearPCAWG", "Clear", class = "btn-danger")),
-                                                   
-                                                   # Smoothing factor controls for PCAWG
-                                                   conditionalPanel(
-                                                     condition = "output.plotsReadyPCAWG == true",
-                                                     sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor (VAF Plot):",
-                                                                 min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                     div(class = "recommended-smoothing",
-                                                         uiOutput("smoothingExplanation1_PCAWG")
-                                                     ),
-                                                     sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor (CP Plot):",
-                                                                 min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                                                     div(class = "recommended-smoothing",
-                                                         uiOutput("smoothingExplanation2_PCAWG")
-                                                     )
-                                                   ),
-                                                   
-                                                   hidden(selectInput("colorByPCAWG", "Color points by:",
-                                                                      choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"),
-                                                                      selected = "clonality"))
-                                                 ),
-                                                 mainPanel(
-                                                   # First PCAWG plot
-                                                   div(class = "plot-container",
-                                                       div(class = "plot-area",
-                                                           plotlyOutput("plot1PCAWG")
-                                                       ),
-                                                       div(class = "caption-area",
-                                                           uiOutput("caption1PCAWG")
-                                                       )
-                                                   ),
-                                                   
-                                                   # Second PCAWG plot
-                                                   div(class = "plot-container",
-                                                       div(class = "plot-area",
-                                                           plotlyOutput("plot2PCAWG")
-                                                       ),
-                                                       div(class = "caption-area",
-                                                           uiOutput("caption2PCAWG")
-                                                       )
-                                                   ),
-                                                   
-                                                   hidden(uiOutput("plotOutputAreaPCAWG")),
-                                                   hidden(div(id = "plotReadyTextPCAWG")),
-                                                   uiOutput("downloadUI_PCAWG")
-                                                 )
-                                               )
-                                             )
-                                    )
-                        )
-                      )
-             ),
-             
-             tabPanel("Driver Mutation",
-                      sidebarLayout(
-                        sidebarPanel(
-                          uiOutput("cancer_type_ui_driver"),
-                          tags$div(
-                            class = "alert alert-info",
-                            tags$b("How to use:"),
-                            tags$div(
-                              tags$p("To explore driver mutations, first select a cancer type from the dropdown menu. You can then view mutations in two modes:"),
-                              tags$p("Consolidated by Sample: Displays aggregated mutation data for each sample, helping you identify prevalent mutations across different cases."),
-                              tags$p("Individual Mutations: Provides a detailed view of each mutation within a sample, allowing for in-depth analysis of specific genetic alterations."),
-                              tags$p("Click on any entry in the mutation table to see detailed visualization of the genetic changes.")
-                            )
-                          ),
-                          radioButtons("view_mode", "View Mode:",
-                                       choices = list(
-                                         "Consolidated by Sample" = "consolidated",
-                                         "Individual Mutations" = "individual"
-                                       ),
-                                       selected = "consolidated"),
+    # ============================ Sidebar ============================
+    tags$aside(class = "app-sidebar",
+      div(class = "sidebar-brand",
+        tags$img(src = paste0(global_assets, "/clipp-logo.png"), class = "brand-logo", alt = "CliPP")
+      ),
+      div(class = "sidebar-section-label", "SECTIONS"),
+      tags$nav(class = "sidebar-nav",
+        sidebar_link("About",                "circle-info",    "About",                active = TRUE),
+        sidebar_link("Tutorial",             "circle-play",    "Tutorial"),
+        sidebar_link("CliPP-on-Web",          "layer-group",    "CliPP-on-Web"),
+        sidebar_link("CliPP Data Resources", "database",       "CliPP Data Resources"),
+        sidebar_link("Driver Mutation",      "dna",            "Driver Mutation"),
+        # Sidebar links — uncomment with the matching tabPanel below
+        # sidebar_link("Data Exploration",     "chart-line",     "Data Exploration"),
+        # sidebar_link("Phylogenetic Tree",    "diagram-project","Phylogenetic Tree"),
+        sidebar_link("Downloads",            "download",       "Downloads")
+      )
+    ),
 
-                          # Smoothing factor controls for Driver Mutation
-                          conditionalPanel(
-                            condition = "output.driverRowSelected == true",
-                            sliderInput("smoothingFactor1_driver", "Smoothing Factor (VAF Plot):",
-                                        min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                            div(class = "recommended-smoothing",
-                                uiOutput("smoothingExplanation1_driver")
-                            ),
-                            sliderInput("smoothingFactor2_driver", "Smoothing Factor (CP Plot):",
-                                        min = 0.2, max = 0.7, value = 0.45, width = "100%"),
-                            div(class = "recommended-smoothing",
-                                uiOutput("smoothingExplanation2_driver")
-                            )
-                          )
-                        ),
-                        mainPanel(
-                          DT::DTOutput("driverMutationTable"),
-                          uiOutput("selectedMutationInfo"),
-                          downloadButton("downloadDriverMutation", "Download Data"),
-                          tags$h4(tags$b(tags$span("Reference:"))),
-                          p("Martínez-Jiménez, Francisco, et al. 'A compendium of mutational cancer driver genes.' Nature Reviews Cancer 20.10 (2020): 555-572."),
-                          
-                          # Driver plot 1
-                          div(class = "plot-container",
-                              div(class = "plot-area",
-                                  plotlyOutput("driverPlot1")
-                              ),
-                              div(class = "caption-area",
-                                  hidden(uiOutput("driverCaption1"))
-                              )
-                          ),
-                          
-                          # Driver plot 2
-                          div(class = "plot-container",
-                              div(class = "plot-area",
-                                  plotlyOutput("driverPlot2")
-                              ),
-                              div(class = "caption-area",
-                                  hidden(uiOutput("driverCaption2"))
-                              )
-                          )
-                        )
-                      )
-             ),
-             
-             tabPanel("Data Exploration",
-                      tags$div(class = "data-exploration-main",
-                               tabsetPanel(id = "analysis_tabset",
-                                           tabPanel("Kaplan–Meier",
-                                                    tags$div(
-                                                      tags$h3(tags$b("Kaplan-Meier Survival Analysis"), style = "color: #2c3e50; margin-bottom: 10px;"),
-                                                      tags$p("Explore survival outcomes based on subclonal mutational fraction (sMF) across different cancer types and subtypes.", 
-                                                             style = "color: #7f8c8d; font-size: 16px; margin-bottom: 30px;"),
-                                                      
-                                                      # Instructions panel
-                                                      tags$div(
-                                                        class = "instructions-card",
-                                                        tags$h5(tags$b("Analysis Instructions"), style = "color: #2c3e50; margin-bottom: 15px;"),
-                                                        tags$div(
-                                                          style = "display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;",
-                                                          tags$div(
-                                                            tags$p("1. Select survival endpoint (PFI or OS)", style = "margin: 5px 0;"),
-                                                            tags$p("2. Choose a cancer type to analyze", style = "margin: 5px 0;")
-                                                          ),
-                                                          tags$div(
-                                                            tags$p("3. Generate the survival plot", style = "margin: 5px 0;"),
-                                                            tags$p("4. Interpret results using legend below", style = "margin: 5px 0;")
-                                                          )
-                                                        ),
-                                                        tags$p(tags$em("Note: The algorithm automatically determines optimal sMF cutoffs using decision tree analysis."), 
-                                                               style = "margin-top: 15px; color: #666; font-size: 14px;")
-                                                      ),
-                                                      
-                                                      # Controls and Plot Layout
-                                                      fluidRow(
-                                                        column(3,
-                                                               tags$div(class = "legend-panel",
-                                                                        radioButtons("survivalType", "Survival Endpoint:",
-                                                                                     choices = list(
-                                                                                       "Progression-Free Interval (PFI)" = "PFI",
-                                                                                       "Overall Survival (OS)" = "OS"
-                                                                                     ),
-                                                                                     selected = "PFI"),
-                                                                        
-                                                                        uiOutput("cancerTypeUI_survival"),
-                                                                        
-                                                                        div(style = "text-align: center; margin: 20px 0;",
-                                                                            actionButton("generateKMPlot", "Generate Plot", class = "btn-primary", style = "width: 100%; margin-bottom: 10px;"),
-                                                                            downloadButton("downloadSurvivalPlot", "Download Plot", class = "btn-secondary", style = "width: 100%;")
-                                                                        )
-                                                               ),
-                                                               
-                                                               # Legend Panel
-                                                               tags$div(class = "legend-panel",
-                                                                        tags$h5(tags$b("Legend & Interpretation")),
-                                                                        tags$div(class = "legend-item",
-                                                                                 tags$div(class = "legend-symbol", style = "background: #63A299;"),
-                                                                                 tags$div(class = "legend-text", "High sMF: Higher subclonal mutation burden")
-                                                                        ),
-                                                                        tags$div(class = "legend-item",
-                                                                                 tags$div(class = "legend-symbol", style = "background: #D6ACC0;"),
-                                                                                 tags$div(class = "legend-text", "Low sMF: Lower subclonal mutation burden")
-                                                                        )
-                                                               )
-                                                        ),
-                                                        
-                                                        column(9,
-                                                               # Plot Section
-                                                               tags$div(class = "plot-section",
-                                                                        plotlyOutput("survivalPlot", height = "450px")
-                                                               ),
-                                                               
-                                                               # Analysis Results (only show when plot exists)
-                                                               conditionalPanel(
-                                                                 condition = "output.survivalPlotGenerated == true",
-                                                                 tags$div(class = "analysis-summary",
-                                                                          uiOutput("survivalPlotInfo")
-                                                                 )
-                                                               ),
-                                                               
-                                                               # Sample Information (only show when plot exists)
-                                                               conditionalPanel(
-                                                                 condition = "output.survivalPlotGenerated == true",
-                                                                 tags$div(class = "sample-info-card",
-                                                                          uiOutput("survivalSampleInfo")
-                                                                 )
-                                                               )
-                                                        )
-                                                      )
-                                                    )
-                                           ),
-                                           
-                                           tabPanel("Heatmap",
-                                                    tags$div(
-                                                      tags$h3(tags$b("sMF Correlation Heatmap"), style = "color: #2c3e50; margin-bottom: 10px;"),
-                                                      tags$p("Explore correlations between subclonal mutational fraction (sMF) and key genomic features across different cancer types and cohorts.",
-                                                             style = "color: #7f8c8d; font-size: 16px; margin-bottom: 30px;"),
+    # ============================ Main area ============================
+    div(class = "app-main",
+      div(class = "app-topbar",
+        div(class = "breadcrumb-trail",
+          span(class = "breadcrumb-current", "CliPP")
+        )
+      ),
+      div(class = "app-page-area",
+        div(class = "page-header-block",
+          h1(class = "page-title", "CliPP"),
+          p(class = "page-subtitle", "Clonal Structure Identification through Pairwise Penalization")
+        ),
+        div(class = "app-content",
+          tabsetPanel(id = "main_nav", type = "hidden", selected = "About",
 
-                                                      # Controls and Plot Layout
-                                                      fluidRow(
-                                                        column(3,
-                                                               tags$div(class = "legend-panel",
-                                                                        uiOutput("cohort_ui_heatmap"),
-
-                                                                        uiOutput("cancer_types_ui_heatmap"),
-
-                                                                        checkboxInput("show_numbers_heatmap", "Show correlation values", value = TRUE),
-
-                                                                        div(style = "text-align: center; margin: 20px 0;",
-                                                                            actionButton("generate_heatmap", "Generate Heatmap", class = "btn-primary", style = "width: 100%; margin-bottom: 10px;"),
-                                                                            downloadButton("download_heatmap", "Download Plot", class = "btn-secondary", style = "width: 100%; margin-bottom: 5px;"),
-                                                                            downloadButton("download_heatmap_data", "Download Data", class = "btn-secondary", style = "width: 100%;")
-                                                                        )
-                                                               )
-                                                        ),
-                                                        
-                                                        column(9,
-                                                               # Plot Section
-                                                               tags$div(class = "plot-section",
-                                                                        plotOutput("heatmap_plot", height = "600px")
-                                                               ),
-                                                               
-                                                               # Summary Statistics Table (only show when heatmap exists)
-                                                               conditionalPanel(
-                                                                 condition = "output.heatmapGenerated == true",
-                                                                 tags$div(class = "correlation-table-container",
-                                                                          tags$h4(tags$b("Summary Statistics"), style = "color: #2c3e50; margin-bottom: 15px;"),
-                                                                          DT::DTOutput("heatmap_summary_table")
-                                                                 )
-                                                               ),
-                                                               
-                                                               # Additional Analysis Information (only show when heatmap exists)
-                                                               conditionalPanel(
-                                                                 condition = "output.heatmapGenerated == true",
-                                                                 tags$div(class = "analysis-summary",
-                                                                          uiOutput("heatmap_info")
-                                                                 )
-                                                               )
-                                                        )
-                                                      )
-                                                    )
-                                           )
-                               )
-                      )
-             ),
-             
-             tabPanel("Downloads",
-                      tags$div(class = "downloads-tab-container",
-                               tags$div(id = "downloads-vertical-nav", class = "vertical-nav-floating",
-                                        tags$h5("Navigate", style = "margin-bottom: 15px; font-weight: 600;"),
-                                        tags$ul(class = "nav-list",
-                                                tags$li(tags$a(href = "#overview-section", class = "nav-link", "Overview")),
-                                                tags$li(tags$a(href = "#simulation-section", class = "nav-link", "Simulation Data")),
-                                                tags$li(tags$a(href = "#tcga-section", class = "nav-link", "TCGA Data")),
-                                                tags$li(tags$a(href = "#pcawg-section", class = "nav-link", "PCAWG Data"))
-                                        )
+            # ----------------------------------------------------------------
+            # About
+            # ----------------------------------------------------------------
+            tabPanel("About",
+                     div(class = "about-page fade-in",
+                       fluidRow(
+                         column(8,
+                           div(class = "about-card",
+                             div(class = "about-card-header",
+                               h4(class = "about-card-title", "Description"),
+                               span(class = "about-card-meta", "Last updated · May 7, 2026")
+                             ),
+                             div(class = "about-card-body",
+                               p("Tumor subclonal architecture shapes cancer evolution, yet subclonal reconstruction from bulk sequencing remains difficult to scale due to computational cost and model complexity. We developed ",
+                                 tags$b("Clonal Structure Identification through Pairwise Penalization (CliPP)"),
+                                 ", a penalized-likelihood framework that jointly estimates cellular prevalence with pairwise fusion penalties, automatically identifying subclones without requiring extensive priors, which enables fast and accurate subclonal reconstruction."),
+                               p("Using CliPP on Web, users may upload their own samples for fast subclonal reconstruction using our easy to navigate user interface. We also present the subclonal reconstruction results for 7,279 TCGA samples and 2,778 PCAWG samples.")
+                             )
+                           )
+                         ),
+                         column(4,
+                           div(class = "about-card contacts-card",
+                             div(class = "about-card-header",
+                               h4(class = "about-card-title", "Issue contacts")
+                             ),
+                             div(class = "about-card-body contacts-list",
+                               div(class = "contact-item",
+                                 div(class = "contact-avatar avatar-blue", "AW"),
+                                 div(class = "contact-info",
+                                   div(class = "contact-name", "Aaron Wu"),
+                                   div(class = "contact-role", "Web application · Engineering"),
+                                   a(href = "mailto:pandachessaaron@gmail.com", class = "contact-email", "pandachessaaron@gmail.com")
+                                 )
                                ),
-                               
-                               tags$div(class = "downloads-main-content",
-                                        div(id = "overview-section", class = "download-section",
-                                            tags$h3(tags$b("Overview"), style = "color: #3498db; border-bottom: 2px solid #3498db; padding-bottom: 10px;"),
-                                            p(tags$b("CliPP (Clonal structure Identification through Penalizing Pairwise differences)"),
-                                              " provides comprehensive datasets for cancer genomic analysis. Download processed data from major cancer genomic consortiums and simulation data:"),
-                                            tags$ul(
-                                              tags$li(tags$b("Simulation (CliPPSim4k)"), " - Simulated cancer genomic data for testing and validation"),
-                                              tags$li(tags$b("TCGA (The Cancer Genome Atlas)"), " - Multi-platform genomic data"),
-                                              tags$li(tags$b("PCAWG (Pan-Cancer Analysis of Whole Genomes)"), " - Whole genome sequencing data")
-                                            ),
-                                            p("All datasets include clonal structure analysis results, mutation assignments, and sample metadata."),
-
-                                            div(class = "metadata-card", style = "background: #e1f5fe; border-left: 4px solid #0288d1;",
-                                                tags$b("🔐 Authentication Required:"),
-                                                p("These downloads require password authentication. When you click a download button:"),
-                                                tags$ul(
-                                                  tags$li("The link will open in your default browser"),
-                                                  tags$li("A notification with the password will appear in this app"),
-                                                  tags$li("Enter the password when prompted by the website")
-                                                ),
-                                                p(tags$em("Note: Password is only provided when you attempt to download."))
-                                            ),
-
-                                            div(class = "metadata-card", style = "background: #fff3cd; border-left: 4px solid #ffc107;",
-                                                tags$b("Access Issues?"),
-                                                p("If you encounter problems, contact ",
-                                                  a(href = "mailto:aw80@rice.edu", "aw80@rice.edu"),
-                                                  " or ",
-                                                  a(href = "mailto:qmtran@mdanderson.org", "qmtran@mdanderson.org"),
-                                                  " for assistance.")
-                                            )
-                                        ),
-                                        
-                                        # Simulation section
-                                        div(id = "simulation-section", class = "download-section",
-                                            tags$h3(tags$b("Simulation Dataset Downloads (CliPPSim4k)"), style = "color: #e74c3c; border-bottom: 2px solid #e74c3c; padding-bottom: 10px;"),
-                                            
-                                            div(class = "metadata-card",
-                                                tags$b("Dataset Information:"),
-                                                tags$ul(
-                                                  tags$li("Sample count: 4,000 simulated cancer genomes"),
-                                                  tags$li("Simulation types: Various clonal architectures and mutation patterns"),
-                                                  tags$li("Data processing: CliPP clonal structure analysis"),
-                                                  tags$li("File formats: TSV, TXT")
-                                                )
-                                            ),
-                                            
-                                            tags$table(class = "download-table-styled",
-                                                       tags$thead(
-                                                         tags$tr(
-                                                           tags$th("Dataset"),
-                                                           tags$th("Description"),
-                                                           tags$th("File Type"),
-                                                           tags$th("Download")
-                                                         )
-                                                       ),
-                                                       tags$tbody(
-                                                         tags$tr(
-                                                           tags$td(class = "dataset-name", "CliPPSim4k Summary"),
-                                                           tags$td("Comprehensive simulation results for 4,000 samples with known ground truth"),
-                                                           tags$td(tags$span(class = "file-type-badge", "TSV")),
-                                                           tags$td(
-                                                             actionButton("downloadSim4k", "Download", class = "download-btn"),
-                                                             tags$span(class = "file-size", " (~2MB)")
-                                                           )
-                                                         ),
-                                                         tags$tr(
-                                                           tags$td(class = "dataset-name", "Individual Simulation Data"),
-                                                           tags$td("Per-sample simulation files with ground truth clonal structure"),
-                                                           tags$td(tags$span(class = "file-type-badge", "TXT Files")),
-                                                           tags$td(actionButton("browseSim4k", "Browse Data", class = "browse-btn"))
-                                                         )
-                                                       )
-                                            )
-                                        ),
-                                        
-                                        # TCGA section
-                                        div(id = "tcga-section", class = "download-section",
-                                            tags$h3(tags$b("TCGA Dataset Downloads"), style = "color: #9b59b6; border-bottom: 2px solid #9b59b6; padding-bottom: 10px;"),
-                                            
-                                            div(class = "metadata-card",
-                                                tags$b("Dataset Information:"),
-                                                tags$ul(
-                                                  tags$li("Sample count: ~10,000+ cancer samples"),
-                                                  tags$li("Cancer types: 33 cancer types"),
-                                                  tags$li("Data types: Multi-platform genomic data with CliPP analysis"),
-                                                  tags$li("File formats: TSV, TXT")
-                                                )
-                                            ),
-                                            
-                                            tags$table(class = "download-table-styled",
-                                                       tags$thead(
-                                                         tags$tr(
-                                                           tags$th("Dataset"),
-                                                           tags$th("Description"),
-                                                           tags$th("File Type"),
-                                                           tags$th("Download")
-                                                         )
-                                                       ),
-                                                       tags$tbody(
-                                                         tags$tr(
-                                                           tags$td(class = "dataset-name", "CliPP TCGA Summary"),
-                                                           tags$td("Comprehensive CliPP analysis results for all TCGA samples"),
-                                                           tags$td(tags$span(class = "file-type-badge", "TSV")),
-                                                           tags$td(
-                                                             actionButton("downloadTCGA", "Download", class = "download-btn"),
-                                                             tags$span(class = "file-size", " (~5MB)")
-                                                           )
-                                                         ),
-                                                         tags$tr(
-                                                           tags$td(class = "dataset-name", "Individual Sample Data"),
-                                                           tags$td("Per-sample mutation assignments and clonal structure"),
-                                                           tags$td(tags$span(class = "file-type-badge", "TXT Files")),
-                                                           tags$td(actionButton("browseTCGA", "Browse Data", class = "browse-btn"))
-                                                         )
-                                                       )
-                                            )
-                                        ),
-                                        
-                                        # PCAWG section
-                                        div(id = "pcawg-section", class = "download-section",
-                                            tags$h3(tags$b("PCAWG Dataset Downloads"), style = "color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 10px;"),
-                                            
-                                            div(class = "metadata-card",
-                                                tags$b("Dataset Information:"),
-                                                tags$ul(
-                                                  tags$li("Sample count: ~2,600 cancer whole genomes"),
-                                                  tags$li("Cancer types: 38 tumor types across multiple sites"),
-                                                  tags$li("Data processing: CliPP clonal structure analysis with multiple λ parameters"),
-                                                  tags$li("File formats: TSV, TXT")
-                                                )
-                                            ),
-                                            
-                                            tags$table(class = "download-table-styled",
-                                                       tags$thead(
-                                                         tags$tr(
-                                                           tags$th("Dataset"),
-                                                           tags$th("Description"),
-                                                           tags$th("File Type"),
-                                                           tags$th("Download")
-                                                         )
-                                                       ),
-                                                       tags$tbody(
-                                                         tags$tr(
-                                                           tags$td(class = "dataset-name", "CliPP PCAWG Summary"),
-                                                           tags$td("Comprehensive CliPP analysis results for all PCAWG samples"),
-                                                           tags$td(tags$span(class = "file-type-badge", "TSV")),
-                                                           tags$td(
-                                                             actionButton("downloadPCAWG", "Download", class = "download-btn"),
-                                                             tags$span(class = "file-size", " (~2.5MB)")
-                                                           )
-                                                         ),
-                                                         tags$tr(
-                                                           tags$td(class = "dataset-name", "Individual Sample Data"),
-                                                           tags$td("Per-sample mutation assignments and clonal structure"),
-                                                           tags$td(tags$span(class = "file-type-badge", "TXT Files")),
-                                                           tags$td(actionButton("browsePCAWG", "Browse Data", class = "browse-btn"))
-                                                         )
-                                                       )
-                                            )
-                                        ),
-                                        
-                                        # Usage and Citation
-                                        div(class = "citation-section",
-                                            tags$h4(tags$b("Data Usage & Citation"), style = "color: #2c3e50; margin-top: 40px;"),
-                                            p(tags$b("If you use this data in your research, please cite:")),
-                                            tags$ul(
-                                              tags$li("CliPP methodology and software publication"),
-                                              tags$li("PCAWG Consortium publications for PCAWG data"),
-                                              tags$li("TCGA Research Network publications for TCGA data")
-                                            ),
-                                            p(tags$b("Data Usage:"), " All data is provided for research purposes. Please follow the data usage policies of the respective consortiums."),
-                                            p(tags$b("Last Updated:"), " September 2025"),
-                                            p(tags$b("Contact:"), " For questions about the datasets, please contact the development team via the About page.")
-                                        )
+                               div(class = "contact-item",
+                                 div(class = "contact-avatar avatar-purple", "MM"),
+                                 div(class = "contact-info",
+                                   div(class = "contact-name", "Matthew Montierth"),
+                                   div(class = "contact-role", "Pipeline support · MD Anderson"),
+                                   a(href = "mailto:MDMontierth@mdanderson.org", class = "contact-email", "MDMontierth@mdanderson.org")
+                                 )
                                )
-                      )
-             ),
-             
-             tabPanel("Citations",
-                      tags$div(
-                        tags$h4(tags$b(tags$span("Manuscript under preparation:"))),
-                        p("Yujie Jiang, Matthew D Montierth, Kaixian Yu, Shuangxi Ji,
-                        Quang Tran, Xiaoqian Liu, Jessica C Lal, Shuai Guo, Aaron Wu,
-                        Seung Jun Shin, Shaolong Cao, Ruonan Li, Yuxin Tang, Tom Lesluyes,
-                        Scott Kopetz, Pavlos Msaouel, Anil K. Sood, Christopher Jones, Jaffer Ajani,
-                        Sumit K Subudhi, Ana Aparicio, Padmanee Sharma, John Paul Shen, Marek Kimmel,
-                        Jennifer R. Wang, Maxime Tarabichi, Rebecca Fitzgerald, Peter Van Loo, Hongtu Zhu,
-                        Wenyi Wang. Subclonal mutational load predicts survival and response to immunotherapy
-                        in cancers with low to moderate TMB.",
-                          a(href = "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v2",
-                            "https://www.biorxiv.org/content/10.1101/2024.07.03.601939v2"),"."),
-                        
-                      )
-             )
-  ))
+                             )
+                           )
+                         )
+                       ),
+                       div(class = "about-card pipeline-card",
+                         div(class = "about-card-header",
+                           h4(class = "about-card-title", "How CliPP works"),
+                           span(class = "about-card-meta", "Pipeline overview")
+                         ),
+                         div(class = "about-card-body",
+                           div(class = "pipeline-steps",
+                             div(class = "pipeline-step",
+                               div(class = "step-number", "1"),
+                               div(class = "step-title", "Input"),
+                               div(class = "step-desc", "WGS / WES variant calls with read depth, allele counts, and copy-number segments.")
+                             ),
+                             div(class = "pipeline-step",
+                               div(class = "step-number", "2"),
+                               div(class = "step-title", "Penalized model"),
+                               div(class = "step-desc", "Regularized likelihood clusters mutations by penalizing pairwise CCF differences.")
+                             ),
+                             div(class = "pipeline-step",
+                               div(class = "step-number", "3"),
+                               div(class = "step-title", "Subclonal reconstruction"),
+                               div(class = "step-desc", "Recovers clonal & subclonal populations in minutes per sample.")
+                             ),
+                             div(class = "pipeline-step",
+                               div(class = "step-number", "4"),
+                               div(class = "step-title", "Output"),
+                               div(class = "step-desc", "Subclonal mutation fraction (sMF), clonal structure, cluster assignments.")
+                             )
+                           )
+                         )
+                       ),
+                       # ---- Citations ----
+                       fluidRow(
+                         column(8,
+                           div(class = "about-card",
+                             div(class = "about-card-header",
+                               h4(class = "about-card-title", "Citation")
+                             ),
+                             div(class = "about-card-body",
+                               div(class = "preprint-box",
+                                 span(class = "preprint-label", "PRE-PRINT · BIORXIV"),
+                                 p(class = "preprint-citation",
+                                   "Jiang, Y., Montierth, M.D., Ding, Y., Yu, K., Tran, Q., Wu, A., Li, R., Ji, S., Liu, X., Shin, S.J., Cao, S., Tang, Y., Lesluyes, T., Kimmel, M., Wang, J.R., Tarabichi, M., Zhu, H., Van Loo, P., & Wang, W. ",
+                                   tags$em("Scalable subclonal reconstruction of cancer cells in DNA sequencing data using a penalized likelihood model."),
+                                   " bioRxiv (2021)."
+                                 ),
+                                 a(href = "https://www.biorxiv.org/content/10.1101/2021.03.31.437383v2",
+                                   class = "preprint-link",
+                                   target = "_blank",
+                                   "https://www.biorxiv.org/content/10.1101/2021.03.31.437383v2")
+                               ),
+                               div(class = "format-label", style = "margin-top:1.5rem;", "BIBTEX"),
+                               tags$pre(class = "bibtex-block", id = "bibtex-content",
+"@article{jiang2021clipp,
+  title   = {Scalable subclonal reconstruction of cancer cells in DNA sequencing data using a penalized likelihood model},
+  author  = {Jiang, Yujie and Montierth, Matthew D and Ding, Y and Yu, Kaixian and Tran, Quang and Wu, Aaron and Li, Ruonan and Ji, Shuangxi and Liu, Xiaoqian and Shin, Seung Jun and Cao, Shaolong and Tang, Yuxin and Lesluyes, Tom and Kimmel, Marek and Wang, Jennifer R and Tarabichi, Maxime and Zhu, Hongtu and Van Loo, Peter and Wang, Wenyi},
+  journal = {bioRxiv},
+  year    = {2021},
+  doi     = {10.1101/2021.03.31.437383}
+}"
+                               ),
+                               div(class = "cite-actions",
+                                 tags$button(type = "button", class = "btn-mini",
+                                   onclick = "copyBibtex(); return false;",
+                                   "Copy BibTeX"),
+                                 tags$button(type = "button", class = "btn-mini",
+                                   onclick = "downloadCitation('ris'); return false;",
+                                   "Download .ris"),
+                                 tags$button(type = "button", class = "btn-mini",
+                                   onclick = "downloadCitation('enw'); return false;",
+                                   "EndNote (.enw)")
+                               )
+                             )
+                           )
+                         ),
+                         column(4,
+                           div(class = "about-card",
+                             div(class = "about-card-header",
+                               h4(class = "about-card-title", "Data Usage")
+                             ),
+                             div(class = "about-card-body",
+                               p(class = "data-usage-intro",
+                                 "If you use this data in your research, please cite:"),
+                               div(class = "citation-numbered-list",
+                                 div(class = "numbered-item",
+                                   div(class = "num-circle num-blue", "1"),
+                                   div(class = "num-text", "CliPP methodology and software publication")
+                                 ),
+                                 div(class = "numbered-item",
+                                   div(class = "num-circle num-purple", "2"),
+                                   div(class = "num-text", "PCAWG Consortium publications for PCAWG data")
+                                 ),
+                                 div(class = "numbered-item",
+                                   div(class = "num-circle num-orange", "3"),
+                                   div(class = "num-text", "TCGA Research Network publications for TCGA data")
+                                 )
+                               ),
+                               div(class = "data-usage-callout",
+                                 div(class = "callout-label", "DATA USAGE"),
+                                 p(class = "callout-text",
+                                   "All data is provided for research purposes. Please follow the data usage policies of the respective consortiums.")
+                               )
+                             )
+                           )
+                         )
+                       )
+                     )
+            ),
+
+            # ----------------------------------------------------------------
+            # Tutorial
+            # ----------------------------------------------------------------
+            tabPanel("Tutorial",
+                     div(class = "tutorial-page fade-in",
+                       fluidRow(
+                         column(8,
+                           div(class = "about-card",
+                             div(class = "about-card-header",
+                               h4(class = "about-card-title", "Video tutorial"),
+                               span(class = "about-card-meta", "12:48 · Aaron Wu")
+                             ),
+                             div(class = "video-frame",
+                               div(class = "video-aspect",
+                                 tags$iframe(id = "tutorial-iframe",
+                                   src = "https://www.youtube.com/embed/ZPX_hC-uiYA?enablejsapi=1&rel=0&modestbranding=1",
+                                   frameborder = "0",
+                                   allow = "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture",
+                                   allowfullscreen = NA
+                                 )
+                               )
+                             ),
+                             div(class = "video-footer",
+                               span(class = "video-meta", "Recorded April 2026 · 12 min 48 sec"),
+                               div(class = "video-actions",
+                                 tags$a(href = "https://www.youtube.com/watch?v=ZPX_hC-uiYA",
+                                   target = "_blank", class = "btn-mini",
+                                   HTML("Open in new tab &nearr;"))
+                               )
+                             )
+                           )
+                         ),
+                         column(4,
+                           div(class = "about-card chapters-card",
+                             div(class = "about-card-header",
+                               h4(class = "about-card-title", "Chapters"),
+                               span(class = "about-card-meta", "9")
+                             ),
+                             div(class = "chapters-list",
+                               chapter_item("0:00",  0,    "Introduction to CliPP-on-Web",            "Overview of the application",       active = TRUE),
+                               chapter_item("2:00",  120,  "Uploading SNV, CNA, and Purity files",    "Preparing and uploading inputs"),
+                               chapter_item("4:30",  270,  "Configuring sample analysis and settings","Sample setup and parameters"),
+                               chapter_item("7:00",  420,  "Visualizing results: VAF and CP plots",   "Reading the output plots"),
+                               chapter_item("10:00", 600,  "Exploring CliPP Data Resources",          "TCGA and Pan-Cancer datasets"),
+                               chapter_item("12:30", 750,  "Driver Mutation Analysis",                "Identifying driver mutations"),
+                               chapter_item("15:00", 900,  "Downloading results and adjusting plots", "Exports and plot tuning"),
+                               chapter_item("18:00", 1080, "Accessing About & Citations tabs",        "Reference information"),
+                               chapter_item("20:00", 1200, "Conclusion and next steps",               "Wrap-up and resources")
+                             )
+                           )
+                         )
+                       )
+                     )
+            ),
+
+            # ----------------------------------------------------------------
+            # CliPP-on-Web
+            # ----------------------------------------------------------------
+            tabPanel("CliPP-on-Web",
+                     sidebarLayout(
+                         sidebarPanel(
+                           tags$div(
+                             p("The online tool requires three files as input: SNV File, CNA File and Cancer Purity File.
+                               Please check the three links below to download the example files:"),
+                             p(a("SNV file", href=paste0(global_TCGA_PCAWG, "/sample.snv.txt"), download="sample.snv.txt"),
+                               "TSV file with columns: chromosome_index, position, ref_count, alt_count", br(),
+                               a("CNA file", href=paste0(global_TCGA_PCAWG, "/sample.cna.txt"), download="sample.cna.txt"),
+                               "TSV file with columns: chromosome_index, start_position, end_position, major_cn, minor_cn, and total_cn", br(),
+                               a("Purity file", href=paste0(global_TCGA_PCAWG, "/sample.purity.txt"), download="sample.purity.txt"),
+                               "File storing a scalar purity value between 0 and 1"),
+                             p("When uploading files, please ensure the file names contain the appropriate suffixes (e.g., snv.txt, cna.txt, purity.txt) to help the application correctly identify and process them.")
+                           ),
+                           radioButtons("uploadMode", "Choose your upload method:",
+                                        choices = list("Upload all files at once" = "all_at_once",
+                                                       "Upload files individually" = "individually"),
+                                        selected = "all_at_once"),
+                           numericInput("numSamples", "Number of samples:", min = 1, max = 10, value = 1),
+                           actionButton("setSamples", "Set Samples", class = "btn-primary"),
+                           br(),
+                           uiOutput("dynamicFileInputs"),
+                           hidden(actionButton("uploadSamples", "Upload Samples", class = "btn-primary")),
+                           br(),
+                           hidden(selectInput("selectedSample", "Select a sample to analyze:", choices = NULL)),
+                           hidden(actionButton("submit", "Submit", class = "btn-primary")),
+                           hidden(selectInput("colorBy", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                           hidden(sliderInput("smoothingFactor1", "Smoothing Factor for VAF Plot:",
+                                              min = 0.2, max = 0.7, value = 0.45)),
+                           uiOutput("smoothingExplanation1"),
+                           hidden(sliderInput("smoothingFactor2", "Smoothing Factor for CP Plot:",
+                                              min = 0.2, max = 0.7, value = 0.45)),
+                           uiOutput("smoothingExplanation2"),
+                           hidden(actionButton("clear", "Clear", class = "btn-danger"))
+                         ),
+                         mainPanel(
+                           plotlyOutput("plot1"),
+                           uiOutput("caption1"),
+                           plotlyOutput("plot2"),
+                           uiOutput("caption2"),
+                           uiOutput("plotOutputArea"),
+                           hidden(div(id = "plotReadyTextCliPP")),
+                           shinyjs::hidden(
+                             shinyWidgets::progressBar(
+                               id = "progress",
+                               value = 0,
+                               total = 100,
+                               display_pct = TRUE
+                             )
+                           )
+                         )
+                       )
+            ),
+
+            # ----------------------------------------------------------------
+            # CliPP Data Resources
+            # ----------------------------------------------------------------
+            tabPanel("CliPP Data Resources",
+                     tags$div(
+                       div(class = "info-panel", style = "margin-bottom: 1.25rem;",
+                         p("Explore subclonal reconstruction results from 7,279 TCGA samples and 2,778 PCAWG samples. For each sample, we provide a visualization of subclonal reconstruction results and subclonal mutation fraction (sMF) calculation. Samples included in our data exploration all passed our filtering criteria, having more than 20 and less than 20,000 SNVs, and number of reads per chromosomal copy (nrpcc) value greater than 10. Additional sample filtering was performed based on quality control of copy number calls. For more details please see our ",
+                           a(href = "https://www.biorxiv.org/content/10.1101/2021.03.31.437383v2",
+                             target = "_blank", "pre-print"), ". To download the full datasets, visit the ",
+                           tags$a(href = "#", onclick = "Shiny.setInputValue('main_nav_target','Downloads',{priority:'event'}); return false;", "Downloads page"), ".")
+                       ),
+                       tabsetPanel(
+                         tabPanel("TCGA",
+                                  sidebarLayout(
+                                    sidebarPanel(
+                                      uiOutput("cancer_type_ui_TCGA"),
+                                      uiOutput("sample_name_ui_TCGA"),
+                                      actionButton("submitTCGA", "Submit", class = "btn-primary"),
+                                      hidden(selectInput("colorByTCGA", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                                      hidden(sliderInput("smoothingFactor1_TCGA", "Smoothing Factor for VAF Plot:",
+                                                         min = 0.2, max = 0.7, value = 0.45)),
+                                      uiOutput("smoothingExplanation1_TCGA"),
+                                      hidden(sliderInput("smoothingFactor2_TCGA", "Smoothing Factor for CP Plot:",
+                                                         min = 0.2, max = 0.7, value = 0.45)),
+                                      uiOutput("smoothingExplanation2_TCGA"),
+                                      hr(),
+                                      h6("Samples by cancer type"),
+                                      DT::DTOutput("tcgaCancerCounts", width = "100%")
+                                    ),
+                                    mainPanel(
+                                      plotlyOutput("plot1TCGA"),
+                                      shinyjs::hidden(downloadButton("downloadPlot1TCGA",
+                                        "Download VAF Plot (PNG)", class = "btn-download-plot")),
+                                      uiOutput("caption1TCGA"),
+                                      plotlyOutput("plot2TCGA"),
+                                      shinyjs::hidden(downloadButton("downloadPlot2TCGA",
+                                        "Download CP Plot (PNG)", class = "btn-download-plot")),
+                                      uiOutput("caption2TCGA"),
+                                      hidden(uiOutput("plotOutputAreaTCGA")),
+                                      hidden(div(id = "plotReadyTextTCGA")),
+                                      uiOutput("downloadUI_TCGA")
+                                    )
+                                  )
+                         ),
+                         tabPanel("PCAWG",
+                                  sidebarLayout(
+                                    sidebarPanel(
+                                      uiOutput("cancer_type_ui_PCAWG"),
+                                      uiOutput("sample_name_ui_PCAWG"),
+                                      actionButton("submitPCAWG", "Submit", class = "btn-primary"),
+                                      hidden(selectInput("colorByPCAWG", "Color points by:", choices = list("Clonality" = "clonality", "Read Depth" = "readDepth"), selected = "clonality")),
+                                      hidden(sliderInput("smoothingFactor1_PCAWG", "Smoothing Factor for VAF Plot:",
+                                                         min = 0.2, max = 0.7, value = 0.45)),
+                                      uiOutput("smoothingExplanation1_PCAWG"),
+                                      hidden(sliderInput("smoothingFactor2_PCAWG", "Smoothing Factor for CP Plot:",
+                                                         min = 0.2, max = 0.7, value = 0.45)),
+                                      uiOutput("smoothingExplanation2_PCAWG"),
+                                      hr(),
+                                      h6("Samples by cancer type"),
+                                      DT::DTOutput("pcawgCancerCounts", width = "100%")
+                                    ),
+                                    mainPanel(
+                                      plotlyOutput("plot1PCAWG"),
+                                      shinyjs::hidden(downloadButton("downloadPlot1PCAWG",
+                                        "Download VAF Plot (PNG)", class = "btn-download-plot")),
+                                      uiOutput("caption1PCAWG"),
+                                      plotlyOutput("plot2PCAWG"),
+                                      shinyjs::hidden(downloadButton("downloadPlot2PCAWG",
+                                        "Download CP Plot (PNG)", class = "btn-download-plot")),
+                                      uiOutput("caption2PCAWG"),
+                                      hidden(uiOutput("plotOutputAreaPCAWG")),
+                                      hidden(div(id = "plotReadyTextPCAWG")),
+                                      uiOutput("downloadUI_PCAWG")
+                                    )
+                                  )
+                         )
+                       )
+                     )
+            ),
+
+            # ----------------------------------------------------------------
+            # Driver Mutation
+            # ----------------------------------------------------------------
+            tabPanel("Driver Mutation",
+                     div(class = "driver-page fade-in",
+                       div(class = "info-panel", style = "margin-bottom: 1.25rem;",
+                         p("Explore driver mutation annotation for mutations in 289 genes across 5,440 TCGA samples from 31 cancer types. Driver mutation lists were obtained from ",
+                           a(href = "https://www.intogen.org", target = "_blank", "IntOGen"),
+                           " (Martínez-Jiménez et al., ", tags$em("Nature Reviews Cancer"), ", 2020).")
+                       ),
+                       div(class = "about-card driver-card",
+                         div(class = "driver-toolbar",
+                           uiOutput("cancer_type_ui_driver")
+                         ),
+                         div(class = "driver-table-wrap",
+                           DT::DTOutput("driverMutationTable")
+                         )
+                       ),
+                       shinyjs::hidden(div(id = "driverPlotSection",
+                         div(class = "about-card",
+                           div(class = "about-card-header",
+                             h4(class = "about-card-title", "VAF Distribution")
+                           ),
+                           div(class = "about-card-body",
+                             shinyjs::hidden(sliderInput("smoothingFactor1_driver",
+                               "Smoothing factor:", min = 0.2, max = 0.7, value = 0.45)),
+                             uiOutput("smoothingExplanation1_driver"),
+                             plotlyOutput("driverPlot1", height = "320px"),
+                             uiOutput("driverCaption1")
+                           )
+                         ),
+                         div(class = "about-card",
+                           div(class = "about-card-header",
+                             h4(class = "about-card-title", "CP Distribution")
+                           ),
+                           div(class = "about-card-body",
+                             shinyjs::hidden(sliderInput("smoothingFactor2_driver",
+                               "Smoothing factor:", min = 0.2, max = 0.7, value = 0.45)),
+                             uiOutput("smoothingExplanation2_driver"),
+                             plotlyOutput("driverPlot2", height = "320px"),
+                             uiOutput("driverCaption2")
+                           )
+                         )
+                       )),
+                       div(class = "driver-footer-row",
+                         div(class = "driver-footer-left",
+                           shinyjs::hidden(
+                             downloadButton("downloadDriverMutation",
+                               "Download by Sample",
+                               class = "btn-download-driver")
+                           ),
+                           shinyjs::hidden(
+                             downloadButton("downloadDriverMutation_gene",
+                               "Download by Gene",
+                               class = "btn-download-driver")
+                           )
+                         ),
+                         div(class = "driver-footer-right",
+                           div(class = "driver-reference-label", "Reference:"),
+                           p(class = "driver-reference",
+                             "Martínez-Jiménez, Francisco, Ferran Muiños, Inés Sentís, Jordi Deu-Pons, Iker Reyes-Salazar, ",
+                             "Claudia Arnedo-Pac, Loris Mularoni et al. 'A compendium of mutational cancer driver genes.' ",
+                             tags$em("Nature Reviews Cancer"), " 20, no. 10 (2020): 555-572.")
+                         )
+                       )
+                     )
+            ),
+
+            # ================================================================
+            # Data Exploration tab — Kaplan–Meier + sMF Heatmap
+            # Also uncomment: sidebar link above, page header line A in tags$head
+            # ================================================================
+            # tabPanel("Data Exploration",
+            #          tags$div(class = "data-exploration-main fade-in",
+            #                   tabsetPanel(id = "analysis_tabset",
+            #                               tabPanel("Kaplan–Meier",
+            #                                        tags$div(
+            #                                          tags$h3(tags$b("Kaplan-Meier Survival Analysis"), style = "color: #2c3e50; margin-bottom: 10px;"),
+            #                                          tags$p("Explore survival outcomes based on subclonal mutational fraction (sMF) across different cancer types and subtypes.",
+            #                                                 style = "color: #7f8c8d; font-size: 16px; margin-bottom: 30px;"),
+            #                                          fluidRow(
+            #                                            column(3,
+            #                                                   tags$div(class = "legend-panel",
+            #                                                            radioButtons("survivalType", "Survival Endpoint:",
+            #                                                                         choices = list(
+            #                                                                           "Progression-Free Interval (PFI)" = "PFI",
+            #                                                                           "Overall Survival (OS)" = "OS"
+            #                                                                         ),
+            #                                                                         selected = "PFI"),
+            #                                                            uiOutput("cancerTypeUI_survival"),
+            #                                                            div(style = "text-align: center; margin: 20px 0;",
+            #                                                                actionButton("generateKMPlot", "Generate Plot", class = "btn-primary", style = "width: 100%; margin-bottom: 10px;"),
+            #                                                                downloadButton("downloadSurvivalPlot", "Download Plot", class = "btn-secondary", style = "width: 100%;")
+            #                                                            )
+            #                                                   ),
+            #                                                   tags$div(class = "legend-panel",
+            #                                                            tags$h5(tags$b("Legend & Interpretation")),
+            #                                                            tags$div(class = "legend-item",
+            #                                                                     tags$div(class = "legend-symbol", style = "background: #63A299;"),
+            #                                                                     tags$div(class = "legend-text", "High sMF: Higher subclonal mutation burden")
+            #                                                            ),
+            #                                                            tags$div(class = "legend-item",
+            #                                                                     tags$div(class = "legend-symbol", style = "background: #D6ACC0;"),
+            #                                                                     tags$div(class = "legend-text", "Low sMF: Lower subclonal mutation burden")
+            #                                                            )
+            #                                                   )
+            #                                            ),
+            #                                            column(9,
+            #                                                   tags$div(class = "plot-section",
+            #                                                            plotlyOutput("survivalPlot", height = "450px")
+            #                                                   ),
+            #                                                   conditionalPanel(
+            #                                                     condition = "output.survivalPlotGenerated == true",
+            #                                                     tags$div(class = "analysis-summary",
+            #                                                              uiOutput("survivalPlotInfo")
+            #                                                     )
+            #                                                   ),
+            #                                                   conditionalPanel(
+            #                                                     condition = "output.survivalPlotGenerated == true",
+            #                                                     tags$div(class = "sample-info-card",
+            #                                                              uiOutput("survivalSampleInfo")
+            #                                                     )
+            #                                                   )
+            #                                            )
+            #                                          )
+            #                                        )
+            #                               ),
+            #                               tabPanel("Heatmap",
+            #                                        tags$div(
+            #                                          tags$h3(tags$b("sMF Correlation Heatmap"), style = "color: #2c3e50; margin-bottom: 10px;"),
+            #                                          tags$p("Explore correlations between subclonal mutational fraction (sMF) and key genomic features across different cancer types and cohorts.",
+            #                                                 style = "color: #7f8c8d; font-size: 16px; margin-bottom: 30px;"),
+            #                                          fluidRow(
+            #                                            column(3,
+            #                                                   tags$div(class = "legend-panel",
+            #                                                            uiOutput("cohort_ui_heatmap"),
+            #                                                            uiOutput("cancer_types_ui_heatmap"),
+            #                                                            checkboxInput("show_numbers_heatmap", "Show correlation values", value = TRUE),
+            #                                                            div(style = "text-align: center; margin: 20px 0;",
+            #                                                                actionButton("generate_heatmap", "Generate Heatmap", class = "btn-primary", style = "width: 100%; margin-bottom: 10px;"),
+            #                                                                downloadButton("download_heatmap", "Download Plot", class = "btn-secondary", style = "width: 100%; margin-bottom: 5px;"),
+            #                                                                downloadButton("download_heatmap_data", "Download Data", class = "btn-secondary", style = "width: 100%;")
+            #                                                            )
+            #                                                   )
+            #                                            ),
+            #                                            column(9,
+            #                                                   tags$div(class = "plot-section",
+            #                                                            plotOutput("heatmap_plot", height = "600px")
+            #                                                   ),
+            #                                                   conditionalPanel(
+            #                                                     condition = "output.heatmapGenerated == true",
+            #                                                     tags$div(class = "correlation-table-container",
+            #                                                              tags$h4(tags$b("Summary Statistics"), style = "color: #2c3e50; margin-bottom: 15px;"),
+            #                                                              DT::DTOutput("heatmap_summary_table")
+            #                                                     )
+            #                                                   ),
+            #                                                   conditionalPanel(
+            #                                                     condition = "output.heatmapGenerated == true",
+            #                                                     tags$div(class = "analysis-summary",
+            #                                                              uiOutput("heatmap_info")
+            #                                                     )
+            #                                                   )
+            #                                            )
+            #                                          )
+            #                                        )
+            #                               )
+            #                   )
+            #          )
+            # ),
+
+            # ================================================================
+            # Phylogenetic Tree tab
+            # Also uncomment: sidebar link above, page header line B in tags$head
+            # ================================================================
+            # tabPanel("Phylogenetic Tree",
+            #          tags$div(class = "about-page fade-in",
+            #            div(class = "about-card",
+            #              div(class = "about-card-header",
+            #                h4(class = "about-card-title", "Tumor Phylogenetic Tree"),
+            #                span(class = "about-card-meta", "CONIPHER-inspired CCF nesting")
+            #              ),
+            #              div(class = "about-card-body",
+            #                tags$p("Reconstruct the evolutionary history of a tumor sample from CliPP subclonal cluster data. Select a data source, choose a sample, and click Generate Tree."),
+            #                div(class = "preprint-box",
+            #                  span(class = "preprint-label", "HOW IT WORKS"),
+            #                  tags$p(class = "preprint-citation",
+            #                    "Each CliPP cluster is placed on the tree by its Cancer Cell Fraction (CCF). The clonal cluster (highest CCF) descends from a germline root node. Subclonal clusters nest below their nearest ancestor. Branch lengths represent CCF differences between parent and child.")
+            #                ),
+            #                fluidRow(
+            #                  column(4,
+            #                         div(class = "legend-panel",
+            #                             radioButtons("phylo_source", "Data source:",
+            #                                          choices = list(
+            #                                            "TCGA"  = "tcga",
+            #                                            "PCAWG" = "pcawg"
+            #                                          ),
+            #                                          selected = "tcga"),
+            #                             conditionalPanel(
+            #                               condition = "input.phylo_source == 'tcga'",
+            #                               selectInput("phylo_cancer_tcga", "Cancer Type:", choices = cohort_cancer_mapping$TCGA),
+            #                               selectInput("phylo_sample_tcga", "Sample:", choices = NULL)
+            #                             ),
+            #                             conditionalPanel(
+            #                               condition = "input.phylo_source == 'pcawg'",
+            #                               selectInput("phylo_cancer_pcawg", "Cancer Type:", choices = cohort_cancer_mapping$PCAWG),
+            #                               selectInput("phylo_sample_pcawg", "Sample:", choices = NULL)
+            #                             ),
+            #                             div(style = "text-align: center; margin-top: 20px;",
+            #                                 actionButton("generatePhyloTree", "Generate Tree",
+            #                                              class = "btn-primary", style = "width: 100%;"),
+            #                                 br(), br(),
+            #                                 downloadButton("downloadPhyloTree", "Download Plot",
+            #                                                class = "btn-secondary", style = "width: 100%;")
+            #                             )
+            #                         ),
+            #                         div(class = "legend-panel",
+            #                             tags$h5(tags$b("Legend")),
+            #                             tags$div(class = "legend-item",
+            #                                      tags$div(class = "legend-symbol",
+            #                                               style = "background:#fff; border:2px solid #aaa; border-radius:50%;"),
+            #                                      tags$div(class = "legend-text", "GL — Germline root (CCF = 1.0)")
+            #                             ),
+            #                             tags$div(class = "legend-item",
+            #                                      tags$div(class = "legend-symbol",
+            #                                               style = "background:#4E79A7; border-radius:50%;"),
+            #                                      tags$div(class = "legend-text", "Coloured circles — CliPP clusters")
+            #                             ),
+            #                             tags$p("Circle size ∝ mutation count. Branch labels show CCF difference.",
+            #                                    style = "font-size:12px; color:#666; margin-top:10px;")
+            #                         )
+            #                  ),
+            #                  column(8,
+            #                         tags$div(class = "plot-section",
+            #                                  plotOutput("phyloTreePlot", height = "auto")
+            #                         ),
+            #                         conditionalPanel(
+            #                           condition = "output.phyloTreeGenerated == true",
+            #                           tags$div(class = "analysis-summary",
+            #                                    uiOutput("phyloTreeInfo")
+            #                           )
+            #                         )
+            #                  )
+            #                )
+            #              )
+            #            )
+            #          )
+            # ),
+
+            # ----------------------------------------------------------------
+            # Downloads
+            # ----------------------------------------------------------------
+            tabPanel("Downloads",
+                     div(class = "downloads-page fade-in",
+                       fluidRow(
+                         column(8,
+                           div(id = "dl-simulation", class = "dataset-card",
+                             div(class = "dataset-head",
+                               div(class = "ds-icon ds-icon-blue", icon("globe")),
+                               div(class = "dataset-head-text",
+                                 div(class = "dataset-title", "Simulation dataset · CliPPSim4k"),
+                                 div(class = "dataset-sub", "Simulated cancer genomic data for testing and validation")
+                               ),
+                             ),
+                             div(class = "dataset-stats",
+                               div(class = "stat", div(class = "stat-label", "SAMPLE COUNT"), div(class = "stat-value", "4,050")),
+                               div(class = "stat", div(class = "stat-label", "FILE FORMAT"), div(class = "stat-value", "TSV · TXT")),
+                               div(class = "stat", div(class = "stat-label", "GROUND TRUTH"), div(class = "stat-value", "Yes")),
+                               div(class = "stat", div(class = "stat-label", "LAST UPDATED"), div(class = "stat-value", "2025-09-12"))
+                             ),
+                             tags$table(class = "dataset-table",
+                               tags$thead(tags$tr(
+                                 tags$th("DATASET"), tags$th("DESCRIPTION"),
+                                 tags$th("TYPE"), tags$th("SIZE"), tags$th(class = "th-action", "ACTION")
+                               )),
+                               tags$tbody(
+                                 tags$tr(
+                                   tags$td(class = "td-name", "CliPPSim4k Summary"),
+                                   tags$td(class = "td-desc", "Comprehensive simulation results for 4,050 samples with known ground truth"),
+                                   tags$td(span(class = "type-badge", "TSV")),
+                                   tags$td(class = "td-size", "~2 MB"),
+                                   tags$td(class = "td-action",
+                                     downloadButton("downloadSim4k", "Download", class = "btn-download"))
+                                 ),
+                                 tags$tr(
+                                   tags$td(class = "td-name", "Individual simulation data"),
+                                   tags$td(class = "td-desc", "Per-sample simulation files with ground-truth clonal structure"),
+                                   tags$td(span(class = "type-badge", "TXT")),
+                                   tags$td(class = "td-size", "212 MB"),
+                                   tags$td(class = "td-action",
+                                     downloadButton("browseSim4k", "Download ZIP", class = "btn-browse"))
+                                 )
+                               )
+                             )
+                           ),
+
+                           div(id = "dl-tcga", class = "dataset-card",
+                             div(class = "dataset-head",
+                               div(class = "ds-icon ds-icon-orange", icon("layer-group")),
+                               div(class = "dataset-head-text",
+                                 div(class = "dataset-title", "TCGA · The Cancer Genome Atlas"),
+                                 div(class = "dataset-sub", "Multi-platform genomic data processed through the CliPP pipeline")
+                               ),
+                             ),
+                             div(class = "dataset-stats",
+                               div(class = "stat", div(class = "stat-label", "TUMORS"), div(class = "stat-value", dl_n_tcga)),
+                               div(class = "stat", div(class = "stat-label", "CANCER TYPES"), div(class = "stat-value", dl_types_tcga)),
+                               div(class = "stat", div(class = "stat-label", "FORMAT"), div(class = "stat-value", "TSV")),
+                               div(class = "stat", div(class = "stat-label", "LAST UPDATED"), div(class = "stat-value", "2026-02-08"))
+                             ),
+                             tags$table(class = "dataset-table",
+                               tags$thead(tags$tr(
+                                 tags$th("DATASET"), tags$th("DESCRIPTION"),
+                                 tags$th("TYPE"), tags$th("SIZE"), tags$th(class = "th-action", "ACTION")
+                               )),
+                               tags$tbody(
+                                 tags$tr(
+                                   tags$td(class = "td-name", "Per-sample CliPP results"),
+                                   tags$td(class = "td-desc", "Individual clonal structure outputs - zip archive"),
+                                   tags$td(span(class = "type-badge", "ZIP")),
+                                   tags$td(class = "td-size", "372 MB"),
+                                   tags$td(class = "td-action",
+                                     downloadButton("browseTCGA", "Download ZIP", class = "btn-browse"))
+                                 )
+                               )
+                             ),
+                             div(class = "cancer-dl-row",
+                               span(class = "cancer-dl-label", "Download by cancer type"),
+                               div(class = "cancer-dl-controls",
+                                 selectInput("tcga_cancer_type_dl", NULL,
+                                   choices = if (!is.null(dl_tcga_counts)) sort(dl_tcga_counts[["Cancer Type"]]) else sort(cohort_cancer_mapping$TCGA),
+                                   width = "160px"),
+                                 downloadButton("downloadTCGA_cancer", "Raw assignments", class = "btn-download")
+                               )
+                             )
+                           ),
+
+                           div(id = "dl-pcawg", class = "dataset-card",
+                             div(class = "dataset-head",
+                               div(class = "ds-icon ds-icon-purple", icon("cubes-stacked")),
+                               div(class = "dataset-head-text",
+                                 div(class = "dataset-title", "PCAWG · Pan-Cancer Analysis of Whole Genomes"),
+                                 div(class = "dataset-sub", "Whole-genome sequencing data with full subclonal reconstruction")
+                               ),
+                             ),
+                             div(class = "dataset-stats",
+                               div(class = "stat", div(class = "stat-label", "TUMORS"), div(class = "stat-value", dl_n_pcawg)),
+                               div(class = "stat", div(class = "stat-label", "CANCER TYPES"), div(class = "stat-value", dl_types_pcawg)),
+                               div(class = "stat", div(class = "stat-label", "FORMAT"), div(class = "stat-value", "TSV · VCF")),
+                               div(class = "stat", div(class = "stat-label", "LAST UPDATED"), div(class = "stat-value", "2025-12-04"))
+                             ),
+                             tags$table(class = "dataset-table",
+                               tags$thead(tags$tr(
+                                 tags$th("DATASET"), tags$th("DESCRIPTION"),
+                                 tags$th("TYPE"), tags$th("SIZE"), tags$th(class = "th-action", "ACTION")
+                               )),
+                               tags$tbody(
+                                 tags$tr(
+                                   tags$td(class = "td-name", "Per-sample CliPP outputs"),
+                                   tags$td(class = "td-desc", "Cluster assignments and CCF estimates for every PCAWG tumor"),
+                                   tags$td(span(class = "type-badge", "ZIP")),
+                                   tags$td(class = "td-size", "2.8 GB"),
+                                   tags$td(class = "td-action",
+                                     downloadButton("browsePCAWG", "Download ZIP", class = "btn-browse"))
+                                 )
+                               )
+                             ),
+                             div(class = "cancer-dl-row",
+                               span(class = "cancer-dl-label", "Download by cancer type"),
+                               div(class = "cancer-dl-controls",
+                                 selectInput("pcawg_cancer_type_dl", NULL,
+                                   choices = if (!is.null(dl_pcawg_counts)) sort(dl_pcawg_counts[["Cancer Type"]]) else character(0),
+                                   width = "160px"),
+                                 downloadButton("downloadPCAWG_cancer", "Raw assignments", class = "btn-download")
+                               )
+                             )
+                           )
+                         ),
+
+                         column(4,
+                           div(class = "about-card",
+                             div(class = "about-card-header",
+                               h4(class = "about-card-title", "On this page")
+                             ),
+                             div(class = "about-card-body sidebar-toc",
+                               tags$a(href = "#dl-simulation", class = "toc-link active", "Simulation data"),
+                               tags$a(href = "#dl-tcga",       class = "toc-link", "TCGA data"),
+                               tags$a(href = "#dl-pcawg",      class = "toc-link", "PCAWG data")
+                             )
+                           ),
+                           div(class = "about-card",
+                             div(class = "about-card-header",
+                               h4(class = "about-card-title", "Access issues?")
+                             ),
+                             div(class = "about-card-body",
+                               p(class = "access-issues-text",
+                                 "If you encounter problems with downloads, contact ",
+                                 a(href = "mailto:pandachessaaron@gmail.com", "pandachessaaron@gmail.com"),
+                                 " or ",
+                                 a(href = "mailto:MDMontierth@mdanderson.org", "MDMontierth@mdanderson.org"),
+                                 ".")
+                             )
+                           )
+                         )
+                       )
+                     )
+            ),
+
+            # ----------------------------------------------------------------
+          ) # end tabsetPanel
+        )   # end app-content
+      ),    # end app-page-area
+      tags$footer(class = "app-footer",
+        div(class = "footer-left",
+          HTML("&copy; 2024 The University of Texas MD Anderson Cancer Center."),
+          span(class = "footer-meta", "All rights reserved."),
+          tags$a(href = "#", class = "footer-link", "Terms"),
+          tags$a(href = "#", class = "footer-link", "Privacy"),
+          tags$a(href = "#", class = "footer-link", "Acknowledgements")
+        ),
+        div(class = "footer-right", "CliPP-on-Web · build 2.4.1")
+      )
+    )     # end app-main
+  )   # end app-shell
+)
