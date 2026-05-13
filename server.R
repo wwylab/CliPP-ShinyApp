@@ -865,6 +865,7 @@ server <- function(input, output, session) {
     shinyjs::hide("smoothingControls")
 
     dataTableProxy("driverMutationTable") %>% selectRows(NULL)
+    selected_driver_row(NULL)
 
     shinyjs::hide("driverPlotSection")
     output$driverPlot1 <- renderPlotly({ NULL })
@@ -1000,6 +1001,17 @@ server <- function(input, output, session) {
     }
   })
 
+  observe({
+    row <- selected_driver_row()
+    if (is.null(row)) {
+      shinyjs::disable("downloadDriverMutation")
+      shinyjs::disable("downloadDriverMutation_gene")
+    } else {
+      shinyjs::enable("downloadDriverMutation")
+      shinyjs::enable("downloadDriverMutation_gene")
+    }
+  })
+
   observeEvent(input$gene_name_driver, {
     selected_gene_name <- input$gene_name_driver
     sample_names <- unique(driver_mutation_data$sample[driver_mutation_data$gene == selected_gene_name])
@@ -1039,6 +1051,24 @@ server <- function(input, output, session) {
     shinyjs::show("downloadDriverMutation")
   })
 
+  driver_output_cols <- function(df) {
+    keep <- c(
+      tcga_id        = "tcga_id",
+      gene           = "Hugo_Symbol",
+      chromosome     = "chromosome",
+      position       = "position",
+      cancer_type    = "cancer_type",
+      clonality      = "Subclonality",
+      VAF            = "VAF",
+      CP_unpenalized = "CP_unpenalized",
+      consequence    = "Consequence"
+    )
+    available <- keep[keep %in% names(df)]
+    out <- df[, available, drop = FALSE]
+    names(out) <- names(available)
+    out
+  }
+
   output$downloadDriverMutation <- downloadHandler(
     filename = function() {
       if (!is.null(input$view_mode) && input$view_mode == "consolidated") {
@@ -1061,7 +1091,10 @@ server <- function(input, output, session) {
           df[df$sample == row$sample, ] else NULL
       }
       if (!is.null(selected_data) && nrow(selected_data) > 0) {
-        write.table(selected_data, file, sep = "\t", row.names = FALSE, quote = FALSE)
+        write.table(
+          driver_output_cols(selected_data),
+          file, sep = "\t", row.names = FALSE, quote = FALSE
+        )
       } else {
         writeLines("No data available", file)
       }
@@ -1081,7 +1114,10 @@ server <- function(input, output, session) {
       df <- driver_data()
       filtered <- df[df$gene == row$gene, ]
       if (!is.null(filtered) && nrow(filtered) > 0) {
-        write.table(filtered, file, sep = "\t", row.names = FALSE, quote = FALSE)
+        write.table(
+          driver_output_cols(filtered),
+          file, sep = "\t", row.names = FALSE, quote = FALSE
+        )
       } else {
         writeLines("No data available", file)
       }
@@ -2899,6 +2935,40 @@ server <- function(input, output, session) {
       })
     },
     contentType = "text/tab-separated-values"
+  )
+
+  output$downloadDriverData <- downloadHandler(
+    filename = function() {
+      paste0("Driver_Mutation_Data_", format(Sys.Date(), "%Y%m%d"), ".csv")
+    },
+    content = function(file) {
+      tryCatch({
+        driver_file <- file.path(global_TCGA_PCAWG, "Driver_info.csv")
+        if (!file.exists(driver_file)) {
+          writeLines("Driver data file not found.", file)
+          return()
+        }
+        raw <- read.csv(driver_file, stringsAsFactors = FALSE)
+        keep <- c(
+          tcga_id        = "tcga_id",
+          gene           = "Hugo_Symbol",
+          chromosome     = "chromosome",
+          position       = "position",
+          cancer_type    = "cancer_type",
+          clonality      = "Subclonality",
+          VAF            = "VAF",
+          CP_unpenalized = "CP_unpenalized",
+          consequence    = "Consequence"
+        )
+        available <- keep[keep %in% names(raw)]
+        out <- raw[, available, drop = FALSE]
+        names(out) <- names(available)
+        write.csv(out, file, row.names = FALSE)
+      }, error = function(e) {
+        writeLines(paste("Error serving file:", e$message), file)
+      })
+    },
+    contentType = "text/csv"
   )
 
   # ============================================================
