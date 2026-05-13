@@ -780,6 +780,8 @@ server <- function(input, output, session) {
     )
   }
 
+  selected_driver_row <- reactiveVal(NULL)
+
   observeEvent(input$driverMutationTable_rows_selected, {
     row_selected <- input$driverMutationTable_rows_selected
 
@@ -815,6 +817,7 @@ server <- function(input, output, session) {
           }
 
           selected_sample <- consolidated_data$sample[row_selected]
+          selected_driver_row(data.frame(sample = selected_sample, gene = NA_character_))
 
           all_sample_mutations <- driver_mutation_data[
             driver_mutation_data$cancer == selected_cancer_type &
@@ -837,6 +840,7 @@ server <- function(input, output, session) {
 
           selected_mutation <- individual_data[row_selected, ]
           selected_sample <- selected_mutation$sample
+          selected_driver_row(selected_mutation)
 
           all_sample_mutations <- driver_mutation_data[
             driver_mutation_data$cancer == selected_cancer_type &
@@ -1041,30 +1045,25 @@ server <- function(input, output, session) {
         paste0("Driver_Mutation_Data-", input$cancer_type_driver,
                "-Consolidated-", Sys.Date(), ".txt")
       } else {
-        paste0("Driver_Mutation_Data-", input$sample_name_driver,
-               "-", Sys.Date(), ".txt")
+        row <- selected_driver_row()
+        sample <- if (!is.null(row)) row$sample else "unknown"
+        paste0("Driver_Mutation_Data-", sample, "-", Sys.Date(), ".txt")
       }
     },
     content = function(file) {
-      selected_cancer_type <- input$cancer_type_driver
-      if (!is.null(selected_cancer_type)) {
-        view_mode <- ifelse(!is.null(input$view_mode), input$view_mode, "individual")
-
-        if (view_mode == "consolidated") {
-          selected_data <- driver_data_consolidated()
-        } else {
-          selected_data <- driver_data()
-        }
-
-        if (!is.null(selected_data) && nrow(selected_data) > 0) {
-          write.table(selected_data, file,
-            sep = "\t",
-            row.names = FALSE,
-            quote = FALSE
-          )
-        } else {
-          writeLines("No data available", file)
-        }
+      view_mode <- ifelse(!is.null(input$view_mode), input$view_mode, "individual")
+      if (view_mode == "consolidated") {
+        selected_data <- driver_data_consolidated()
+      } else {
+        row <- selected_driver_row()
+        df <- driver_data()
+        selected_data <- if (!is.null(row) && !is.null(df))
+          df[df$sample == row$sample, ] else NULL
+      }
+      if (!is.null(selected_data) && nrow(selected_data) > 0) {
+        write.table(selected_data, file, sep = "\t", row.names = FALSE, quote = FALSE)
+      } else {
+        writeLines("No data available", file)
       }
     },
     contentType = "text/plain"
@@ -1072,14 +1071,15 @@ server <- function(input, output, session) {
 
   output$downloadDriverMutation_gene <- downloadHandler(
     filename = function() {
-      paste0("Driver_Mutation_Data-", input$cancer_type_driver,
-             "-", input$gene_name_driver, "-", Sys.Date(), ".txt")
+      row <- selected_driver_row()
+      gene <- if (!is.null(row) && !is.na(row$gene)) row$gene else "unknown"
+      paste0("Driver_Mutation_Data-", gene, "-", Sys.Date(), ".txt")
     },
     content = function(file) {
+      row <- selected_driver_row()
+      req(!is.null(row), !is.na(row$gene))
       df <- driver_data()
-      cancer_col <- if ("cancer_type" %in% colnames(df)) "cancer_type" else "cancer"
-      filtered <- df[df[[cancer_col]] == input$cancer_type_driver &
-                     df$gene == input$gene_name_driver, ]
+      filtered <- df[df$gene == row$gene, ]
       if (!is.null(filtered) && nrow(filtered) > 0) {
         write.table(filtered, file, sep = "\t", row.names = FALSE, quote = FALSE)
       } else {
