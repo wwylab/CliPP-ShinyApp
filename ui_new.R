@@ -275,7 +275,7 @@ ui <- fluidPage(
                              div(class = "video-frame",
                                div(class = "video-aspect",
                                  tags$iframe(id = "tutorial-iframe",
-                                   src = "https://www.youtube.com/embed/ZPX_hC-uiYA?enablejsapi=1&rel=0&modestbranding=1",
+                                   src = tutorial_embed_url,
                                    frameborder = "0",
                                    allow = "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture",
                                    allowfullscreen = NA
@@ -283,9 +283,9 @@ ui <- fluidPage(
                                )
                              ),
                              div(class = "video-footer",
-                               span(class = "video-meta", "Recorded April 2026 · 12 min 48 sec"),
+                               span(class = "video-meta", tutorial_meta),
                                div(class = "video-actions",
-                                 tags$a(href = "https://www.youtube.com/watch?v=ZPX_hC-uiYA",
+                                 tags$a(href = tutorial_watch_url,
                                    target = "_blank", class = "btn-mini",
                                    HTML("Open in new tab &nearr;"))
                                )
@@ -296,18 +296,14 @@ ui <- fluidPage(
                            div(class = "about-card chapters-card",
                              div(class = "about-card-header",
                                h4(class = "about-card-title", "Chapters"),
-                               span(class = "about-card-meta", "9")
+                               span(class = "about-card-meta", "5")
                              ),
                              div(class = "chapters-list",
-                               chapter_item("0:00",  0,    "Introduction to CliPP-on-Web",            "Overview of the application",       active = TRUE),
-                               chapter_item("2:00",  120,  "Uploading SNV, CNA, and Purity files",    "Preparing and uploading inputs"),
-                               chapter_item("4:30",  270,  "Configuring sample analysis and settings","Sample setup and parameters"),
-                               chapter_item("7:00",  420,  "Visualizing results: VAF and CP plots",   "Reading the output plots"),
-                               chapter_item("10:00", 600,  "Exploring CliPP Data Resources",          "TCGA and Pan-Cancer datasets"),
-                               chapter_item("12:30", 750,  "Driver Mutation Analysis",                "Identifying driver mutations"),
-                               chapter_item("15:00", 900,  "Downloading results and adjusting plots", "Exports and plot tuning"),
-                               chapter_item("18:00", 1080, "Accessing About & Citations tabs",        "Reference information"),
-                               chapter_item("20:00", 1200, "Conclusion and next steps",               "Wrap-up and resources")
+                               chapter_item("0:00", 0,   "About",                 "Overview and citation",        active = TRUE),
+                               chapter_item("0:48", 48,  "CliPP-on-Web",          "Upload and run your own data"),
+                               chapter_item("2:47", 167, "CliPP Data Resources",  "TCGA and PCAWG results"),
+                               chapter_item("4:10", 250, "Driver Mutation",        "Driver mutation analysis"),
+                               chapter_item("5:20", 320, "Downloads",             "Datasets and exports")
                              )
                            )
                          )
@@ -864,15 +860,7 @@ ui <- fluidPage(
                                span(class = "cancer-dl-label", "Download by cancer type"),
                                div(class = "cancer-dl-controls",
                                  selectInput("driver_cancer_type_dl", NULL,
-                                   choices = sort(c(
-                                     "ACC", "BLCA", "BRCA", "CESC", "CHOL",
-                                     "CRC", "DLBC", "ESCA", "GBM", "HNSC",
-                                     "KICH", "KIRC", "KIRP", "LGG", "LIHC",
-                                     "LUAD", "LUSC", "MESO", "OV", "PAAD",
-                                     "PCPG", "PRAD", "SARC", "SKCM", "STAD",
-                                     "TGCT", "THCA", "THYM", "UCEC", "UCS",
-                                     "UVM"
-                                   )),
+                                   choices = driver_cancer_types,
                                    width = "160px"),
                                  downloadButton("downloadDriverData_cancer", "Download", class = "btn-download")
                                )
