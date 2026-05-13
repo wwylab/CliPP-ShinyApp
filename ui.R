@@ -833,6 +833,38 @@ ui <- fluidPage(
                                  downloadButton("downloadPCAWG_cancer", "Raw assignments", class = "btn-download")
                                )
                              )
+                           ),
+
+                           div(id = "dl-driver", class = "dataset-card",
+                             div(class = "dataset-head",
+                               div(class = "ds-icon ds-icon-green", icon("dna")),
+                               div(class = "dataset-head-text",
+                                 div(class = "dataset-title", "Driver Mutations · TCGA"),
+                                 div(class = "dataset-sub", "Candidate driver mutations annotated with clonality status across TCGA tumors")
+                               ),
+                             ),
+                             div(class = "dataset-stats",
+                               div(class = "stat", div(class = "stat-label", "MUTATIONS"), div(class = "stat-value", "16,913")),
+                               div(class = "stat", div(class = "stat-label", "SAMPLES"),   div(class = "stat-value", "5,440")),
+                               div(class = "stat", div(class = "stat-label", "CANCER TYPES"), div(class = "stat-value", "31")),
+                               div(class = "stat", div(class = "stat-label", "FORMAT"),    div(class = "stat-value", "CSV"))
+                             ),
+                             tags$table(class = "dataset-table",
+                               tags$thead(tags$tr(
+                                 tags$th("DATASET"), tags$th("DESCRIPTION"),
+                                 tags$th("TYPE"), tags$th("SIZE"), tags$th(class = "th-action", "ACTION")
+                               )),
+                               tags$tbody(
+                                 tags$tr(
+                                   tags$td(class = "td-name", "Driver mutation data"),
+                                   tags$td(class = "td-desc", "Driver mutations with VAF, CP, clonality, and clinical annotations for all TCGA samples"),
+                                   tags$td(span(class = "type-badge", "CSV")),
+                                   tags$td(class = "td-size", "~12 MB"),
+                                   tags$td(class = "td-action",
+                                     downloadButton("downloadDriverData", "Download", class = "btn-download"))
+                                 )
+                               )
+                             )
                            )
                          ),
 
@@ -844,7 +876,8 @@ ui <- fluidPage(
                              div(class = "about-card-body sidebar-toc",
                                tags$a(href = "#dl-simulation", class = "toc-link active", "Simulation data"),
                                tags$a(href = "#dl-tcga",       class = "toc-link", "TCGA data"),
-                               tags$a(href = "#dl-pcawg",      class = "toc-link", "PCAWG data")
+                               tags$a(href = "#dl-pcawg",      class = "toc-link", "PCAWG data"),
+                               tags$a(href = "#dl-driver",     class = "toc-link", "Driver mutations")
                              )
                            ),
                            div(class = "about-card",
