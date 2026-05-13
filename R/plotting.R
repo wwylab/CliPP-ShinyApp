@@ -72,29 +72,32 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
   
   color_aesthetic <- if(color_by == "clonality") "Subclonality" else "ReadDepth"
   
-  plot <- ggplot(merged_df, aes(x = AF)) +
-    geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor) +
-    geom_point(
-      shape = 142,
-      size = 5,
-      alpha = 0.3,
-      aes(
-        y = -0.75,
-        color = !!sym(color_aesthetic)
-      )
-    ) +
-    xlim(0, 1) +
-    ggtitle(paste(
-      sample_name,
-      " - Purity =", round(purity, 3),
-      "      ", "Mean read depth =", round(read_depth$mean),
-      "      ", "Range read depth =", read_depth$min, "-", read_depth$max
-    )) +
-    create_annotations(subclonality_counts) +
-    ggpubr::theme_pubr() +
-    xlab("VAF") + 
-    ylab("Density") +
-    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+  plot <- suppressWarnings(
+    ggplot(merged_df, aes(x = AF)) +
+      geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor) +
+      geom_point(
+        shape = 142,
+        size = 5,
+        alpha = 0.3,
+        aes(
+          y = -0.75,
+          color = !!sym(color_aesthetic),
+          text = paste0("chr", chromosome_index, ":", position)
+        )
+      ) +
+      xlim(0, 1) +
+      ggtitle(paste(
+        sample_name,
+        " - Purity =", round(purity, 3),
+        "      ", "Mean read depth =", round(read_depth$mean),
+        "      ", "Range read depth =", read_depth$min, "-", read_depth$max
+      )) +
+      create_annotations(subclonality_counts) +
+      ggpubr::theme_pubr() +
+      xlab("VAF") +
+      ylab("Density") +
+      theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+  )
   
   if (!is.null(driver_mutations) && nrow(driver_mutations) > 0) {
     driver_mutations$Subclonality <- as.character(driver_mutations$Subclonality)
@@ -122,7 +125,7 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
 
   if (return_gg) return(plot)
 
-  p <- plotly::ggplotly(plot)
+  p <- plotly::ggplotly(plot, tooltip = c("x", "text"))
 
   if (!is.null(driver_mutations) && nrow(driver_mutations) > 0) {
     for (i in seq_len(nrow(driver_mutations))) {
@@ -178,6 +181,8 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
     warning("Error fixing legend: ", e$message)
   })
 
+  p <- plotly::layout(p, hovermode = "closest")
+
   return(p)
 }
 
@@ -210,32 +215,35 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
   
   color_aesthetic <- if(color_by == "clonality") "Subclonality" else "ReadDepth"
   
-  plot <- ggplot(merged_df, aes(x = CP_unpenalized)) +
-    geom_density(fill = "#047857", alpha = .6, adjust = smoothing_factor) +
-    geom_point(
-      shape = 142,
-      size = 5,
-      alpha = 0.3,
-      aes(
-        y = -0.75,
-        color = !!sym(color_aesthetic)
+  plot <- suppressWarnings(
+    ggplot(merged_df, aes(x = CP_unpenalized)) +
+      geom_density(fill = "#047857", alpha = .6, adjust = smoothing_factor) +
+      geom_point(
+        shape = 142,
+        size = 5,
+        alpha = 0.3,
+        aes(
+          y = -0.75,
+          color = !!sym(color_aesthetic),
+          text = paste0("chr", chromosome_index, ":", position)
+        )
+      ) +
+      xlim(0, 1.5) +
+      ggtitle(paste(sample_name, " - Estimated mutation-specific CP")) +
+      create_annotations(subclonality_counts) +
+      ggpubr::theme_pubr() +
+      xlab("Estimated mutation-specific CP") +
+      ylab("Density") +
+      theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+      geom_segment(
+        data = df_subc,
+        aes(x = cellular_prevalence,
+            xend = cellular_prevalence,
+            y = 0,
+            yend = 5.7),
+        lty = "dashed"
       )
-    ) +
-    xlim(0, 1.5) +
-    ggtitle(paste(sample_name, " - Estimated mutation-specific CP")) +
-    create_annotations(subclonality_counts) +
-    ggpubr::theme_pubr() + 
-    xlab("Estimated mutation-specific CP") + 
-    ylab("Density") +
-    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
-    geom_segment(
-      data = df_subc, 
-      aes(x = cellular_prevalence, 
-          xend = cellular_prevalence, 
-          y = 0, 
-          yend = 5.7), 
-      lty = "dashed"
-    )
+  )
   
   if (!is.null(driver_mutations) && nrow(driver_mutations) > 0) {
     driver_mutations$Subclonality <- as.character(driver_mutations$Subclonality)
@@ -263,7 +271,7 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
 
   if (return_gg) return(plot)
 
-  p <- plotly::ggplotly(plot)
+  p <- plotly::ggplotly(plot, tooltip = c("x", "text"))
 
   if (!is.null(driver_mutations) && nrow(driver_mutations) > 0) {
     for (i in seq_len(nrow(driver_mutations))) {
@@ -318,6 +326,8 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
   }, error = function(e) {
     warning("Error fixing legend: ", e$message)
   })
+
+  p <- plotly::layout(p, hovermode = "closest")
 
   return(p)
 }
