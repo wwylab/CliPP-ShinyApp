@@ -47,6 +47,22 @@ global_TCGA_PCAWG <- "dataSource"
 global_www        <- "www"
 global_assets     <- "assets"
 
+# Update these three lines when the tutorial video changes
+tutorial_video_id   <- "b9yXSX0vxMM"
+tutorial_video_date <- "April 2026"
+tutorial_video_dur  <- "7 min 23 sec"
+
+tutorial_embed_url  <- paste0(
+  "https://www.youtube.com/embed/", tutorial_video_id,
+  "?enablejsapi=1&rel=0&modestbranding=1"
+)
+tutorial_watch_url  <- paste0(
+  "https://www.youtube.com/watch?v=", tutorial_video_id
+)
+tutorial_meta       <- paste0(
+  "Recorded ", tutorial_video_date, " · ", tutorial_video_dur
+)
+
 addResourcePath(global_assets,     global_assets)
 addResourcePath(global_TCGA_PCAWG, global_TCGA_PCAWG)
 
@@ -106,6 +122,12 @@ driver_mutation_data <- tryCatch(
     data.frame()
   }
 )
+
+driver_cancer_types <- if (nrow(driver_mutation_data) > 0) {
+  sort(unique(driver_mutation_data$cancer_type))
+} else {
+  character(0)
+}
 
 sample_TCGA <- tryCatch(
   {
