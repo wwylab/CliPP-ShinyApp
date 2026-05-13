@@ -864,7 +864,15 @@ ui <- fluidPage(
                                span(class = "cancer-dl-label", "Download by cancer type"),
                                div(class = "cancer-dl-controls",
                                  selectInput("driver_cancer_type_dl", NULL,
-                                   choices = sort(c('ACC','BLCA','BRCA','CESC','CHOL','CRC','DLBC','ESCA','GBM','HNSC','KICH','KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','SARC','SKCM','STAD','TGCT','THCA','THYM','UCEC','UCS','UVM')),
+                                   choices = sort(c(
+                                     "ACC", "BLCA", "BRCA", "CESC", "CHOL",
+                                     "CRC", "DLBC", "ESCA", "GBM", "HNSC",
+                                     "KICH", "KIRC", "KIRP", "LGG", "LIHC",
+                                     "LUAD", "LUSC", "MESO", "OV", "PAAD",
+                                     "PCPG", "PRAD", "SARC", "SKCM", "STAD",
+                                     "TGCT", "THCA", "THYM", "UCEC", "UCS",
+                                     "UVM"
+                                   )),
                                    width = "160px"),
                                  downloadButton("downloadDriverData_cancer", "Download", class = "btn-download")
                                )
