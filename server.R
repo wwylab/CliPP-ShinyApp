@@ -2971,6 +2971,40 @@ server <- function(input, output, session) {
     contentType = "text/csv"
   )
 
+  output$downloadDriverData_cancer <- downloadHandler(
+    filename = function() {
+      paste0("Driver_Mutation_Data_", input$driver_cancer_type_dl,
+             "_", format(Sys.Date(), "%Y%m%d"), ".csv")
+    },
+    content = function(file) {
+      tryCatch({
+        cancer <- input$driver_cancer_type_dl
+        df <- driver_mutation_data[driver_mutation_data$cancer_type == cancer, ]
+        if (nrow(df) == 0) {
+          writeLines("No data available for the selected cancer type.", file)
+          return()
+        }
+        keep <- c(
+          tcga_id        = "tcga_id",
+          gene           = "Hugo_Symbol",
+          chromosome     = "chromosome",
+          position       = "position",
+          clonality      = "Subclonality",
+          VAF            = "VAF",
+          CP_unpenalized = "CP_unpenalized",
+          consequence    = "Consequence"
+        )
+        available <- keep[keep %in% names(df)]
+        out <- df[, available, drop = FALSE]
+        names(out) <- names(available)
+        write.csv(out, file, row.names = FALSE)
+      }, error = function(e) {
+        writeLines(paste("Error generating file:", e$message), file)
+      })
+    },
+    contentType = "text/csv"
+  )
+
   # ============================================================
   # PHYLOGENETIC TREE TAB
   # ============================================================
