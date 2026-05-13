@@ -1,3 +1,43 @@
+cohort_cancer_download <- function(cohort, cancer, sample_df, file) {
+  tryCatch({
+    samples <- sample_df$samplename[sample_df$cancer_type == cancer]
+    rows <- lapply(samples, function(s) {
+      best_dir <- file.path(
+        global_TCGA_PCAWG, cohort, s, "final_result", "Best_lambda"
+      )
+      mut_file  <- list.files(
+        best_dir, pattern = "^mutation_assignments", full.names = TRUE
+      )
+      subc_file <- list.files(
+        best_dir, pattern = "^subclonal_structure", full.names = TRUE
+      )
+      if (length(mut_file) == 0) return(NULL)
+      mut_df <- data.table::fread(mut_file[1])
+      if (length(subc_file) > 0) {
+        subc_df <- data.table::fread(subc_file[1])
+        mut_df  <- merge(
+          mut_df,
+          subc_df[, c("cluster_index", "cellular_prevalence", "num_SNV")],
+          by = "cluster_index", all.x = TRUE
+        )
+      }
+      mut_df$sample <- s
+      mut_df
+    })
+    combined  <- data.table::rbindlist(
+      Filter(Negate(is.null), rows), fill = TRUE
+    )
+    col_order <- intersect(
+      c("sample", "chromosome_index", "position",
+        "cluster_index", "cellular_prevalence", "num_SNV"),
+      names(combined)
+    )
+    data.table::fwrite(combined[, col_order, with = FALSE], file, sep = "\t")
+  }, error = function(e) {
+    writeLines(paste("Error generating file:", e$message), file)
+  })
+}
+
 server <- function(input, output, session) {
 
   observeEvent(input$main_nav_target, {
@@ -1091,10 +1131,9 @@ server <- function(input, output, session) {
           df[df$sample == row$sample, ] else NULL
       }
       if (!is.null(selected_data) && nrow(selected_data) > 0) {
-        write.table(
-          driver_output_cols(selected_data),
-          file, sep = "\t", row.names = FALSE, quote = FALSE
-        )
+        out <- if (view_mode == "consolidated") selected_data
+               else driver_output_cols(selected_data)
+        write.table(out, file, sep = "\t", row.names = FALSE, quote = FALSE)
       } else {
         writeLines("No data available", file)
       }
@@ -2873,66 +2912,26 @@ server <- function(input, output, session) {
 
   output$downloadTCGA_cancer <- downloadHandler(
     filename = function() {
-      paste0("TCGA_", input$tcga_cancer_type_dl, "_CliPP_raw_", format(Sys.Date(), "%Y%m%d"), ".tsv")
+      paste0("TCGA_", input$tcga_cancer_type_dl,
+             "_CliPP_raw_", format(Sys.Date(), "%Y%m%d"), ".tsv")
     },
     content = function(file) {
-      tryCatch({
-        cancer  <- input$tcga_cancer_type_dl
-        samples <- sample_TCGA$samplename[sample_TCGA$cancer_type == cancer]
-        rows <- lapply(samples, function(s) {
-          best_dir  <- file.path(global_TCGA_PCAWG, "TCGA", s, "final_result", "Best_lambda")
-          mut_file  <- list.files(best_dir, pattern = "^mutation_assignments", full.names = TRUE)
-          subc_file <- list.files(best_dir, pattern = "^subclonal_structure",  full.names = TRUE)
-          if (length(mut_file) == 0) return(NULL)
-          mut_df <- data.table::fread(mut_file[1])
-          if (length(subc_file) > 0) {
-            subc_df <- data.table::fread(subc_file[1])
-            mut_df  <- merge(mut_df, subc_df[, c("cluster_index", "cellular_prevalence", "num_SNV")],
-                             by = "cluster_index", all.x = TRUE)
-          }
-          mut_df$sample <- s
-          mut_df
-        })
-        combined <- data.table::rbindlist(Filter(Negate(is.null), rows), fill = TRUE)
-        col_order <- intersect(c("sample", "chromosome_index", "position", "cluster_index",
-                                 "cellular_prevalence", "num_SNV"), names(combined))
-        data.table::fwrite(combined[, col_order, with = FALSE], file, sep = "\t")
-      }, error = function(e) {
-        writeLines(paste("Error generating file:", e$message), file)
-      })
+      cohort_cancer_download(
+        "TCGA", input$tcga_cancer_type_dl, sample_TCGA, file
+      )
     },
     contentType = "text/tab-separated-values"
   )
 
   output$downloadPCAWG_cancer <- downloadHandler(
     filename = function() {
-      paste0("PCAWG_", input$pcawg_cancer_type_dl, "_CliPP_raw_", format(Sys.Date(), "%Y%m%d"), ".tsv")
+      paste0("PCAWG_", input$pcawg_cancer_type_dl,
+             "_CliPP_raw_", format(Sys.Date(), "%Y%m%d"), ".tsv")
     },
     content = function(file) {
-      tryCatch({
-        cancer  <- input$pcawg_cancer_type_dl
-        samples <- sample_PCAWG$samplename[sample_PCAWG$cancer_type == cancer]
-        rows <- lapply(samples, function(s) {
-          best_dir  <- file.path(global_TCGA_PCAWG, "PCAWG", s, "final_result", "Best_lambda")
-          mut_file  <- list.files(best_dir, pattern = "^mutation_assignments", full.names = TRUE)
-          subc_file <- list.files(best_dir, pattern = "^subclonal_structure",  full.names = TRUE)
-          if (length(mut_file) == 0) return(NULL)
-          mut_df <- data.table::fread(mut_file[1])
-          if (length(subc_file) > 0) {
-            subc_df <- data.table::fread(subc_file[1])
-            mut_df  <- merge(mut_df, subc_df[, c("cluster_index", "cellular_prevalence", "num_SNV")],
-                             by = "cluster_index", all.x = TRUE)
-          }
-          mut_df$sample <- s
-          mut_df
-        })
-        combined <- data.table::rbindlist(Filter(Negate(is.null), rows), fill = TRUE)
-        col_order <- intersect(c("sample", "chromosome_index", "position", "cluster_index",
-                                 "cellular_prevalence", "num_SNV"), names(combined))
-        data.table::fwrite(combined[, col_order, with = FALSE], file, sep = "\t")
-      }, error = function(e) {
-        writeLines(paste("Error generating file:", e$message), file)
-      })
+      cohort_cancer_download(
+        "PCAWG", input$pcawg_cancer_type_dl, sample_PCAWG, file
+      )
     },
     contentType = "text/tab-separated-values"
   )
@@ -2949,21 +2948,7 @@ server <- function(input, output, session) {
           return()
         }
         raw <- read.csv(driver_file, stringsAsFactors = FALSE)
-        keep <- c(
-          tcga_id        = "tcga_id",
-          gene           = "Hugo_Symbol",
-          chromosome     = "chromosome",
-          position       = "position",
-          cancer_type    = "cancer_type",
-          clonality      = "Subclonality",
-          VAF            = "VAF",
-          CP_unpenalized = "CP_unpenalized",
-          consequence    = "Consequence"
-        )
-        available <- keep[keep %in% names(raw)]
-        out <- raw[, available, drop = FALSE]
-        names(out) <- names(available)
-        write.csv(out, file, row.names = FALSE)
+        write.csv(driver_output_cols(raw), file, row.names = FALSE)
       }, error = function(e) {
         writeLines(paste("Error serving file:", e$message), file)
       })
@@ -2984,20 +2969,7 @@ server <- function(input, output, session) {
           writeLines("No data available for the selected cancer type.", file)
           return()
         }
-        keep <- c(
-          tcga_id        = "tcga_id",
-          gene           = "Hugo_Symbol",
-          chromosome     = "chromosome",
-          position       = "position",
-          clonality      = "Subclonality",
-          VAF            = "VAF",
-          CP_unpenalized = "CP_unpenalized",
-          consequence    = "Consequence"
-        )
-        available <- keep[keep %in% names(df)]
-        out <- df[, available, drop = FALSE]
-        names(out) <- names(available)
-        write.csv(out, file, row.names = FALSE)
+        write.csv(driver_output_cols(df), file, row.names = FALSE)
       }, error = function(e) {
         writeLines(paste("Error generating file:", e$message), file)
       })
