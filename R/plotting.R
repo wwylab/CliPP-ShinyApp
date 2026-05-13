@@ -2,6 +2,40 @@ library(ggplot2)
 library(plotly)
 library(ggpubr)
 
+fix_plotly_legend <- function(p) {
+  tryCatch({
+    if (!is.null(p$x$data)) {
+      for (i in seq_along(p$x$data)) {
+        if (!is.null(p$x$data[[i]]$name)) {
+          if (grepl("Clonal", p$x$data[[i]]$name, ignore.case = TRUE) &&
+              !grepl("Subclonal", p$x$data[[i]]$name, ignore.case = TRUE)) {
+            p$x$data[[i]]$name <- "Clonal"
+          } else if (grepl("Subclonal", p$x$data[[i]]$name, ignore.case = TRUE)) {
+            p$x$data[[i]]$name <- "Subclonal"
+          }
+        }
+      }
+      legend_names    <- sapply(p$x$data, function(x) x$name)
+      first_clonal    <- which(legend_names == "Clonal")[1]
+      first_subclonal <- which(legend_names == "Subclonal")[1]
+      for (i in seq_along(p$x$data)) {
+        if (!is.null(p$x$data[[i]]$showlegend) && p$x$data[[i]]$showlegend) {
+          if (p$x$data[[i]]$name == "Clonal" &&
+              !is.na(first_clonal) && i != first_clonal) {
+            p$x$data[[i]]$showlegend <- FALSE
+          } else if (p$x$data[[i]]$name == "Subclonal" &&
+                     !is.na(first_subclonal) && i != first_subclonal) {
+            p$x$data[[i]]$showlegend <- FALSE
+          }
+        }
+      }
+    }
+  }, error = function(e) {
+    warning("Error fixing legend: ", e$message)
+  })
+  p
+}
+
 #' Create annotations for plots based on subclonality counts
 #' @param subclonality_counts Data frame containing counts of clonal/subclonal mutations
 #' @return List of ggplot2 annotation objects
@@ -150,36 +184,7 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
     }
   }
 
-  tryCatch({
-    if (!is.null(p$x$data)) {
-      for (i in seq_along(p$x$data)) {
-        if (!is.null(p$x$data[[i]]$name)) {
-          if (grepl("Clonal", p$x$data[[i]]$name, ignore.case = TRUE) &&
-              !grepl("Subclonal", p$x$data[[i]]$name, ignore.case = TRUE)) {
-            p$x$data[[i]]$name <- "Clonal"
-          } else if (grepl("Subclonal", p$x$data[[i]]$name, ignore.case = TRUE)) {
-            p$x$data[[i]]$name <- "Subclonal"
-          }
-        }
-      }
-
-      legend_names <- sapply(p$x$data, function(x) x$name)
-      first_clonal <- which(legend_names == "Clonal")[1]
-      first_subclonal <- which(legend_names == "Subclonal")[1]
-
-      for (i in seq_along(p$x$data)) {
-        if (!is.null(p$x$data[[i]]$showlegend) && p$x$data[[i]]$showlegend) {
-          if (p$x$data[[i]]$name == "Clonal" && !is.na(first_clonal) && i != first_clonal) {
-            p$x$data[[i]]$showlegend <- FALSE
-          } else if (p$x$data[[i]]$name == "Subclonal" && !is.na(first_subclonal) && i != first_subclonal) {
-            p$x$data[[i]]$showlegend <- FALSE
-          }
-        }
-      }
-    }
-  }, error = function(e) {
-    warning("Error fixing legend: ", e$message)
-  })
+  p <- fix_plotly_legend(p)
 
   p <- plotly::layout(p, hovermode = "closest")
 
@@ -296,36 +301,7 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
     }
   }
 
-  tryCatch({
-    if (!is.null(p$x$data)) {
-      for (i in seq_along(p$x$data)) {
-        if (!is.null(p$x$data[[i]]$name)) {
-          if (grepl("Clonal", p$x$data[[i]]$name, ignore.case = TRUE) &&
-              !grepl("Subclonal", p$x$data[[i]]$name, ignore.case = TRUE)) {
-            p$x$data[[i]]$name <- "Clonal"
-          } else if (grepl("Subclonal", p$x$data[[i]]$name, ignore.case = TRUE)) {
-            p$x$data[[i]]$name <- "Subclonal"
-          }
-        }
-      }
-
-      legend_names <- sapply(p$x$data, function(x) x$name)
-      first_clonal <- which(legend_names == "Clonal")[1]
-      first_subclonal <- which(legend_names == "Subclonal")[1]
-
-      for (i in seq_along(p$x$data)) {
-        if (!is.null(p$x$data[[i]]$showlegend) && p$x$data[[i]]$showlegend) {
-          if (p$x$data[[i]]$name == "Clonal" && !is.na(first_clonal) && i != first_clonal) {
-            p$x$data[[i]]$showlegend <- FALSE
-          } else if (p$x$data[[i]]$name == "Subclonal" && !is.na(first_subclonal) && i != first_subclonal) {
-            p$x$data[[i]]$showlegend <- FALSE
-          }
-        }
-      }
-    }
-  }, error = function(e) {
-    warning("Error fixing legend: ", e$message)
-  })
+  p <- fix_plotly_legend(p)
 
   p <- plotly::layout(p, hovermode = "closest")
 
