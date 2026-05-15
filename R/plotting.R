@@ -105,20 +105,27 @@ create_vaf_plot <- function(merged_df, sample_name, purity, read_depth,
   }
   
   color_aesthetic <- if(color_by == "clonality") "Subclonality" else "ReadDepth"
-  
+
+  rug_layer <- if (return_gg) {
+    list(
+      geom_point(shape = 124, size = 9, alpha = 0.3,
+                 aes(y = -0.75, color = !!sym(color_aesthetic))),
+      expand_limits(y = -1)
+    )
+  } else {
+    list(
+      suppressWarnings(
+        geom_point(shape = 142, size = 5, alpha = 0.3,
+                   aes(y = -0.75, color = !!sym(color_aesthetic),
+                       text = paste0("chr", chromosome_index, ":", position)))
+      )
+    )
+  }
+
   plot <- suppressWarnings(
     ggplot(merged_df, aes(x = AF)) +
       geom_density(fill = "gray", alpha = .6, adjust = smoothing_factor) +
-      geom_point(
-        shape = 142,
-        size = 5,
-        alpha = 0.3,
-        aes(
-          y = -0.75,
-          color = !!sym(color_aesthetic),
-          text = paste0("chr", chromosome_index, ":", position)
-        )
-      ) +
+      rug_layer +
       xlim(0, 1) +
       ggtitle(paste(
         sample_name,
@@ -219,20 +226,27 @@ create_cp_plot <- function(merged_df, sample_name, smoothing_factor,
   }
   
   color_aesthetic <- if(color_by == "clonality") "Subclonality" else "ReadDepth"
-  
+
+  rug_layer <- if (return_gg) {
+    list(
+      geom_point(shape = 124, size = 9, alpha = 0.3,
+                 aes(y = -0.75, color = !!sym(color_aesthetic))),
+      expand_limits(y = -1)
+    )
+  } else {
+    list(
+      suppressWarnings(
+        geom_point(shape = 142, size = 5, alpha = 0.3,
+                   aes(y = -0.75, color = !!sym(color_aesthetic),
+                       text = paste0("chr", chromosome_index, ":", position)))
+      )
+    )
+  }
+
   plot <- suppressWarnings(
     ggplot(merged_df, aes(x = CP_unpenalized)) +
       geom_density(fill = "#047857", alpha = .6, adjust = smoothing_factor) +
-      geom_point(
-        shape = 142,
-        size = 5,
-        alpha = 0.3,
-        aes(
-          y = -0.75,
-          color = !!sym(color_aesthetic),
-          text = paste0("chr", chromosome_index, ":", position)
-        )
-      ) +
+      rug_layer +
       xlim(0, 1.5) +
       ggtitle(paste(sample_name, " - Estimated mutation-specific CP")) +
       create_annotations(subclonality_counts) +
