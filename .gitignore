@@ -1,0 +1,17 @@
+# Download data. The archives and per-sample result trees are published
+# separately (see README); they are far too large for git.
+dataSource/
+
+# CliPP itself is a separate project, cloned into forCliPP/CliPP at setup.
+# Only our own build helper and notes live here.
+forCliPP/CliPP/
+
+# Internal record keeping, deliberately not distributed.
+internal/
+
+# R / editor / OS
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
